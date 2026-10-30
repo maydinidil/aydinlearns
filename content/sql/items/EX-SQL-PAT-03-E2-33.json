@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-PAT-03-E2-33",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "month_over_month",
+    "percent_change",
+    "sales",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-fix-change-base",
+  "template_params": {
+    "table": "sales",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each month of 2025, what was the net revenue of Voltmarkt's in-store orders (channel 'store'), and how much did it change from the previous calendar month, as a percentage of the previous month's revenue (12.5 for 12.5%), rounded to 1 decimal? Order dates are UTC days, and every month of 2025 has in-store orders. Only 2025 counts, so January shows change_pct as missing. Return three columns, in this order: month (the first day of the month), revenue_eur and change_pct. Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "change_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the change is divided by: which month's revenue is the base of a month-on-month change?",
+    "Growth is measured against where you started, so the base is last month's revenue, not this month's."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 420,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 421,
+      "to": 447,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 448,
+      "to": 533,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 534,
+      "to": 547,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE channel = 'store'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY order_month\n), compared AS (\n  -- one row per month of 2025, with the month before\n  SELECT month, revenue_eur, LAG(revenue_eur) OVER (ORDER BY month) AS prev_revenue_eur\n  FROM monthly\n)\nSELECT month, revenue_eur,\n  ROUND(100.0 * (revenue_eur - prev_revenue_eur) / revenue_eur, 1) AS change_pct\nFROM compared",
+  "starter_error_id": "ERR-LOG-49",
+  "time_target_ms": 240000,
+  "why_this_works": "Dividing the change by last month's revenue measures growth from where the month started; this month's revenue as the base understates a rise."
+}

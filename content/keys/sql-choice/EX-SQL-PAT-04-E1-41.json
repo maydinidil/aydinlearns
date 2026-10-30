@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-04-E1-41",
+  "item_version": 1,
+  "correct_oid": "oe7c560d",
+  "explanation": "The query starts from budget_monthly, which has a YouTube row for every month, so all six months come back. The LEFT JOIN finds no spend for April and June, which leaves a missing value, and COALESCE turns it into 0. Starting from the spend alone would give only four months, and nothing in the query copies the month before.",
+  "solver": {
+    "prompt_hash": "cbbdc6f051ff4c8d",
+    "grader_version": "choice.3",
+    "chosen": "oe7c560d",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.762Z"
+  }
+}

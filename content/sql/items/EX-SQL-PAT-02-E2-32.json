@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-PAT-02-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "rank_vs_row_number",
+    "fix",
+    "orders"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-fix-rank-for-keep-one",
+  "template_params": {
+    "table": "orders",
+    "key": "customer",
+    "count_by": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many customers placed their latest order in a store, and how many on the web? order_ts holds UTC time, and channel says store or web. Orders with a missing customer_id are guest orders and do not count. Each customer counts once, under the channel of the order with the latest order_ts. When two orders of a customer tie on order_ts, the lower order_id is kept. Return two columns, in this order: channel and customers. Return one row for each channel. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the ranking function: each customer must count once, even when two latest orders share a moment.",
+    "A ranking that gives tied orders the same number keeps both; one that numbers every row apart needs the stated tie-break as its last sort key."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 58,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 59,
+      "to": 182,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 183,
+      "to": 196,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 197,
+      "to": 228,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 231,
+      "to": 268,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 269,
+      "to": 280,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 281,
+      "to": 293,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 294,
+      "to": 310,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT customer_id, channel,\n         RANK() OVER (PARTITION BY customer_id ORDER BY order_ts DESC) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)\nSELECT channel, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY channel",
+  "time_target_ms": 240000,
+  "why_this_works": "ROW_NUMBER with order_id after order_ts keeps one order per customer even when two share a moment, so each customer counts once.",
+  "starter_error_id": "ERR-LOG-40"
+}

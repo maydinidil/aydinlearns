@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-02-E1-01",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per competitor check of a TV & Video product\n  SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur,\n         ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts DESC, cp.competitor) AS rn\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n)\nSELECT product_id, competitor, observed_ts, price_eur\nFROM ranked\nWHERE rn = 1",
+  "alternatives": [
+    "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur\nFROM competitor_prices cp\nJOIN products p ON p.product_id = cp.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.parent_category = 'TV & Video'\n  AND NOT EXISTS (SELECT 1 FROM competitor_prices cp2\n                  WHERE cp2.product_id = cp.product_id\n                    AND (cp2.observed_ts > cp.observed_ts OR (cp2.observed_ts = cp.observed_ts AND cp2.competitor < cp.competitor)))",
+    "SELECT t.product_id, t.competitor, t.observed_ts, t.price_eur\nFROM (\n  -- one row per competitor check, numbered within its product from the latest\n  SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur,\n         ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts DESC, cp.competitor) AS rn\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n) AS t\nWHERE t.rn = 1"
+  ],
+  "other_way": {
+    "sql": "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur\nFROM competitor_prices cp\nJOIN products p ON p.product_id = cp.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.parent_category = 'TV & Video'\n  AND NOT EXISTS (SELECT 1 FROM competitor_prices cp2\n                  WHERE cp2.product_id = cp.product_id\n                    AND (cp2.observed_ts > cp.observed_ts OR (cp2.observed_ts = cp.observed_ts AND cp2.competitor < cp.competitor)))",
+    "tradeoff": "NOT EXISTS keeps the check no later one beats, with no window, but the tie-break has to be written out by hand."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (  -- one row per competitor check of a TV & Video product\n  SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur,\n         ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts, cp.competitor) AS rn\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n)\nSELECT product_id, competitor, observed_ts, price_eur\nFROM ranked\nWHERE rn = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per competitor check of a TV & Video product\n  SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur,\n         RANK() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts DESC) AS rn\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n)\nSELECT product_id, competitor, observed_ts, price_eur\nFROM ranked\nWHERE rn = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH ranked AS (  -- one row per competitor check of a TV & Video product\n  SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur,\n         ROW_NUMBER() OVER (ORDER BY cp.observed_ts DESC, cp.competitor) AS rn\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n)\nSELECT product_id, competitor, observed_ts, price_eur\nFROM ranked\nWHERE rn = 1"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per competitor check of a TV & Video product\n  SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur,\n         ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY ___) AS rn\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n)\nSELECT product_id, competitor, observed_ts, price_eur\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "d9d2390fc84cdb5e",
+    "schema_version": "645ffbac6756",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH r AS (SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts DESC, cp.competitor) AS rn FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.parent_category = 'TV & Video')\nSELECT product_id, competitor, observed_ts, price_eur FROM r WHERE rn = 1\n",
+    "at": "2026-10-28T14:57:00.110Z"
+  }
+}

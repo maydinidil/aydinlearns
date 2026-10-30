@@ -1,0 +1,71 @@
+{
+  "id": "EX-SQL-PAT-09-E1-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_rows",
+    "promo",
+    "baseline"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-predict-window-days",
+  "template_params": {
+    "table": "calendar"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Promotion 36 runs from 7 to 20 April 2025, both days included. calendar holds one row for every day of 2024 and 2025. An analyst wants a baseline as long as the promotion, ending the day before it starts. How many rows does this query return? Type the number.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT cal_date\nFROM calendar\nWHERE DATE '2025-04-07' - cal_date BETWEEN 1 AND DATE '2025-04-20' - DATE '2025-04-07'",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

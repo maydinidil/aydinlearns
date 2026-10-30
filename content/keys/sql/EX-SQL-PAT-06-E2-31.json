@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-06-E2-31",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       date_diff('month', date_trunc('month', u.signup_ts), date_trunc('month', e.event_ts)) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\nGROUP BY cohort_month, month_offset",
+  "alternatives": [
+    "WITH active AS (  -- one row per user and month with an activation event\n  SELECT DISTINCT u.user_id,\n         CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n         date_diff('month', u.signup_ts, e.event_ts) AS month_offset\n  FROM signups u\n  JOIN activation_events e ON e.user_id = u.user_id\n  WHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\n)\nSELECT cohort_month, month_offset, COUNT(*) AS active_users\nFROM active\nGROUP BY cohort_month, month_offset",
+    "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       (year(e.event_ts) * 12 + month(e.event_ts)) - (year(u.signup_ts) * 12 + month(u.signup_ts)) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\nGROUP BY 1, 2"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       (year(e.event_ts) * 12 + month(e.event_ts)) - (year(u.signup_ts) * 12 + month(u.signup_ts)) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\nGROUP BY 1, 2",
+    "tradeoff": "Year times 12 plus month gives the same offset on any engine, though date_diff on month starts says what it means more plainly."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-46",
+      "sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       date_diff('day', u.signup_ts, e.event_ts) // 30 AS month_offset,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\nGROUP BY cohort_month, month_offset"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       date_diff('month', date_trunc('month', u.signup_ts), date_trunc('month', e.event_ts)) AS month_offset,\n       COUNT(*) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\nGROUP BY cohort_month, month_offset"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-46",
+      "sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       CAST(date_diff('day', u.signup_ts, e.event_ts) / 30 AS INTEGER) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\nGROUP BY cohort_month, month_offset"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       date_diff('month', ___, ___) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\nGROUP BY cohort_month, month_offset",
+  "solver": {
+    "prompt_hash": "edf4b9ef076af716",
+    "schema_version": "40925758ae44",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT CAST(date_trunc('month', timezone('UTC', u.signup_ts)) AS DATE) AS cohort_month,\n       date_diff('month', date_trunc('month', timezone('UTC', u.signup_ts)), date_trunc('month', timezone('UTC', e.event_ts))) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\nGROUP BY 1, 2\n",
+    "at": "2026-10-28T14:57:07.590Z"
+  }
+}

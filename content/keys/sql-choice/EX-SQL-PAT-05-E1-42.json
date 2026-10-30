@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-05-E1-42",
+  "item_version": 1,
+  "value": 48,
+  "explanation": "The query groups by country and device, so it makes one row for each of the 16 countries times 3 devices: 48 rows. In each row only one of the three counts is above 0. A wide table groups by the row label alone, here the country, which would give 16 rows.",
+  "solver": {
+    "prompt_hash": "5906cd7e9241bc5e",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "48",
+    "at": "2026-10-28T14:57:24.771Z"
+  }
+}

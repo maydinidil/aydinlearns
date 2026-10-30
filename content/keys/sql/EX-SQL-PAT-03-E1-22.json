@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E1-22",
+  "item_version": 1,
+  "reference_sql": "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(reconciliations_run) AS reconciliations\n  FROM usage_weekly\n  WHERE week_start BETWEEN DATE '2025-10-06' AND DATE '2025-12-29'\n  GROUP BY week_start\n)\nSELECT week_start, reconciliations,\n  reconciliations - LAG(reconciliations) OVER (ORDER BY week_start) AS change_reconciliations\nFROM weekly",
+  "alternatives": [
+    "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(reconciliations_run) AS reconciliations\n  FROM usage_weekly\n  WHERE week_start BETWEEN DATE '2025-10-06' AND DATE '2025-12-29'\n  GROUP BY week_start\n)\nSELECT w.week_start, w.reconciliations, w.reconciliations - p.reconciliations AS change_reconciliations\nFROM weekly w\nLEFT JOIN weekly p ON p.week_start = w.week_start - 7",
+    "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(reconciliations_run) AS reconciliations\n  FROM usage_weekly\n  WHERE week_start BETWEEN DATE '2025-10-06' AND DATE '2025-12-29'\n  GROUP BY week_start\n)\nSELECT week_start, reconciliations,\n  reconciliations - LAG(reconciliations, 1) OVER (ORDER BY week_start) AS change_reconciliations\nFROM weekly"
+  ],
+  "other_way": {
+    "sql": "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(reconciliations_run) AS reconciliations\n  FROM usage_weekly\n  WHERE week_start BETWEEN DATE '2025-10-06' AND DATE '2025-12-29'\n  GROUP BY week_start\n)\nSELECT w.week_start, w.reconciliations, w.reconciliations - p.reconciliations AS change_reconciliations\nFROM weekly w\nLEFT JOIN weekly p ON p.week_start = w.week_start - 7",
+    "tradeoff": "Joining each week to the Monday seven days earlier finds the week before by date, but LAG is shorter when no week is missing."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(reconciliations_run) AS reconciliations\n  FROM usage_weekly\n  WHERE week_start BETWEEN DATE '2025-10-06' AND DATE '2025-12-29'\n  GROUP BY week_start\n) SELECT week_start, reconciliations, LAG(reconciliations) OVER (ORDER BY week_start) - reconciliations AS change_reconciliations FROM weekly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(reconciliations_run) AS reconciliations\n  FROM usage_weekly\n  WHERE week_start BETWEEN DATE '2025-10-06' AND DATE '2025-12-29'\n  GROUP BY week_start\n) SELECT week_start, reconciliations, reconciliations - LAG(reconciliations) OVER (ORDER BY reconciliations) AS change_reconciliations FROM weekly"
+    }
+  ],
+  "hint3_partial": "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(reconciliations_run) AS reconciliations\n  FROM usage_weekly\n  WHERE week_start BETWEEN DATE '2025-10-06' AND DATE '2025-12-29'\n  GROUP BY week_start\n)\nSELECT week_start, reconciliations,\n  reconciliations - LAG(reconciliations) OVER (ORDER BY ___) AS change_reconciliations\nFROM weekly",
+  "solver": {
+    "prompt_hash": "47ae494b51b589f9",
+    "schema_version": "a07a0249d10a",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH w AS (\n  SELECT week_start, SUM(reconciliations_run) AS reconciliations\n  FROM usage_weekly\n  WHERE week_start BETWEEN DATE '2025-10-06' AND DATE '2025-12-29'\n  GROUP BY week_start\n)\nSELECT week_start, reconciliations, reconciliations - LAG(reconciliations) OVER (ORDER BY week_start) AS change_reconciliations\nFROM w\n",
+    "at": "2026-10-28T14:57:02.326Z"
+  }
+}

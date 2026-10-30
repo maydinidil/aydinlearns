@@ -1,0 +1,201 @@
+{
+  "id": "EX-SQL-PAT-01-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "top_n_per_group",
+    "row_number",
+    "campaigns"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-PAT-01"
+  ],
+  "template_id": "T-PAT-01-predict-result-top-1-per-group",
+  "template_params": {
+    "table": "campaigns",
+    "group": "channel_group",
+    "n": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Which result does this query return? The campaigns table holds these numbers of campaigns per channel: nonbrand_search 48 and brand_search 8 (channel_group paid_search); meta 48 and linkedin 18 (paid_social); affiliates 22 and review_sites 12 (paid_partner); youtube 24 (paid_video). The unpaid channels organic, direct and referral have no campaigns.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "WITH channel_campaigns AS (\n  SELECT ch.channel_group, ch.channel_name, COUNT(*) AS n_campaigns\n  FROM campaigns c\n  JOIN channels ch ON ch.channel_id = c.channel_id\n  GROUP BY ch.channel_group, ch.channel_name\n),\nranked AS (\n  SELECT channel_group, channel_name, n_campaigns,\n         ROW_NUMBER() OVER (PARTITION BY channel_group ORDER BY n_campaigns DESC, channel_name) AS rn\n  FROM channel_campaigns\n)\nSELECT channel_group, channel_name, n_campaigns\nFROM ranked\nWHERE rn = 1",
+  "options": [
+    {
+      "oid": "o17de5c8",
+      "text": "4 rows: review_sites, brand_search, linkedin and youtube",
+      "misconception_id": "ERR-LOG-18",
+      "table": {
+        "columns": [
+          "channel_group",
+          "channel_name",
+          "n_campaigns"
+        ],
+        "rows": [
+          [
+            "paid_partner",
+            "review_sites",
+            12
+          ],
+          [
+            "paid_search",
+            "brand_search",
+            8
+          ],
+          [
+            "paid_social",
+            "linkedin",
+            18
+          ],
+          [
+            "paid_video",
+            "youtube",
+            24
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "obfb76d4",
+      "text": "4 rows: affiliates, nonbrand_search, meta and youtube",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "channel_group",
+          "channel_name",
+          "n_campaigns"
+        ],
+        "rows": [
+          [
+            "paid_partner",
+            "affiliates",
+            22
+          ],
+          [
+            "paid_search",
+            "nonbrand_search",
+            48
+          ],
+          [
+            "paid_social",
+            "meta",
+            48
+          ],
+          [
+            "paid_video",
+            "youtube",
+            24
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oc562297",
+      "text": "1 row: meta",
+      "misconception_id": "ERR-LOG-37",
+      "table": {
+        "columns": [
+          "channel_group",
+          "channel_name",
+          "n_campaigns"
+        ],
+        "rows": [
+          [
+            "paid_social",
+            "meta",
+            48
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o53e3d4d",
+      "text": "5 rows: affiliates, nonbrand_search, meta, youtube and direct",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "channel_group",
+          "channel_name",
+          "n_campaigns"
+        ],
+        "rows": [
+          [
+            "paid_partner",
+            "affiliates",
+            22
+          ],
+          [
+            "paid_search",
+            "nonbrand_search",
+            48
+          ],
+          [
+            "paid_social",
+            "meta",
+            48
+          ],
+          [
+            "paid_video",
+            "youtube",
+            24
+          ],
+          [
+            "unpaid",
+            "direct",
+            0
+          ]
+        ]
+      }
+    }
+  ]
+}

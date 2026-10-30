@@ -1,0 +1,148 @@
+{
+  "id": "EX-SQL-PAT-04-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "zero_fill",
+    "budget_monthly",
+    "ad_spend_daily"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-budget-spine",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "spine": "budget_monthly"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each paid channel and each month of 2024 in budget_monthly, show the budget and what the channel actually spent. Spend days are UTC days. Every channel and month with a budget row has a row, and a month with no spend shows 0. Return four columns, in this order: channel_id, month (the first day of the month), budget_eur and spend_eur. Return one row for each channel and month of 2024 in budget_monthly. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, start from budget_monthly, which already has a row for every paid channel and month, and attach the monthly spend.",
+    "Match the spend on the channel and the month, keep every budget row, and show 0 where the channel spent nothing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 396,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 397,
+      "to": 478,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 479,
+      "to": 500,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 501,
+      "to": 571,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 572,
+      "to": 633,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "budget_monthly is a ready-made spine of channels and months; the LEFT JOIN keeps a budgeted month with no spend, shown as 0."
+}

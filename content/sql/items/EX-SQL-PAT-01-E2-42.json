@@ -1,0 +1,97 @@
+{
+  "id": "EX-SQL-PAT-01-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "top_n_per_group",
+    "row_number",
+    "tie_break",
+    "mrr",
+    "fx_rates"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-PAT-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-PAT-01-choose-top-n-exactly-n",
+  "template_params": {
+    "table": "subscription_events",
+    "group": "segment",
+    "n": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Which query returns exactly the 2 accounts of each segment with the highest MRR in euros on 2025-12-31, in the columns segment, account_id and mrr_eur? An account's MRR on that day is the sum of its subscription events' mrr_delta_local up to that day, converted at the fx_rates rate of 2025-12-31. When accounts of a segment tie on MRR, the lower account_id comes first.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o51c01c8",
+      "text": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n),\nranked AS (  -- one row per account\n  SELECT segment, account_id, mrr_eur,\n         RANK() OVER (PARTITION BY segment ORDER BY mrr_eur DESC) AS rn\n  FROM account_mrr\n)\nSELECT segment, account_id, mrr_eur\nFROM ranked\nWHERE rn <= 2",
+      "misconception_id": "ERR-LOG-40"
+    },
+    {
+      "oid": "ob19f948",
+      "text": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n),\nranked AS (  -- one row per account\n  SELECT segment, account_id, mrr_eur,\n         ROW_NUMBER() OVER (ORDER BY mrr_eur DESC, account_id) AS rn\n  FROM account_mrr\n)\nSELECT segment, account_id, mrr_eur\nFROM ranked\nWHERE rn <= 2",
+      "misconception_id": "ERR-LOG-37"
+    },
+    {
+      "oid": "o71b2448",
+      "text": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n),\nranked AS (  -- one row per account\n  SELECT segment, account_id, mrr_eur,\n         ROW_NUMBER() OVER (PARTITION BY segment ORDER BY mrr_eur, account_id) AS rn\n  FROM account_mrr\n)\nSELECT segment, account_id, mrr_eur\nFROM ranked\nWHERE rn <= 2",
+      "misconception_id": "ERR-LOG-18"
+    },
+    {
+      "oid": "oa71951f",
+      "text": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n),\nranked AS (  -- one row per account\n  SELECT segment, account_id, mrr_eur,\n         ROW_NUMBER() OVER (PARTITION BY segment ORDER BY mrr_eur DESC, account_id) AS rn\n  FROM account_mrr\n)\nSELECT segment, account_id, mrr_eur\nFROM ranked\nWHERE rn <= 2",
+      "misconception_id": null
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "id": "EX-SQL-PAT-05-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "activation_events",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-month-by-event",
+  "template_params": {
+    "table": "activation_events",
+    "columns": "event_name"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each month of 2025, how many Mailvora activation events of each kind happened? event_ts holds UTC time: take the month in UTC. Return six columns, in this order: month (the first day of the month), first_campaign_sent, campaign_sent, list_imported, automation_created and form_published, each the number of events with that event_name. A kind with no events in a month shows 0. Return one row for each month of 2025 with activation events. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "first_campaign_sent",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_sent",
+        "type_class": "numeric"
+      },
+      {
+        "name": "list_imported",
+        "type_class": "numeric"
+      },
+      {
+        "name": "automation_created",
+        "type_class": "numeric"
+      },
+      {
+        "name": "form_published",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "first_campaign_sent",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "campaign_sent",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "list_imported",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "automation_created",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "form_published",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the 2025 events by month and count each event name in its own column.",
+    "Group by the month only, so each month is one row; a filtered count gives 0 for a kind that did not happen."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 61,
+      "to": 448,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 449,
+      "to": 471,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 472,
+      "to": 580,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 581,
+      "to": 633,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Five filtered counts turn the event names into columns on one row per month, with 0 for a kind with no events."
+}

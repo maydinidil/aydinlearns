@@ -1,0 +1,200 @@
+{
+  "id": "EX-SQL-PAT-08-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "running_sum",
+    "activation_events",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-WIN-04",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-month-sessions-events",
+  "template_params": {
+    "table": "activation_events",
+    "from": "2025-10",
+    "to": "2025-12"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each month from October to December 2025, how many activation sessions started, and how many events did a session hold on average? Work the sessions out over each user's whole history and count a session in the UTC month of its first event, with all of its events. A user's first activation event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant. When two events of a user share a moment, take them in event_name order, A to Z. Round the average to 2 decimals with ROUND. Return three columns, in this order: month_start, the first day of the month, sessions and avg_events. Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_events",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_events",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each user's sessions, build one row per session, then group the sessions by the month they started.",
+    "Filter on the session's start after the sessions are built, so a session is counted in the month of its first event."
+  ],
+  "subgoals": [
+    {
+      "from": 49,
+      "to": 88,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 89,
+      "to": 175,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 176,
+      "to": 200,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 251,
+      "to": 290,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 291,
+      "to": 399,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 400,
+      "to": 411,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 463,
+      "to": 490,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 491,
+      "to": 632,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 633,
+      "to": 647,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 690,
+      "to": 770,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 771,
+      "to": 786,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 787,
+      "to": 817,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 820,
+      "to": 951,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 952,
+      "to": 965,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 966,
+      "to": 1084,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1085,
+      "to": 1142,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The sessions are built from each user's full history first, so the month and the size of each session are both right."
+}

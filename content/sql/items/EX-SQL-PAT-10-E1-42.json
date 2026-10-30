@@ -1,0 +1,77 @@
+{
+  "id": "EX-SQL-PAT-10-E1-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_rows",
+    "mrr",
+    "spine"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-predict-spine-rows",
+  "template_params": {
+    "table": "accounts"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "accounts holds 138 Enterprise accounts. How many rows does this query return? Type the number.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT a.account_id, m.month_end\nFROM accounts a\nCROSS JOIN (\n  SELECT CAST(range AS DATE) - 1 AS month_end\n  FROM range(DATE '2025-02-01', DATE '2026-02-01', INTERVAL 1 MONTH)\n) AS m\nWHERE a.segment = 'Enterprise'",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

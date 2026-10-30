@@ -22,10 +22,14 @@ test('S6-13: a case may name its schema; absent means voltmarkt, and a named one
   }
 });
 
-test('S6-14: the worlds are PRICE, RETAIL, MKT and DQ; any other world is refused', () => {
-  assert.deepEqual([...CASE_WORLDS], ['PRICE', 'RETAIL', 'MKT', 'DQ']);
+test('S6-14, S8-13: the worlds are PRICE, RETAIL, MKT, DQ and, from sprint 8, SAAS; any other world is refused', () => {
+  assert.deepEqual([...CASE_WORLDS], ['PRICE', 'RETAIL', 'MKT', 'DQ', 'SAAS']);
   for (const w of CASE_WORLDS) assert.deepEqual(validateCaseRecord(withField({ world: w })), [], w);
-  assert.ok(validateCaseRecord(withField({ world: 'SAAS' })).some((m) => /world must be one of PRICE, RETAIL, MKT, DQ/.test(m)));
+  assert.deepEqual(validateCaseRecord(withField({ world: 'SAAS', company_id: 'ledgerloop', schema: 'ledgerloop' })), [],
+    'S8-13: CASE-LEDGER-L6 is a SAAS case on ledgerloop');
+  for (const bad of ['FINANCE', 'saas', 'SaaS']) {
+    assert.ok(validateCaseRecord(withField({ world: bad })).some((m) => /world must be one of PRICE, RETAIL, MKT, DQ, SAAS/.test(m)), JSON.stringify(bad));
+  }
 });
 
 const key: CaseKey = { case_id: 'CASE-VOLT-L1', truths: { CP4: 'SELECT 1' }, choices: {} };

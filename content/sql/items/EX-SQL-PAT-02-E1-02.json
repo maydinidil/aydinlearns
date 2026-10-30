@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-PAT-02-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "row_number",
+    "tie_break",
+    "activation_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-latest-per-key-counted",
+  "template_params": {
+    "table": "activation_events",
+    "key": "user",
+    "count_by": "event_name"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each activation event name, how many users have it as their latest activation event? event_ts holds UTC instants. Each activated user counts once, under the event_name of their latest event. When two events of a user tie on event_ts, the one whose event_name comes first alphabetically is kept. Return two columns, in this order: event_name and users. Return one row for each event_name that is some user's latest. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_name",
+        "type_class": "text"
+      },
+      {
+        "name": "users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each user's events from the latest event_ts down, keep number 1, then count those rows by event_name.",
+    "Exactly one event per user needs the stated tie-break as the last sort key of the numbering."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 49,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 50,
+      "to": 170,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 171,
+      "to": 195,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 198,
+      "to": 234,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 235,
+      "to": 246,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 247,
+      "to": 259,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 260,
+      "to": 279,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Keeping each user's event numbered 1, latest first with event_name splitting a tie, leaves one row per user to count by event name."
+}

@@ -1,0 +1,168 @@
+{
+  "case_id": "CASE-SAAS-02",
+  "kind": "inbox",
+  "level": 6,
+  "world": "SAAS",
+  "company_id": "ledgerloop",
+  "schema": "ledgerloop",
+  "title": "Monthly logo churn rate",
+  "persona": {
+    "name": "Wannes",
+    "role": "Head of customer success"
+  },
+  "brief": {
+    "decision": "Whether logo churn needs a retention plan, and which months to look into first",
+    "deadline": "Wannes's quarterly business review on Thursday"
+  },
+  "data_needed": [
+    "mrr_monthly"
+  ],
+  "expected_output": {
+    "columns": [
+      "month",
+      "accounts_at_start",
+      "churned_accounts",
+      "logo_churn_pct"
+    ],
+    "grain": "one row per month from February to September 2025",
+    "sort": [
+      {
+        "column": "month",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "prompt": "Wannes, the head of customer success, wants LedgerLoop's logo churn rate for each month from February to September 2025: the share of accounts lost in the month. mrr_monthly holds one row per account and month, with the account's MRR on the month's last day, and no row for an account with no MRR then. Before you write any SQL, which accounts should the rate for March 2025 divide by?",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-02:CP1",
+      "options": [
+        {
+          "oid": "o19e27c2",
+          "text": "The accounts with MRR on 31 March 2025, the last day of the month in which the churn is counted."
+        },
+        {
+          "oid": "o5377f3b",
+          "text": "The accounts with MRR on 28 February 2025, the last day of the month before the one being measured."
+        },
+        {
+          "oid": "o3890e1f",
+          "text": "The accounts with MRR on 28 February 2025 or on 31 March 2025, with each of those accounts counted once."
+        },
+        {
+          "oid": "o95eda7f",
+          "text": "Every account with a subscription that started on or before 31 March 2025, whether or not it still runs."
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "prompt": "Wannes first wants to know how many customers LedgerLoop lost from February to September 2025. mrr_monthly holds one row per account and month, with the account's MRR on the month's last day, and no row for a month in which the account had no MRR. An account churns in a month when it has a row for the month before and no row for that month. How many different accounts churned in at least one month from February to September 2025? Count an account that churned twice once. Type a whole number.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-SAAS-02:CP2",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "accounts"
+      },
+      "truth_key": "CASE-SAAS-02:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Wannes's question.",
+      "credits_concepts": [
+        "SQL-PAT-10",
+        "SQL-JOIN-02",
+        "SQL-CTE-01",
+        "SQL-AGG-04",
+        "SQL-DATE-02"
+      ],
+      "item_id": "EX-CASE-SAAS-02"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Wannes's headline for the review is the churn rate over the whole period. mrr_monthly holds one row per account and month, with the account's MRR on the month's last day, and no row for a month in which the account had no MRR. For each month from February to September 2025, the accounts at its start are those with a row for the month before, and its churned accounts are those of them with no row for that month. Add up the churned accounts of the eight months, and add up the accounts at the start of the eight months. What is 100 times the first total divided by the second? Type the percentage rounded to 1 decimal, for example 12.5.",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-02:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-SAAS-02:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "prompt": "Wannes's table shows the logo churn rate at its highest in March 2025, and below that peak in every month from April to September. The Starter plan's list price rose on 1 February 2025, at each Starter subscription's first renewal from that day. Nothing else has been checked yet. Wannes asks: what can the review say about churn?",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-02:CP5",
+      "options": [
+        {
+          "oid": "o2527a2f",
+          "text": "Churn is under control: the rate fell after March and stayed lower, so the retention work done since the spring fixed it."
+        },
+        {
+          "oid": "ob8afe15",
+          "text": "The price rise caused the March peak, so taking the Starter price back down would bring churn back to its old level."
+        },
+        {
+          "oid": "o01c8e6d",
+          "text": "Churn is too small to matter: a rate of a few percent a month means only a few percent of accounts leave in a year."
+        },
+        {
+          "oid": "oac4b0f2",
+          "text": "Accounts left fastest in March, but counts show neither the revenue lost nor the cause, so check segment and plan next."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "prompt": "Write 2 to 4 sentences for Wannes's quarterly business review: the headline rate, when churn peaked, one caveat and one next step.",
+      "credits_concepts": []
+    }
+  ],
+  "model_plan": "Metric formula: accounts_at_start, the accounts with MRR on the last day of the month before; churned_accounts, those of them with no MRR on the month's last day; logo_churn_pct, 100 times churned_accounts divided by accounts_at_start, rounded to 1 decimal.\nOutput grain: one row per month from February to September 2025.\nTables and keys: mrr_monthly twice: each account's row for a month from January to August 2025, left joined to the same account's row for the month after, on account_id and month.\nFilters: the rows of the months from 2025-01-01 to 2025-08-01 as starting points, so the months reported run from February to September 2025.\nEdge cases: a churned account has no row in the month it churned, so the join must keep the starting rows with no match; an account that is new or comes back during a month is not in that month's base; an account that leaves and comes back within one month has MRR on both last days and has not churned.\nExpected row count: 8",
+  "model_answer_template": "From February to September 2025, LedgerLoop lost {CP4} percent of its accounts a month across the period, {CP2} different accounts in all, with the rate at its highest in March and lower in every month after. The peak came just after the Starter price rise of 1 February 2025, which reached each Starter subscription at its first renewal, so SMB accounts on Starter are the first place to look, but these counts do not prove the cause. Logo churn also says nothing about revenue: losing many small accounts costs less MRR than losing a few large ones. Next, split the churned accounts by segment and plan, and set the churn MRR of the same months beside the counts.",
+  "follow_up_question": "Is the logo churn of February to September 2025 concentrated in one segment or plan?",
+  "data_source": {
+    "label": "Fictional, generated data: LedgerLoop",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 2,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-10"
+  ],
+  "metric_ids": [
+    "MET-SAAS-04"
+  ],
+  "find_ids": [
+    "FIND-02-05"
+  ],
+  "uses_raw": false
+}

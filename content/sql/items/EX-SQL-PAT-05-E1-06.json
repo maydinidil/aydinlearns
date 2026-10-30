@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-PAT-05-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "order_lines",
+    "promotions"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-product-by-promo",
+  "template_params": {
+    "table": "order_lines",
+    "columns": "promotion"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each Earbuds product (category_id 16) sold in 2025, how many units sold with a promotion and how many without one? A line has a promotion when order_lines.promo_id is not missing. order_ts holds UTC time, and 2025 runs from 1 January to 31 December in UTC. Return three columns, in this order: product_id, promo_units and full_price_units. A product with no units of a kind shows 0 there. Return one row for each Earbuds product sold in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "full_price_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "full_price_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the 2025 Earbuds lines by product and add up the units twice: once for promotion lines, once for the others.",
+    "Add up the quantity, not the number of lines, and give each sum an ELSE 0 so a product with no promotion shows 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 21,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 22,
+      "to": 191,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 192,
+      "to": 211,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 212,
+      "to": 253,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 254,
+      "to": 301,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 302,
+      "to": 429,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 430,
+      "to": 452,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Two sums of the quantity, each with its own condition and ELSE 0, split the units into promotion and full price on one row per product."
+}

@@ -1,0 +1,180 @@
+{
+  "case_id": "CASE-MKT-05",
+  "kind": "inbox",
+  "level": 6,
+  "world": "MKT",
+  "company_id": "ledgerloop",
+  "schema": "ledgerloop",
+  "title": "Lead funnel and cost per won deal by source, first half of 2025",
+  "persona": {
+    "name": "Nele",
+    "role": "Growth marketing manager"
+  },
+  "brief": {
+    "decision": "How to defend the mix of lead sources to the CMO, and where paid budget should move",
+    "deadline": "The CMO review at the end of the week"
+  },
+  "data_needed": [
+    "leads",
+    "opportunities",
+    "marketing_spend_monthly"
+  ],
+  "expected_output": {
+    "columns": [
+      "source",
+      "leads",
+      "lead_to_opp_pct",
+      "opp_to_won_pct",
+      "won",
+      "won_amount",
+      "spend",
+      "cost_per_won"
+    ],
+    "grain": "one row per lead source with at least one lead created in the first half of 2025",
+    "sort": [
+      {
+        "column": "won",
+        "desc": true
+      },
+      {
+        "column": "source",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "prompt": "Nele wants each lead source's funnel from lead to opportunity to won deal for the first half of 2025, so the sources can be compared on equal terms. Before you write any SQL, which rows should the funnel follow?",
+      "credits_concepts": [],
+      "item_id": "CASE-MKT-05:CP1",
+      "options": [
+        {
+          "oid": "o3dabdc7",
+          "text": "The opportunities created from January to June 2025, each traced back to the source of its lead, whichever month that lead itself was created in"
+        },
+        {
+          "oid": "o66b060f",
+          "text": "The leads created from January to June 2025, each followed to its opportunity and won deal whenever those came, up to the end of the data"
+        },
+        {
+          "oid": "o444527d",
+          "text": "The leads created from January to June 2025, counting only the opportunities and won deals that closed by 30 June 2025"
+        },
+        {
+          "oid": "oafe071b",
+          "text": "The deals won from January to June 2025, with their leads and opportunities counted back from those wins"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "prompt": "Nele wonders how much a cut-off at 30 June would hide. Take the leads with a created_at from 2025-01-01 00:00:00 up to but not including 2025-07-01 00:00:00 (Brussels local time). How many of them have an opportunity, a row in opportunities with the lead's lead_id, whose is_won is true and whose closed_at is on or after 2025-07-01 00:00:00? Type a whole number.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-MKT-05:CP2",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "deals"
+      },
+      "truth_key": "CASE-MKT-05:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Nele's question.",
+      "credits_concepts": [
+        "SQL-PAT-07",
+        "SQL-JOIN-03",
+        "SQL-JOIN-02",
+        "SQL-AGG-04",
+        "SQL-CLEAN-01",
+        "SQL-CTE-01"
+      ],
+      "item_id": "EX-CASE-MKT-05"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Nele's headline is the paid media cost per won deal of the five paid sources together: display, events, paid_search, paid_social and review_sites. Take the leads from those sources with a created_at from 2025-01-01 00:00:00 up to but not including 2025-07-01 00:00:00 (Brussels local time), and count their won deals: opportunities with the lead's lead_id whose is_won is true, whenever they closed. Divide the total spend_eur in marketing_spend_monthly for the months January to June 2025 by that count. What is the cost per won deal, in euros rounded to 2 decimals, for example 9,876.54?",
+      "credits_concepts": [],
+      "item_id": "CASE-MKT-05:CP4",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-MKT-05:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "prompt": "Nele's result shows that paid_search won the most deals, and that organic, partner, referral and outbound won deals at a cost per won deal of 0. What can Nele tell the CMO from this result alone?",
+      "credits_concepts": [],
+      "item_id": "CASE-MKT-05:CP5",
+      "options": [
+        {
+          "oid": "o294c71c",
+          "text": "Organic, partner, referral and outbound win deals at no cost, so moving the paid budget to them would win more deals for nothing."
+        },
+        {
+          "oid": "ob9e36a0",
+          "text": "The cost counts paid media only, so a cost of 0 means no media spend rather than a free deal, and every source's full cost per deal is higher."
+        },
+        {
+          "oid": "o9de1079",
+          "text": "Paid_search is the best source because it won the most deals, so its budget should grow before the cost per won deal of each source is compared."
+        },
+        {
+          "oid": "o778812a",
+          "text": "A source with many leads but a low rate from lead to opportunity is the most efficient one, because more leads always turn into more won deals later."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "prompt": "Write 2 to 4 sentences for Nele: which sources turn leads into won deals most cheaply, where each funnel loses its leads, one caveat about the cost per won deal, and one next step for the channel mix.",
+      "credits_concepts": []
+    }
+  ],
+  "model_plan": "Metric formula: per source, leads; lead_to_opp_pct, 100 times the leads with an opportunity divided by leads; opp_to_won_pct, 100 times won divided by the leads with an opportunity; won and won_amount from the won opportunities; spend, the paid media of January to June 2025 for the channel equal to the source; cost_per_won, spend divided by won.\nOutput grain: one row per source with at least one lead created in the first half of 2025.\nTables and keys: leads left joined to opportunities on lead_id; marketing_spend_monthly added up to one row per channel, then left joined on channel equal to source.\nFilters: leads created from 2025-01-01 up to but not including 2025-07-01; opportunities and wins whenever they happened; spend months January to June 2025.\nEdge cases: a source with no spend shows 0, not missing; no won deal leaves cost_per_won missing, and no opportunity leaves opp_to_won_pct missing; the spend is added up per channel before the join, so it is not repeated for every lead; two leads with one email are two leads; tied won counts follow source from A to Z.\nExpected row count: 9",
+  "model_answer_template": "For the leads created in the first half of 2025, paid media cost {CP4} euros per won deal across the five paid sources; paid_search won the most deals, while review_sites won them at the lowest cost of the paid sources. Events turns the largest share of its leads into opportunities but wins the smallest share of those, so its cost per won deal is the highest. This is paid media only: a blended CAC with the salaries, tools and partner fees in sm_expense_monthly would be higher overall, and the latest leads are the last to mature: {CP2} of the cohort's won deals, across all nine sources, were won only after June, so a cut-off at 30 June would have missed them. Next, set each source's won_amount against its full cost before moving budget between channels.",
+  "follow_up_question": "If the CMO asks for a smaller paid budget, which channel should Nele cut first?",
+  "data_source": {
+    "label": "Fictional, generated data: LedgerLoop",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 5,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-CLEAN-01",
+    "SQL-PAT-07"
+  ],
+  "metric_ids": [
+    "MET-MKT-14",
+    "MET-MKT-05",
+    "MET-MKT-04"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

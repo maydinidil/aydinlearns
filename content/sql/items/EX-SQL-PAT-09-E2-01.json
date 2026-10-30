@@ -1,0 +1,204 @@
+{
+  "id": "EX-SQL-PAT-09-E2-01",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "uplift",
+    "percent"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-uplift-units",
+  "template_params": {
+    "table": "order_lines",
+    "baseline": "same_length",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "How much did each 2025 promotion lift unit sales? For each promotion that started in 2025 (start_date from 1 January to 31 December 2025), give uplift_units, the units sold on promotion minus the baseline units, and uplift_pct, that difference as a percentage of the baseline units, rounded to 1 decimal with ROUND (12.5 for 12.5%). A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0 units, and uplift_pct is missing when the baseline has no units. Return three columns, in this order: promo_id, uplift_units and uplift_pct. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "uplift_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "uplift_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion that started in 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "uplift_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "uplift_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the same-length baseline window, then subtract the baseline from the promotion's units.",
+    "The percentage divides the difference by the baseline; a promotion whose baseline is missing gets a missing percentage."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 128,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 129,
+      "to": 146,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 213,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 277,
+      "to": 323,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 324,
+      "to": 338,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 339,
+      "to": 388,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 389,
+      "to": 410,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 476,
+      "to": 518,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 519,
+      "to": 533,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 534,
+      "to": 590,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 591,
+      "to": 637,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 638,
+      "to": 694,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 695,
+      "to": 716,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 719,
+      "to": 875,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 876,
+      "to": 888,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 889,
+      "to": 934,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 935,
+      "to": 982,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 638,
+    "stage2": 638
+  },
+  "faded_shape": "WITH promo AS (\n  -- one row per promotion that started in 2025\n  SELECT promo_id, start_date, end_date - start_date + 1 AS days\n  FROM promotions\n  WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n), during AS (\n  -- one row per promotion that started in 2025\n  SELECT p.promo_id, SUM(ol.quantity) AS units\n  FROM promo p\n  JOIN order_lines ol ON ol.promo_id = p.promo_id\n  GROUP BY p.promo_id\n), baseline AS (\n  -- one row per promotion with a baseline sale\n  SELECT p.promo_id, SUM(s.units) AS units\n  FROM promo p\n  JOIN promotion_products pp ON pp.promo_id = p.promo_id\n  JOIN sales s ON s.product_id = pp.product_id\n",
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Uplift compares the promotion with a baseline of the same length, and dividing by the baseline turns the gain into a percentage.",
+  "faded_suffix": "\n  GROUP BY p.promo_id\n)\nSELECT p.promo_id, COALESCE(d.units, 0) - COALESCE(b.units, 0) AS uplift_units,\n  ROUND(100.0 * (COALESCE(d.units, 0) - b.units) / b.units, 1) AS uplift_pct\nFROM promo p\nLEFT JOIN during d ON d.promo_id = p.promo_id\nLEFT JOIN baseline b ON b.promo_id = p.promo_id"
+}

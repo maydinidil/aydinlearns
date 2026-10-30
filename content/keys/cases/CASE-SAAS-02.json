@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-SAAS-02",
+  "truths": {
+    "CP2": "WITH churned AS (\n  -- one row per account and month from February to September 2025 in which it churned\n  SELECT b.account_id\n  FROM mrr_monthly AS b\n  LEFT JOIN mrr_monthly AS m\n    ON m.account_id = b.account_id\n   AND m.month = CAST(b.month + INTERVAL 1 MONTH AS DATE)\n  WHERE b.month >= DATE '2025-01-01'\n    AND b.month <= DATE '2025-08-01'\n    AND m.account_id IS NULL\n)\nSELECT COUNT(DISTINCT account_id) AS churned_accounts\nFROM churned",
+    "CP4": "WITH accounts_at_start AS (\n  -- one row per account and month from February to September 2025: the account had MRR on the last day of the month before\n  SELECT account_id,\n         CAST(month + INTERVAL 1 MONTH AS DATE) AS month\n  FROM mrr_monthly\n  WHERE month >= DATE '2025-01-01'\n    AND month <= DATE '2025-08-01'\n)\nSELECT ROUND(100.0 * SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) / COUNT(*), 1) AS logo_churn_pct\nFROM accounts_at_start AS s\nLEFT JOIN mrr_monthly AS m\n  ON m.account_id = s.account_id\n AND m.month = s.month"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o5377f3b",
+      "explanation": "A churn rate asks what share of the accounts that began March were gone by its end, so the base is the accounts with MRR on 28 February; the end of March leaves out the leavers and adds the new accounts."
+    },
+    "CP5": {
+      "correct_oid": "oac4b0f2",
+      "explanation": "The table counts accounts, so it shows when churn peaked but not the MRR lost or why; the price rise is a cause to test by segment and plan, and a few percent a month adds up to far more over a year."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "6c054a99b5cd1003",
+      "key_hash": "860b58eecf142477",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "db6bfc32419283ba",
+      "key_hash": "a6ff09b508090190",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "6ce970c205609177",
+      "key_hash": "52cef698daf991c1",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "67cf38a952704a24",
+      "key_hash": "6942f2765873b35f",
+      "at": "2026-10-29T22:26:59.071Z"
+    }
+  }
+}

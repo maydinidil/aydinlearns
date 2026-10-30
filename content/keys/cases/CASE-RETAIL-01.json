@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-RETAIL-01",
+  "truths": {
+    "CP2": "SELECT COUNT(DISTINCT order_id)\nFROM sales\nWHERE channel = 'web'\n  AND order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30'",
+    "CP4": "SELECT ROUND(\n         ROUND(SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END)\n               / COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id END), 2)\n       - ROUND(SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END)\n               / COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id END), 2), 2)\nFROM sales\nWHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30'"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o3203c6d",
+      "explanation": "An order is one basket, so each order_id counts once; counting its lines or its units divides net sales by too much and shrinks the average order value."
+    },
+    "CP5": {
+      "correct_oid": "o137ab98",
+      "explanation": "The gap describes November's orders: returns, more common online, and each channel's product mix can explain it, so it does not show that a channel causes spending, and different order counts do not stop a comparison."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "b76cccdf3ec4bd93",
+      "key_hash": "3170b904f2829378",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "6a71e191813fa4d5",
+      "key_hash": "e2b348b3d3455308",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "55502ce89019722c",
+      "key_hash": "5ea129ddca6a6905",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "684e7b0487407130",
+      "key_hash": "3bcf0928094eb838",
+      "at": "2026-10-29T22:26:59.071Z"
+    }
+  }
+}

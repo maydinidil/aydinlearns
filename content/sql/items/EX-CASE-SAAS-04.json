@@ -1,0 +1,212 @@
+{
+  "id": "EX-CASE-SAAS-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "case",
+    "inbox",
+    "saas",
+    "nrr",
+    "grr",
+    "cohort_retention",
+    "mrr_monthly",
+    "accounts"
+  ],
+  "level": 6,
+  "source_ids": [
+    "04:CASE-SAAS-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-29",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-CASE-SAAS-04-nrr-grr-by-segment",
+  "template_params": {
+    "start_month": "2024-09",
+    "end_month": "2025-09",
+    "grain": "segment, then a Total row",
+    "rate_rule": "one fixed rate, as mrr_monthly holds it"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_cases",
+  "prompt": "Lieselot, the CFO, is preparing the investor data room and needs the 12-month net and gross revenue retention (NRR and GRR) of each segment and of all segments together, from September 2024 to September 2025. Take MRR from mrr_monthly: one row per account and month in which the account had MRR on the last day of the month, in euros at one fixed exchange rate, so the months compare; a month with no row means the account had no MRR. The base is every account with a row for September 2024, and its start MRR is that row's mrr_eur. Its end MRR is its mrr_eur for September 2025, or 0 when it has no row for that month. An account with no row for September 2024 is left out, even when it has MRR in September 2025. An account's segment is the segment in accounts. NRR is 100 times the base's total end MRR divided by its total start MRR. For GRR, first cap each account's end MRR at its own start MRR, so no growth counts, then take 100 times the total of the capped amounts divided by the total start MRR. Return one row for each segment, then one more row for all segments together whose segment reads Total, with six columns in this order: segment; start_accounts, the accounts in the base; start_mrr and end_mrr, the totals in euros, rounded to 2 decimals; and nrr_pct and grr_pct, each a percentage (98.5 for 98.5%) rounded to 1 decimal. Sort by segment from A to Z, which puts the Total row last.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "start_accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "start_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "end_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "nrr_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "grr_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "segment",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "start_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "start_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "end_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "nrr_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "grr_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, take every account with a row in mrr_monthly for September 2024 and bring in its MRR for September 2025, with 0 where it has none.",
+    "Cap each account's end MRR at its own start MRR before you add it up for GRR, and stack one more row for all segments under the segment rows."
+  ],
+  "subgoals": [
+    {
+      "from": 69,
+      "to": 158,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 161,
+      "to": 330,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 333,
+      "to": 366,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 449,
+      "to": 634,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 637,
+      "to": 646,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 649,
+      "to": 665,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 680,
+      "to": 802,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 805,
+      "to": 814,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 817,
+      "to": 1026,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1027,
+      "to": 1038,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1039,
+      "to": 1055,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "A fixed September 2024 base with a missing end month counted as 0 keeps churn in the figures, and the cap per account keeps GRR at 100 or below."
+}

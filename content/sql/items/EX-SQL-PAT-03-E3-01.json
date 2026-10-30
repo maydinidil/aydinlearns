@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-PAT-03-E3-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "year_over_year",
+    "mrr",
+    "subscription_events",
+    "percent_change"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-yoy-mrr",
+  "template_params": {
+    "table": "subscription_events",
+    "period": "month end"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each month end of 2025, compare LedgerLoop's MRR from subscriptions billed in euros (currency EUR) with the MRR at the end of the same month of 2024. A subscription's MRR on a date is the sum of its subscription_events.mrr_delta_local with event_date on or before that date. fx_rates holds a row for every day of 2024 and 2025, so it can list the month ends. Return four columns, in this order: month_end (the last day of the 2025 month), mrr_eur, mrr_prev_year_eur and growth_pct, the change as a percentage of the 2024 MRR (12.5 for 12.5%), rounded to 1 decimal. Return one row for each month end of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_end",
+        "type_class": "temporal"
+      },
+      {
+        "name": "mrr_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "mrr_prev_year_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "growth_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_end",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "mrr_prev_year_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "growth_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_end"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list the month ends of both years (the last day fx_rates holds in each month), work out the MRR at each, then pair each 2025 month end with the same month of 2024.",
+    "Match on the month and the year before, not on the date minus 365 days: February ends on the 29th in 2024."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 477,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 478,
+      "to": 540,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 541,
+      "to": 610,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 611,
+      "to": 621,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 622,
+      "to": 721,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 722,
+      "to": 760,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each month end's MRR sums the events up to that day; pairing by year and month finds last year's month end, whose MRR is the base of the growth."
+}

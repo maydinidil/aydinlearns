@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-PAT-05-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-month-by-refund",
+  "template_params": {
+    "table": "payments",
+    "columns": "refunded"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each month of 2025, how many Mailvora payments were kept and how many were refunded (payments.refunded)? paid_at holds UTC time: take the month in UTC. Return three columns, in this order: month (the first day of the month), kept_payments and refunded_payments. A month with no refunds shows 0. Return one row for each month of 2025 with payments. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "kept_payments",
+        "type_class": "numeric"
+      },
+      {
+        "name": "refunded_payments",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "kept_payments",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "refunded_payments",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the 2025 payments by month and count the kept and the refunded ones in two columns.",
+    "COUNT of a column counts every row where it is not missing, true or false; keep only the refunded rows in that count."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 59,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 60,
+      "to": 172,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 173,
+      "to": 186,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 187,
+      "to": 293,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 294,
+      "to": 345,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each count keeps only its own kind of payment, so a month with no refund shows 0 refunded beside its kept payments."
+}

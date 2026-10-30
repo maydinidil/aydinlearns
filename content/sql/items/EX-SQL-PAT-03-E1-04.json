@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-PAT-03-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "month_over_month",
+    "lag",
+    "invoices"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-mom-change",
+  "template_params": {
+    "table": "invoices",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each month from January to December 2025, show how many invoices LedgerLoop issued (by invoice_date) and the change from the previous calendar month: this month's count minus last month's. Every month of 2025 has invoices. Only 2025 counts, so January shows change_invoices as missing. Return three columns, in this order: month (the first day of the month), invoices and change_invoices. Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "invoices",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_invoices",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "invoices",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "change_invoices",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the change column: this month's count minus the count of the month before.",
+    "Read the previous count with a window in month order and subtract it from the current count, in that order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 282,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 283,
+      "to": 306,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 307,
+      "to": 374,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 375,
+      "to": 387,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 307,
+    "stage2": 307
+  },
+  "faded_shape": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', invoice_date) AS DATE) AS month, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', invoice_date) AS DATE)\n)\nSELECT month, invoices,\n",
+  "faded_suffix": "\nFROM monthly",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "LAG in month order reads last month's count, so this month minus that is the change, positive when invoices rose."
+}

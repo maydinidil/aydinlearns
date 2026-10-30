@@ -1,0 +1,169 @@
+{
+  "id": "EX-SQL-PAT-02-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "first_per_key",
+    "latest_per_key",
+    "attribution",
+    "row_number",
+    "tie_break",
+    "sessions"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-JOIN-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-PAT-02-first-and-last-per-key",
+  "template_params": {
+    "table": "sessions",
+    "key": "visitor",
+    "count_by": "utm_source"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Compare first-touch and last-touch attribution for the visitors who signed up. Use each visitor's sessions that started at or before their signup_ts; session_start and signup_ts hold UTC instants. The first touch is the earliest of those sessions and the last touch the latest. When two sessions of a visitor tie on session_start, the one with the lower session_id counts, for the first touch and for the last touch. For each utm_source, count the visitors whose first touch came from it and the visitors whose last touch came from it; a session with a missing utm_source counts in a row of its own, with utm_source missing. Return three columns, in this order: utm_source, first_touch and last_touch. Return one row for each utm_source of some first or last touch. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "utm_source",
+        "type_class": "text"
+      },
+      {
+        "name": "first_touch",
+        "type_class": "numeric"
+      },
+      {
+        "name": "last_touch",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "utm_source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "first_touch",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "last_touch",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "utm_source"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each visitor's sessions up to the signup twice, once from the earliest and once from the latest, then count the sources of the rows numbered 1.",
+    "Both numberings end in the stated tie-break; a count with a filter per column gives first and last touch side by side."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 91,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 92,
+      "to": 158,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 159,
+      "to": 224,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 225,
+      "to": 263,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 267,
+      "to": 343,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 344,
+      "to": 581,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 582,
+      "to": 605,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 608,
+      "to": 743,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 744,
+      "to": 755,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 756,
+      "to": 789,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 790,
+      "to": 809,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Two numberings over the same sessions, one from each end with session_id splitting ties, mark each visitor's first and last touch for the filtered counts."
+}

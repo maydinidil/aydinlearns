@@ -143,6 +143,8 @@ test('goal criteria: "n of m concepts", "not yet available", titles instead of c
     'Named concepts practised: 2 of 3 (1 not yet available)');
   assert.equal(criterionLine({ label: '0 of 3 named concepts at practised (3 not yet available)', met: false, available: false, done: null, total: null }, titles),
     'Named concepts practised: not yet available');
+  // S8-C27 (Task B2): the SaaS-cases criterion of G-SQL-LEVEL-6 reads as a count.
+  assert.equal(criterionLine({ label: 'SaaS cases solved', met: false, available: true, done: 4, total: 5 }, titles), 'SaaS cases solved: 4 of 5');
   assert.equal(criterionLine({ label: 'GA4 certificate exam passed', met: false, available: true, done: 0, total: 1 }, titles),
     'GA4 certificate exam passed: not yet');
   assert.equal(criterionLine({ label: '2 portfolio pieces, 1 on real data', met: false, available: true, done: 1, total: 2 }, titles),

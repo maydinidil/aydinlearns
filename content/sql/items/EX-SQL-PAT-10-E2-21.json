@@ -1,0 +1,245 @@
+{
+  "id": "EX-SQL-PAT-10-E2-21",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "bridge",
+    "fx",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-bridge-quarter",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025,
+    "fx_date": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Build the 2025 MRR bridge by quarter, in euros. For each quarter of 2025, give opening MRR (every event dated before the quarter's first day, opening events included), the new, expansion, reactivation, contraction and churn MRR of the events dated in the quarter, and closing MRR (every event dated up to the quarter's last day). Contraction and churn keep their negative sign, so opening plus the five movements is closing before rounding; after each amount is rounded on its own, the two can differ by a cent. Each event's event_type names its movement (new, expansion, contraction, churn or reactivation); a reactivation is an account coming back after it churned, never new MRR. Leave out the opening events: they carry the MRR subscriptions already had when the data starts on 1 January 2024. Convert every amount to euros at one fixed rate, that of 31 December 2025: multiply by fx_rates.eur_per_unit for the subscription's currency on 2025-12-31. A movement with no event shows 0. Round every amount to 2 decimals with ROUND. Return eight columns, in this order: quarter_start, opening_mrr, new_mrr, expansion_mrr, reactivation_mrr, contraction_mrr, churn_mrr and closing_mrr. Return one row for each quarter of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "quarter_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "opening_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churn_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "closing_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "quarter_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "opening_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "churn_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "closing_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "quarter_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write one conditional sum per movement for the events dated in the quarter.",
+    "Opening takes every event before the quarter; each movement takes the quarter's events of its own type."
+  ],
+  "subgoals": [
+    {
+      "from": 52,
+      "to": 166,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 232,
+      "to": 314,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 315,
+      "to": 343,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 344,
+      "to": 407,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 408,
+      "to": 488,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 491,
+      "to": 514,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 515,
+      "to": 614,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 615,
+      "to": 736,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 737,
+      "to": 870,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 871,
+      "to": 1010,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1011,
+      "to": 1148,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1149,
+      "to": 1274,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1275,
+      "to": 1316,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1317,
+      "to": 1332,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1333,
+      "to": 1406,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1407,
+      "to": 1431,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Before rounding, opening plus the quarter's movements gives closing, and one fixed rate keeps every quarter's bridge adding up."
+}

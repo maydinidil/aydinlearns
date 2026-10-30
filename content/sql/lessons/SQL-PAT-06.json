@@ -1,0 +1,162 @@
+{
+  "concept_id": "SQL-PAT-06",
+  "version": 1,
+  "reading_md": "## Cohort retention\n\nA cohort is a group of customers who started in the same period, usually the same month. Cohort retention asks: of the people who started in a month, how many are still active one, two or three months later?\n\n### Three decisions before any SQL\n\n1. **The cohort date.** Name the event that puts someone in a cohort: the signup, the account's created_at, the first payment. Another event gives other cohorts. Every LedgerLoop account created before 2024 has an opening event on 1 January 2024, so a cohort taken from the first event puts all those old accounts in January 2024.\n2. **What counts as active in a month.** A payment that was not refunded, a usage week, an activation event, or MRR above 0 at the month's end. Count users or accounts, never rows: a user with three events in a month is still one active user.\n3. **The month offset.** Count calendar months from the cohort month: month 0 is the cohort month itself, month 1 the next one.\n\n### The month offset\n\nMove both dates to the first day of their month, then count the months between them:\n\n```sql\ndate_diff('month', date_trunc('month', u.signup_ts), date_trunc('month', p.paid_at)) AS month_offset\n```\n\nNever divide days by 30. 31 January to 1 March is 29 days, which gives month 0, though March is month 2 of the January cohort. Months have 28 to 31 days, so days over 30 drift away from the calendar.\n\n### Long and wide tables\n\nA long table has one row per cohort month and offset, which GROUP BY builds directly. A wide table has one row per cohort and one column per month: build each column with conditional aggregation, such as `COUNT(DISTINCT CASE WHEN month_offset = 1 THEN user_id END)`. Divide by the cohort size for a share.\n\n### Every cell, and cells that are not known yet\n\nGROUP BY only makes rows for cells that have activity. To show a month with no activity as 0, start from a spine: every cohort month crossed with every offset, as in `CROSS JOIN range(0, 4) AS k(month_offset)`, then LEFT JOIN the activity.\n\nSome cells lie after the as-of date. With an as-of date of 1 January 2026, month 2 of the November 2025 cohort is January 2026, which has not ended. Its value is not known, so it shows missing, not 0:\n\n```sql\nCASE WHEN m.cohort_month + INTERVAL (k.month_offset) MONTH >= DATE '2026-01-01' THEN NULL\n     ELSE COUNT(a.account_id) END\n```\n\nA 0 says nobody was active; missing says nobody can know yet. A month that has ended with no activity is a real 0, and a share of it is 0 too.",
+  "syntax_md": "```sql\nCAST(date_trunc('month', signup_ts) AS DATE) AS cohort_month           -- the cohort: the event the question names\ndate_diff('month', cohort_month, CAST(date_trunc('month', paid_at) AS DATE)) AS month_offset  -- calendar months\nCOUNT(DISTINCT user_id)                                                -- one cell: users, never rows\nFROM sizes z CROSS JOIN range(0, 4) AS k(month_offset)                -- every cell: a spine of offsets\nLEFT JOIN paid p ON p.cohort_month = z.cohort_month AND p.month_offset = k.month_offset\nCASE WHEN z.cohort_month + INTERVAL (k.month_offset) MONTH >= DATE '2026-01-01' THEN NULL ELSE ... END  -- not known yet\n```\n\n- Month 0 is the cohort month itself; never work months out as days divided by 30.\n- A month that has ended with no activity is 0; a month after the as-of date is missing.",
+  "dialect_note": "DuckDB's date_diff('month', a, b) counts the month boundaries between a and b, not whole months: date_diff('month', DATE '1992-09-15', DATE '1992-11-14') is 2, though less than two full months passed. On the first days of two months, boundaries and calendar months agree, which is why the offset compares month starts. SQLite has no month difference function, so there you work it out by hand: year times 12 plus month, one subtracted from the other, gives the same calendar-month offset on any engine.",
+  "worked_examples": [
+    {
+      "title": "Active users by signup cohort and month",
+      "prompt": "For the users who signed up from October to December 2024, how many had an activation event in each month after their signup? Months are UTC calendar months, and month 0 is the signup month. Return cohort_month, month_offset and active_users, one row per cohort month and offset with at least one active user.",
+      "clauses": [
+        {
+          "text": "WITH active AS (  -- one row per user and month with an activation event",
+          "subgoal": "source_grain",
+          "why": "The step fixes the grain: each user once per month, so a busy user is never counted twice."
+        },
+        {
+          "text": "SELECT DISTINCT u.user_id, CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,",
+          "subgoal": "output_grain",
+          "why": "DISTINCT keeps one row per user and month; the cohort month is the first day of the signup month."
+        },
+        {
+          "text": "date_diff('month', date_trunc('month', u.signup_ts), date_trunc('month', e.event_ts)) AS month_offset",
+          "subgoal": "metrics",
+          "why": "Both instants move to the first day of their month, so date_diff counts calendar months: 31 January to 1 March is 2."
+        },
+        {
+          "text": "FROM signups u JOIN activation_events e ON e.user_id = u.user_id",
+          "subgoal": "source_grain",
+          "why": "Each user's activation events, next to the signup they belong to."
+        },
+        {
+          "text": "WHERE u.signup_ts >= TIMESTAMPTZ '2024-10-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-01-01 00:00:00+00')",
+          "subgoal": "row_filter",
+          "why": "The cohorts are chosen by the signup date, never by the event date."
+        },
+        {
+          "text": "SELECT cohort_month, month_offset, COUNT(*) AS active_users",
+          "subgoal": "metrics",
+          "why": "After DISTINCT, one row is one user, so COUNT(*) counts users."
+        },
+        {
+          "text": "FROM active",
+          "subgoal": "source_grain",
+          "why": "The outer query reads the step, one row per user and month."
+        },
+        {
+          "text": "GROUP BY cohort_month, month_offset",
+          "subgoal": "output_grain",
+          "why": "One row per cell of the cohort table."
+        }
+      ]
+    },
+    {
+      "title": "Every cell, with months not known yet left missing",
+      "prompt": "For the accounts created in November and December 2025, how many used the product in each of their first three months? A usage week counts in the month of its week_start. The as-of date is 1 January 2026: a month that ends after it shows missing, and an ended month with no usage shows 0.",
+      "clauses": [
+        {
+          "text": "WITH active AS (  -- one row per account and month with a usage week",
+          "subgoal": "source_grain",
+          "why": "Each account once per month in which it used the product."
+        },
+        {
+          "text": "SELECT DISTINCT a.account_id, CAST(date_trunc('month', a.created_at) AS DATE) AS cohort_month, date_diff('month', date_trunc('month', a.created_at), date_trunc('month', w.week_start)) AS month_offset",
+          "subgoal": "output_grain",
+          "why": "The cohort comes from created_at, and the offset counts calendar months from it."
+        },
+        {
+          "text": "FROM accounts a JOIN usage_weekly w ON w.account_id = a.account_id WHERE a.created_at >= TIMESTAMP '2025-11-01 00:00:00' AND a.created_at < TIMESTAMP '2026-01-01 00:00:00'),",
+          "subgoal": "source_grain",
+          "why": "The usage weeks of the accounts in the two cohorts."
+        },
+        {
+          "text": "months AS (  -- one row per cohort month",
+          "subgoal": "source_grain",
+          "why": "The cohort months the spine starts from."
+        },
+        {
+          "text": "SELECT DISTINCT cohort_month FROM active)",
+          "subgoal": "output_grain",
+          "why": "Each cohort month once."
+        },
+        {
+          "text": "SELECT m.cohort_month, k.month_offset, CASE WHEN m.cohort_month + INTERVAL (k.month_offset) MONTH >= DATE '2026-01-01' THEN NULL ELSE COUNT(a.account_id) END AS active_accounts",
+          "subgoal": "metrics",
+          "why": "A month that starts on or after the as-of date has not ended, so its count is not known and shows missing; an ended month counts its accounts, 0 included."
+        },
+        {
+          "text": "FROM months m CROSS JOIN range(0, 3) AS k(month_offset)",
+          "subgoal": "source_grain",
+          "why": "The spine: every cohort month with every offset from 0 to 2, so a month with no usage still has a row."
+        },
+        {
+          "text": "LEFT JOIN active a ON a.cohort_month = m.cohort_month AND a.month_offset = k.month_offset",
+          "subgoal": "source_grain",
+          "why": "The LEFT JOIN keeps the cells with no usage, where COUNT gives 0."
+        },
+        {
+          "text": "GROUP BY m.cohort_month, k.month_offset",
+          "subgoal": "output_grain",
+          "why": "One row per cell."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-PAT-06-E1-01",
+    "EX-SQL-PAT-06-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-PAT-06-E1-03",
+    "EX-SQL-PAT-06-E1-04",
+    "EX-SQL-PAT-06-E2-01",
+    "EX-SQL-PAT-06-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-PAT-06-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-PAT-06-E1-06",
+    "EX-SQL-PAT-06-E1-07",
+    "EX-SQL-PAT-06-E2-03",
+    "EX-SQL-PAT-06-E2-04",
+    "EX-SQL-PAT-06-E2-05",
+    "EX-SQL-PAT-06-E2-06",
+    "EX-SQL-PAT-06-E3-01",
+    "EX-SQL-PAT-06-E3-02",
+    "EX-SQL-PAT-06-E1-31",
+    "EX-SQL-PAT-06-E2-31",
+    "EX-SQL-PAT-06-E2-32",
+    "EX-SQL-PAT-06-E2-33",
+    "EX-SQL-PAT-06-E3-31",
+    "EX-SQL-PAT-06-E1-42",
+    "EX-SQL-PAT-06-E2-41",
+    "EX-SQL-PAT-06-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "why_clause": {
+    "clause": "date_diff('month', date_trunc('month', u.signup_ts), date_trunc('month', e.event_ts)) AS month_offset",
+    "stem": "Why does the offset move both instants to the first day of their month before counting?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So the offset counts calendar months: a signup on 31 January and an event on 1 March are in month 2."
+      },
+      {
+        "id": "b",
+        "text": "Because date_diff cannot compare two instants of different days."
+      },
+      {
+        "id": "c",
+        "text": "So that every month counts as 30 days."
+      },
+      {
+        "id": "d",
+        "text": "So the query reads fewer rows from activation_events."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "On the first days of two months, counting the months between them gives calendar months, so the offset matches the cohort table's columns on every engine. date_diff works on any two instants, and the step does not change how many rows are read. Treating every month as 30 days is the mistake the step avoids: 31 January to 1 March is only 29 days, yet March is month 2."
+  }
+}

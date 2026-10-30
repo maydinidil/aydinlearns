@@ -1,0 +1,194 @@
+{
+  "id": "EX-SQL-PAT-06-E3-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "logo_retention",
+    "immature_cells",
+    "mrr",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-fix-immature-rate",
+  "template_params": {
+    "cohort_date": "created_at",
+    "activity": "MRR above 0 at month end",
+    "cohorts": "2025-10 to 2025-12",
+    "offsets": "0-3",
+    "measure": "rate"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what share of each monthly cohort of accounts created from October to December 2025 was still active at the end of each of its first four months? An account's cohort month is the month of its created_at (Brussels local time). An account is active at a month's end when the sum of its subscription events' mrr_delta_local with event_date on or before that day is above 0. The month offset counts calendar months from the cohort month, from 0 to 3. The as-of date is 1 January 2026: the rate of a month that ends after it is not known yet and shows missing, while a month that has ended with no active account shows 0. Return three columns, in this order: cohort_month (the first day of the month), month_offset and retention_rate, the active accounts divided by the cohort's accounts as a fraction between 0 and 1. Return one row for each cohort month that has accounts and each month offset from 0 to 3. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric"
+      },
+      {
+        "name": "retention_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "retention_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month",
+      "month_offset"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the rate of a month after the as-of date turns into.",
+    "A rate that is not known yet must stay missing; replacing it with 0 makes it look as if every account had left."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 78,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 81,
+      "to": 161,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 164,
+      "to": 177,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 180,
+      "to": 280,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 284,
+      "to": 354,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 357,
+      "to": 485,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 488,
+      "to": 545,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 549,
+      "to": 622,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 625,
+      "to": 743,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 746,
+      "to": 855,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 858,
+      "to": 925,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 928,
+      "to": 1108,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1109,
+      "to": 1117,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1118,
+      "to": 1165,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH cohort AS (  -- one row per account created from October to December 2025\n  SELECT account_id, CAST(date_trunc('month', created_at) AS DATE) AS cohort_month\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2025-10-01 00:00:00' AND created_at < TIMESTAMP '2026-01-01 00:00:00'\n),\ncells AS (  -- one row per cohort account and month offset from 0 to 3\n  SELECT c.account_id, c.cohort_month, k.month_offset,\n         c.cohort_month + INTERVAL (k.month_offset + 1) MONTH AS next_month\n  FROM cohort c\n  CROSS JOIN range(0, 4) AS k(month_offset)\n),\nmrr AS (  -- one row per cell, with the account's MRR at that month's end\n  SELECT x.cohort_month, x.month_offset, x.next_month, x.account_id,\n         COALESCE(SUM(e.mrr_delta_local), 0) AS mrr\n  FROM cells x\n  LEFT JOIN subscription_events e ON e.account_id = x.account_id AND e.event_date < x.next_month\n  GROUP BY x.cohort_month, x.month_offset, x.next_month, x.account_id\n)\nSELECT cohort_month, month_offset,\n       COALESCE(CASE WHEN next_month > DATE '2026-01-01' THEN NULL\n            ELSE 1.0 * COUNT(*) FILTER (WHERE mrr > 0) / COUNT(*) END, 0) AS retention_rate\nFROM mrr\nGROUP BY cohort_month, month_offset, next_month",
+  "time_target_ms": 240000,
+  "why_this_works": "Without the COALESCE, a month that ends after 1 January 2026 stays missing, and an ended month keeps its real rate.",
+  "starter_error_id": "ERR-LOG-35"
+}

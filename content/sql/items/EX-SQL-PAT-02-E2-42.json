@@ -1,0 +1,98 @@
+{
+  "id": "EX-SQL-PAT-02-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "dedup",
+    "keep_one",
+    "raw_data",
+    "Q-02-01",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-PAT-02-choose-dedup-count",
+  "template_params": {
+    "table": "subscription_events",
+    "event_type": "expansion",
+    "period": "2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop_raw",
+  "edge_schema": "ledgerloop_edge_clean",
+  "uses_raw": true,
+  "prompt": "These tables may hold errors. Some subscription events arrived twice: two rows of subscription_events are copies of one event when subscription_id, event_type, event_date and mrr_delta_local all match, and the copy has its own event_id and a later recorded_at. Which query counts the expansion events dated in 2025, each event once, in a column named events?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o25b0be6",
+      "text": "SELECT COUNT(DISTINCT event_id) AS events\nFROM subscription_events\nWHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'",
+      "misconception_id": "ERR-LOG-36"
+    },
+    {
+      "oid": "o8986c94",
+      "text": "WITH events AS (  -- one row per expansion row of 2025, as DISTINCT sees it\n  SELECT DISTINCT subscription_id, event_type, event_date, mrr_delta_local, recorded_at\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n)\nSELECT COUNT(*) AS events\nFROM events",
+      "misconception_id": "ERR-LOG-36"
+    },
+    {
+      "oid": "oc870128",
+      "text": "WITH numbered AS (  -- one row per expansion row of 2025 as it arrived\n  SELECT ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type ORDER BY event_id) AS copy_no\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n)\nSELECT COUNT(*) AS events\nFROM numbered\nWHERE copy_no = 1",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o3a8447f",
+      "text": "WITH numbered AS (  -- one row per expansion row of 2025 as it arrived\n  SELECT ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n)\nSELECT COUNT(*) AS events\nFROM numbered\nWHERE copy_no = 1",
+      "misconception_id": null
+    }
+  ]
+}

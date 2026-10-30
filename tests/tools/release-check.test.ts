@@ -6,9 +6,9 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { existsSync } from 'node:fs';
-import { addedLines, grepHits, report, scanAdded, scanChecks, scanClone, scanPaths, squashPath, unpack, type Added, type ScanContext } from '../../tools/release-check.ts';
+import { addedLines, grepHits, monorepoFolders, report, scanAdded, scanChecks, scanClone, scanPaths, squashPath, unpack, type Added, type ScanContext } from '../../tools/release-check.ts';
 
 // The fixtures that look like an email, a key or a session link are joined at run time, so this file's own text never trips
 // the scan it tests when a release exports it (found by the scan itself before the 0.7.3 PR).
@@ -62,7 +62,12 @@ describe('scanAdded', () => {
   test('an email address is a hit, apart from GitHub\'s and the reserved example domains', () => {
     assert.deepEqual(rules(`write to ${EMAIL}`), ['email']);
     for (const ok of ['git@github.com:x/y', '123+login@users.noreply.github.com', 'jane@example.com', 't@example.invalid',
-      '@duckdb/node-api@1.5.6-r.1', 'react@18.3.1']) assert.deepEqual(rules(ok), [], ok);
+      '@duckdb/node-api@1.5.6-r.1', 'react@18.3.1',
+      // RFC 2606: the reserved top-level domains name no one either (LedgerLoop's edge data invents its leads' addresses on them).
+      'it@spreesoftware.example', 'cfo@maas-zorg.example', 'a@b.test', 'x@y.invalid', 'h@host.localhost']) assert.deepEqual(rules(ok), [], ok);
+    for (const hit of [['jane', 'example.co'], ['a', 'example.nl'], ['cfo', 'company.examples']].map((x) => x.join('@'))) {
+      assert.deepEqual(rules(`write to ${hit}`), ['email'], hit);
+    }
   });
   test('the user\'s own folder is a hit in every spelling, and the placeholder and invented names are not', () => {
     for (const hit of ['C:\\Users\\pat\\notes', 'C:/Users/pat/x', '"C:\\\\Users\\\\pat\\\\x"', '/c/Users/pat/x', 'C:\\Users\\Pat', '/home/pat/x']) {
@@ -166,5 +171,31 @@ describe('scanClone on a throwaway repository', { skip: !haveGit && 'git is not 
     assert.deepEqual(hits.map((h) => [h.rule, h.path, h.line]).sort(), [
       ['email', 'new.md', 2], ['forbidden path', 'logs/a.jsonl', null], ['key prefix', 'old.md', 1],
     ]);
+  });
+});
+
+describe('S8-21: the monorepo path from a worktree', () => {
+  test('a scan run from a worktree counts a line naming the main checkout\'s folder, and one naming the worktree\'s', () => {
+    const root = mkdtempSync(join(tmpdir(), 'al-relchk-'));
+    try {
+      const main = join(root, 'main-checkout'), tree = join(root, 'a-worktree');
+      const g = (cwd: string, ...a: string[]) => {
+        const r = spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.com', '-C', cwd, ...a], { encoding: 'utf8' });
+        assert.equal(r.status, 0, `git ${a[0]} in the fixture`);
+      };
+      mkdirSync(main);
+      g(main, 'init', '-q');
+      writeFileSync(join(main, 'f.txt'), 'x');
+      g(main, 'add', 'f.txt');
+      g(main, 'commit', '-q', '-m', 'fixture');
+      g(main, 'worktree', 'add', '-q', tree);
+      const folders = monorepoFolders(tree);
+      const ctx: ScanContext = { ...CTX, monorepo: folders[0] ?? '', monorepoAlso: folders.slice(1) };
+      assert.equal(folders.length, 2, 'the worktree and the main checkout');
+      assert.deepEqual(scanAdded([line(`see ${main.split(sep).join('/')}/aydinlearns`)], ctx).map((h) => h.rule), ['monorepo path'], 'the main checkout');
+      assert.deepEqual(scanAdded([line(`see ${tree}`)], ctx).map((h) => h.rule), ['monorepo path'], 'the worktree');
+      assert.deepEqual(scanAdded([line('see C:/elsewhere/x')], ctx).map((h) => h.rule), [], 'another folder');
+      assert.equal(monorepoFolders(main).length, 1, 'a plain checkout has one folder');
+    } finally { rmSync(root, { recursive: true, force: true }); }
   });
 });

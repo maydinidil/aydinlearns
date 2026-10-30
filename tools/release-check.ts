@@ -42,6 +42,8 @@ export interface ScanContext {
   home: string;
   /** The monorepo's root folder, as git gives it. */
   monorepo: string;
+  /** S8-21: other folders of the same monorepo that count as its path: the main checkout's, when the scan runs from a worktree. */
+  monorepoAlso?: readonly string[];
 }
 export interface Added { path: string; line: number; text: string }
 export interface Check { name: string; ok: boolean; detail: string; note?: boolean }
@@ -78,8 +80,9 @@ export function addedLines(diff: string): Added[] {
 const FAKE_KEY = /test|not-a-real|example|fake|0{8}|1{8}|x{8}/i;
 const KEY_SHAPED = /sk-[A-Za-z0-9_-]{20,}/g;
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
-/** Addresses that name no one: GitHub's own, its noreply form, and the reserved example domains. */
-const ALLOWED_EMAIL = /^git@github\.com$|@users\.noreply\.github\.com$|@example\.(?:com|org|net|invalid)$/i;
+/** Addresses that name no one: GitHub's own, its noreply form, the reserved example domains, and any address on a reserved
+ * top-level domain (RFC 2606: .example, .test, .invalid, .localhost), as LedgerLoop's edge data uses for its leads. */
+const ALLOWED_EMAIL = /^git@github\.com$|@users\.noreply\.github\.com$|@example\.(?:com|org|net|invalid)$|\.(?:example|test|invalid|localhost)$/i;
 const SESSION_LINK = /claude\.ai\/code\/session_/i;
 
 /** A path as one lower-case form with forward slashes: `C:\x`, `C:\\x` (as JSON writes it), `C:/x` and `/c/x` all become `c:/x`. */
@@ -102,7 +105,7 @@ export function scanAdded(lines: readonly Added[], ctx: ScanContext): Hit[] {
   const hits: Hit[] = [];
   const user = squashPath(ctx.home);
   const userName = basename(ctx.home).toLowerCase();
-  const repo = squashPath(ctx.monorepo).replace(/\/$/, '');
+  const repos = [ctx.monorepo, ...(ctx.monorepoAlso ?? [])].map((r) => squashPath(r).replace(/\/$/, '')).filter((r) => r !== '');
   const prefixes = prefixesOf(ctx);
   for (const { path, line, text } of lines) {
     const at = (rule: Rule): void => { hits.push({ rule, path, line }); };
@@ -112,7 +115,7 @@ export function scanAdded(lines: readonly Added[], ctx: ScanContext): Hit[] {
     // Only this user's own folder: the project allows invented names in redaction tests, and the `<name>` placeholder.
     const flat = squashPath(text);
     if (contains(flat, user) || (userName !== '' && (contains(flat, `/users/${userName}`) || contains(flat, `/home/${userName}`)))) at('user folder');
-    if (repo !== '' && contains(flat, repo)) at('monorepo path');
+    if (repos.some((r) => contains(flat, r))) at('monorepo path');
     if (SESSION_LINK.test(text)) at('session link');
   }
   return hits;
@@ -351,14 +354,26 @@ export async function installChecks(clone: string, keep: boolean): Promise<Check
   return out;
 }
 
+/**
+ * S8-21: the monorepo's folders as git gives them from `cwd`: the working tree's own root, and (in a worktree) the main checkout's, which
+ * is the parent of the common git folder. The scan counts a line naming either. Empty when `cwd` is not inside a git working tree.
+ */
+export function monorepoFolders(cwd: string): string[] {
+  const top = git(cwd, 'rev-parse', '--show-toplevel').out.trim();
+  if (top === '') return [];
+  const common = git(cwd, 'rev-parse', '--path-format=absolute', '--git-common-dir').out.trim();
+  const main = common === '' ? '' : dirname(common);
+  return main === '' || squashPath(main) === squashPath(top) ? [top] : [top, main];
+}
+
 async function main(argv: string[]): Promise<number> {
   const clone = argv.find((a) => !a.startsWith('--'));
   if (!clone) { console.log('usage: node tools/release-check.ts <public clone> [--scan-only] [--keep]'); return 2; }
   const dir = resolve(clone);
   const head = git(dir, 'rev-parse', '--short', 'HEAD');
   if (!head.ok) { console.log(`FAIL not a git clone: ${dir}`); return 1; }
-  const monorepo = git(process.cwd(), 'rev-parse', '--show-toplevel').out.trim();        // run it from inside the monorepo
-  const ctx: ScanContext = { prefixes: (process.env.RELEASE_SCAN_PREFIXES ?? '').split(','), home: homedir(), monorepo };
+  const [monorepo = '', ...also] = monorepoFolders(process.cwd());                        // run it from inside the monorepo (or one of its worktrees)
+  const ctx: ScanContext = { prefixes: (process.env.RELEASE_SCAN_PREFIXES ?? '').split(','), home: homedir(), monorepo, monorepoAlso: also };
   console.log(`release-check: export commit ${head.out.trim()}`);
   let checks: Check[];
   try { checks = scanChecks(scanClone(dir, ctx), ctx); } catch (e) {

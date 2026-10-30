@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E2-06",
+  "item_version": 2,
+  "reference_sql": "SELECT parent_category,\n  SUM(CASE WHEN order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14' THEN net_revenue_eur ELSE 0 END) AS nov_revenue_eur,\n  SUM(CASE WHEN order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' THEN net_revenue_eur ELSE 0 END) AS dec_revenue_eur,\n  SUM(CASE WHEN order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' THEN net_revenue_eur ELSE 0 END)\n    - SUM(CASE WHEN order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14' THEN net_revenue_eur ELSE 0 END) AS change_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14'\n   OR order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14'\nGROUP BY parent_category",
+  "alternatives": [
+    "WITH nov AS (\n  -- one row per parent category with sales on 1 to 14 November\n  SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14'\n  GROUP BY parent_category\n), dec AS (\n  -- one row per parent category with sales on 1 to 14 December\n  SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14'\n  GROUP BY parent_category\n)\nSELECT COALESCE(d.parent_category, n.parent_category) AS parent_category,\n  COALESCE(n.revenue_eur, 0) AS nov_revenue_eur,\n  COALESCE(d.revenue_eur, 0) AS dec_revenue_eur,\n  COALESCE(d.revenue_eur, 0) - COALESCE(n.revenue_eur, 0) AS change_eur\nFROM dec d\nFULL OUTER JOIN nov n ON n.parent_category = d.parent_category",
+    "WITH both_periods AS (\n  -- one row per parent category with sales in either period\n  SELECT parent_category,\n    COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_date <= DATE '2025-11-14'), 0) AS nov_revenue_eur,\n    COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_date >= DATE '2025-12-01'), 0) AS dec_revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14'\n     OR order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14'\n  GROUP BY parent_category\n)\nSELECT parent_category, nov_revenue_eur, dec_revenue_eur, dec_revenue_eur - nov_revenue_eur AS change_eur\nFROM both_periods"
+  ],
+  "other_way": {
+    "sql": "WITH nov AS (\n  -- one row per parent category with sales on 1 to 14 November\n  SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14'\n  GROUP BY parent_category\n), dec AS (\n  -- one row per parent category with sales on 1 to 14 December\n  SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14'\n  GROUP BY parent_category\n)\nSELECT COALESCE(d.parent_category, n.parent_category) AS parent_category,\n  COALESCE(n.revenue_eur, 0) AS nov_revenue_eur,\n  COALESCE(d.revenue_eur, 0) AS dec_revenue_eur,\n  COALESCE(d.revenue_eur, 0) - COALESCE(n.revenue_eur, 0) AS change_eur\nFROM dec d\nFULL OUTER JOIN nov n ON n.parent_category = d.parent_category",
+    "tradeoff": "Totalling each period apart and joining them with FULL OUTER JOIN is clear, but it needs COALESCE wherever a period has no sales."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-48",
+      "sql": "SELECT parent_category, SUM(CASE WHEN order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30' THEN net_revenue_eur ELSE 0 END) AS nov_revenue_eur, SUM(CASE WHEN order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' THEN net_revenue_eur ELSE 0 END) AS dec_revenue_eur, SUM(CASE WHEN order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' THEN net_revenue_eur ELSE 0 END) - SUM(CASE WHEN order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30' THEN net_revenue_eur ELSE 0 END) AS change_eur FROM sales WHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30' OR order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-49",
+      "sql": "SELECT parent_category,\n  SUM(CASE WHEN order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14' THEN net_revenue_eur ELSE 0 END) AS nov_revenue_eur,\n  SUM(CASE WHEN order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' THEN net_revenue_eur ELSE 0 END) AS dec_revenue_eur, SUM(CASE WHEN order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14' THEN net_revenue_eur ELSE 0 END) - SUM(CASE WHEN order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' THEN net_revenue_eur ELSE 0 END) AS change_eur FROM sales WHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14' OR order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' GROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n  SUM(CASE WHEN order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14' THEN net_revenue_eur ELSE 0 END) AS nov_revenue_eur,\n  SUM(CASE WHEN order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' THEN net_revenue_eur ELSE 0 END) AS dec_revenue_eur,\n  SUM(CASE WHEN order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' THEN net_revenue_eur ELSE 0 END)\n    - SUM(CASE WHEN ___ THEN net_revenue_eur ELSE 0 END) AS change_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14'\n   OR order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14'\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "c59b2b4c6f406c34",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT parent_category,\n  COALESCE(SUM(CASE WHEN order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14' THEN net_revenue_eur END),0) AS nov_revenue_eur,\n  COALESCE(SUM(CASE WHEN order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' THEN net_revenue_eur END),0) AS dec_revenue_eur,\n  COALESCE(SUM(CASE WHEN order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14' THEN net_revenue_eur END),0)\n  - COALESCE(SUM(CASE WHEN order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14' THEN net_revenue_eur END),0) AS change_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-14' OR order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-14'\nGROUP BY parent_category\n",
+    "at": "2026-10-28T16:44:10.982Z"
+  }
+}

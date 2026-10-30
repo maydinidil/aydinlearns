@@ -1,0 +1,155 @@
+{
+  "id": "EX-SQL-PAT-02-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "dedup",
+    "keep_one",
+    "raw_data",
+    "Q-02-01",
+    "mrr",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-PAT-02-dedup-mrr-impact",
+  "template_params": {
+    "table": "subscription_events",
+    "as_of": "2025-06-30"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop_raw",
+  "edge_schema": "ledgerloop_edge_clean",
+  "uses_raw": true,
+  "prompt": "How much do the copied events overstate MRR on 2025-06-30? These tables may hold errors. Some subscription events arrived twice: two rows of subscription_events are copies of one event when subscription_id, event_type, event_date and mrr_delta_local all match. Keep the row with the lowest event_id. Clean nothing else. A subscription's MRR on a date is the sum of its mrr_delta_local with event_date on or before that date, in its own currency as the rows hold it; do not convert. For each subscription with at least one copy among its events dated on or before 2025-06-30, return three columns, in this order: subscription_id, mrr_with_copies (the sum over every row that arrived) and mrr (the sum once copies are removed). Return one row for each such subscription. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "subscription_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "mrr_with_copies",
+        "type_class": "numeric"
+      },
+      {
+        "name": "mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "subscription_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_with_copies",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "subscription_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number the copies of each event dated up to 2025-06-30, then per subscription add up mrr_delta_local over every row and over the rows numbered 1.",
+    "Keep only the subscriptions where a copy arrived: their row count is above their count of rows numbered 1."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 88,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 89,
+      "to": 259,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 260,
+      "to": 286,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 287,
+      "to": 326,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 329,
+      "to": 462,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 463,
+      "to": 476,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 477,
+      "to": 501,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 502,
+      "to": 555,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Summing every row and only the rows numbered 1 per subscription shows how far the copies push MRR up, and HAVING keeps the subscriptions with a copy."
+}

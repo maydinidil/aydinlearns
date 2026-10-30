@@ -1,0 +1,203 @@
+{
+  "id": "EX-SQL-PAT-09-E1-07",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "product",
+    "overlap"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-promo-product",
+  "template_params": {
+    "table": "order_lines",
+    "baseline_days": 14,
+    "month": "2025-04"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Break the April 2025 promotions down by product. For each promotion that started in April 2025 (start_date from 1 to 30 April 2025) and each product in it, give the units sold on lines that carry that promotion and the units of that product in the promotion's baseline. A line counts for a promotion when it carries it in order_lines.promo_id, and every such line falls within the promotion's dates; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline is the 14 days just before the promotion's first day, that first day not included, and holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A product with no sale in a period shows 0 for it. Return four columns, in this order: promo_id, product_id, promo_units and baseline_units. Return one row for each promotion and product in it. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id",
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list each promotion with its products, then add the units on promotion and in the baseline for each pair.",
+    "Take the promotion units from the lines that carry it, matched on both the promotion and the product; a date range would also catch lines carrying another promotion."
+  ],
+  "subgoals": [
+    {
+      "from": 96,
+      "to": 144,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 145,
+      "to": 164,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 165,
+      "to": 221,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 222,
+      "to": 290,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 356,
+      "to": 418,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 419,
+      "to": 440,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 441,
+      "to": 478,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 556,
+      "to": 612,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 613,
+      "to": 635,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 636,
+      "to": 681,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 682,
+      "to": 749,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 750,
+      "to": 785,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 788,
+      "to": 896,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 897,
+      "to": 917,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 918,
+      "to": 995,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 996,
+      "to": 1075,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "A product's promotion units come from the lines that carry that promotion, so a sale in an overlap counts once, for the deeper one."
+}

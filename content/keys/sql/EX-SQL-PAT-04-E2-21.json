@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-21",
+  "item_version": 1,
+  "reference_sql": "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), churned AS (\n  -- one row per month with churn events\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month, COUNT(*) AS churns\n  FROM subscription_events\n  WHERE event_type = 'churn'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n)\nSELECT m.month, COALESCE(c.churns, 0) AS churns\nFROM months m\nLEFT JOIN churned c ON c.month = m.month",
+  "alternatives": [
+    "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n)\nSELECT m.month,\n  (SELECT COUNT(*) FROM subscription_events e\n   WHERE e.event_type = 'churn' AND CAST(date_trunc('month', e.event_date) AS DATE) = m.month) AS churns\nFROM months m",
+    "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n)\nSELECT m.month, COUNT(e.event_id) AS churns\nFROM months m\nLEFT JOIN subscription_events e ON e.event_type = 'churn' AND CAST(date_trunc('month', e.event_date) AS DATE) = m.month\nGROUP BY m.month"
+  ],
+  "other_way": {
+    "sql": "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n)\nSELECT m.month, COUNT(e.event_id) AS churns\nFROM months m\nLEFT JOIN subscription_events e ON e.event_type = 'churn' AND CAST(date_trunc('month', e.event_date) AS DATE) = m.month\nGROUP BY m.month",
+    "tradeoff": "Counting churn events straight off a LEFT JOIN is shorter, but the churn filter must sit in ON or the zero months vanish."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), churned AS (\n  -- one row per month with churn events\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month, COUNT(*) AS churns\n  FROM subscription_events\n  WHERE event_type = 'churn'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n) SELECT month, churns FROM churned WHERE month BETWEEN DATE '2024-01-01' AND DATE '2025-12-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), churned AS (\n  -- one row per month with churn events\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month, COUNT(*) AS churns\n  FROM subscription_events\n  WHERE event_type = 'churn'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n) SELECT m.month, c.churns FROM months m LEFT JOIN churned c ON c.month = m.month"
+    }
+  ],
+  "hint3_partial": "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), churned AS (\n  -- one row per month with churn events\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month, COUNT(*) AS churns\n  FROM subscription_events\n  WHERE event_type = 'churn'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n)\nSELECT m.month, COALESCE(c.churns, 0) AS churns\nFROM months m\nLEFT JOIN churned c ON ___",
+  "solver": {
+    "prompt_hash": "59c019688a49c8be",
+    "schema_version": "3cbf032d825b",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH months AS (\n  SELECT CAST(d AS DATE) AS month FROM generate_series(DATE '2024-01-01', DATE '2025-12-01', INTERVAL 1 MONTH) t(d)\n), c AS (\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month, COUNT(*) AS churns\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY 1\n)\nSELECT m.month, COALESCE(c.churns, 0) AS churns\nFROM months m LEFT JOIN c ON c.month = m.month\n",
+    "at": "2026-10-28T14:57:05.233Z"
+  }
+}

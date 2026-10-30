@@ -1,0 +1,168 @@
+{
+  "id": "EX-SQL-PAT-05-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "pivot",
+    "conditional_aggregation",
+    "missing_vs_zero"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-predict-case-no-else",
+  "template_params": {
+    "table": "orders"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Store 1 (NL-01) takes only in-store orders and store 99 (the webshop) only web orders. In January 2025 (UTC) store 1 took 1088 orders and store 99 took 9506. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT store_id,\n  SUM(CASE WHEN channel = 'store' THEN 1 END) AS store_orders,\n  SUM(CASE WHEN channel = 'web' THEN 1 END) AS web_orders\nFROM orders\nWHERE store_id IN (1, 99)\n  AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND order_ts < TIMESTAMP '2025-02-01 00:00:00'\nGROUP BY store_id",
+  "options": [
+    {
+      "oid": "ofd36503",
+      "text": "The channel a store does not have shows 0",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "store_id",
+          "store_orders",
+          "web_orders"
+        ],
+        "rows": [
+          [
+            1,
+            1088,
+            0
+          ],
+          [
+            99,
+            0,
+            9506
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o959b6cd",
+      "text": "One row for each store and channel",
+      "misconception_id": "ERR-LOG-07",
+      "table": {
+        "columns": [
+          "store_id",
+          "channel",
+          "orders"
+        ],
+        "rows": [
+          [
+            1,
+            "store",
+            1088
+          ],
+          [
+            99,
+            "web",
+            9506
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o10e13d5",
+      "text": "The channel a store does not have shows a missing value",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "store_id",
+          "store_orders",
+          "web_orders"
+        ],
+        "rows": [
+          [
+            1,
+            1088,
+            null
+          ],
+          [
+            99,
+            null,
+            9506
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "od643af3",
+      "text": "Both columns show every order of the store",
+      "misconception_id": "ERR-LOG-04",
+      "table": {
+        "columns": [
+          "store_id",
+          "store_orders",
+          "web_orders"
+        ],
+        "rows": [
+          [
+            1,
+            1088,
+            1088
+          ],
+          [
+            99,
+            9506,
+            9506
+          ]
+        ]
+      }
+    }
+  ]
+}

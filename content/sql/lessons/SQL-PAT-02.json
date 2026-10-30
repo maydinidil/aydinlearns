@@ -1,0 +1,140 @@
+{
+  "concept_id": "SQL-PAT-02",
+  "version": 2,
+  "reading_md": "## Deduplication and the latest record per key\n\nTwo jobs look alike: removing rows that arrived twice, and keeping the newest row of a history. Both keep **one row per key** with ROW_NUMBER and a clear rule for which row wins.\n\n```sql\nWITH ranked AS (  -- one row per order of a known customer\n  SELECT customer_id, order_id, order_ts,\n         ROW_NUMBER() OVER (PARTITION BY customer_id\n                            ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL AND customer_id <= 8\n)\nSELECT customer_id, order_id, order_ts\nFROM ranked\nWHERE rn = 1;\n```\n\n- **PARTITION BY names the key**: the columns that make two rows \"the same thing\" (a customer, a product, an email).\n- **ORDER BY names the winner**: DESC for the latest, ASC for the earliest.\n- **The tie-break comes last.** Two orders of one customer can share a moment; without a tie-break the engine picks one by chance. If tied rows must all stay, use RANK instead.\n- **Filter in the outer query**: `rn = 1` keeps exactly one row per key.\n\n### Why DISTINCT is not enough\n\nDISTINCT removes rows only when every selected column matches. A copy that arrived later carries a new ID and a later recorded_at, so `SELECT DISTINCT *` keeps both, and `COUNT(DISTINCT event_id)` counts both. Define the copy by the columns that should match, and partition by exactly those.\n\n### Duplicates in raw data\n\nLedgerLoop's raw `subscription_events` holds events sent twice by a webhook retry: the same subscription_id, event_type, event_date and mrr_delta_local under a new event_id. Number the rows of each event by event_id and keep number 1:\n\n```sql\nROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local\n                   ORDER BY event_id) AS copy_no\n```\n\nA copy is the same fact, so which copy you keep changes no count or total; the rule just has to be stated. Show the problem as well as the fix: count the rows that arrived beside the events that remain, with `COUNT(*) FILTER (WHERE copy_no = 1)`.\n\n### Pick the winner by the right column\n\n\"The latest\" means the time column, never the highest amount or the highest ID. Sorting a product's price checks by price keeps the most expensive check, not the most recent one.\n\n### Deduplicate before you add up\n\nRemove copies first, then aggregate. Totals worked out over the raw rows already count every copy, and no later step can take them back out.\n\nWhen only the latest time matters, `MAX(order_ts)` per key is enough. ROW_NUMBER earns its place when you need the winning row's other columns.",
+  "syntax_md": "```sql\nWITH ranked AS (                                       -- one row per row of the source\n  SELECT key_col, other_cols,\n         ROW_NUMBER() OVER (PARTITION BY key_col       -- what makes two rows one thing\n                            ORDER BY event_ts DESC,    -- which row wins: latest first\n                                     id_col) AS rn     -- the stated tie-break\n  FROM source\n)\nSELECT key_col, other_cols\nFROM ranked\nWHERE rn = 1;                                          -- exactly one row per key\n```\n\n- Latest per key: ORDER BY the time DESC; earliest: ASC.\n- Raw copies: PARTITION BY the columns that match on a copy, ORDER BY the ID, keep 1.\n- Never DISTINCT over rows that differ in one column.",
+  "dialect_note": "DuckDB and BigQuery can write the filter in place with QUALIFY ROW_NUMBER() OVER (...) = 1; PostgreSQL and SQLite have no QUALIFY. PostgreSQL also has DISTINCT ON (key) with an ORDER BY to keep one row per key. A CTE with ROW_NUMBER and an outer filter runs on all of them.",
+  "worked_examples": [
+    {
+      "title": "Each customer's latest order",
+      "prompt": "What is the latest order of each customer? order_ts holds UTC time, and guest orders (a missing customer_id) do not count. Look only at customers with customer_id up to 8. When two orders of a customer tie on order_ts, the lower order_id is kept. Return customer_id, order_id and order_ts.",
+      "clauses": [
+        {
+          "text": "WITH ranked AS (  -- one row per order of a known customer",
+          "subgoal": "source_grain",
+          "why": "The step keeps every order and adds its number; the comment names the grain."
+        },
+        {
+          "text": "SELECT customer_id, order_id, order_ts, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn",
+          "subgoal": "metrics",
+          "why": "The number restarts for each customer, the latest order first, and order_id splits two orders at one moment."
+        },
+        {
+          "text": "FROM orders",
+          "subgoal": "source_grain",
+          "why": "One row per order."
+        },
+        {
+          "text": "WHERE customer_id IS NOT NULL AND customer_id <= 8)",
+          "subgoal": "row_filter",
+          "why": "Guest orders have no customer to keep a row for, so they go before numbering; the id limit keeps the result short enough to read."
+        },
+        {
+          "text": "SELECT customer_id, order_id, order_ts",
+          "subgoal": "metrics",
+          "why": "The columns asked for; rn has done its job."
+        },
+        {
+          "text": "FROM ranked",
+          "subgoal": "source_grain",
+          "why": "The outer query reads the numbered step."
+        },
+        {
+          "text": "WHERE rn = 1",
+          "subgoal": "row_filter",
+          "why": "Exactly one order per customer: the latest."
+        }
+      ]
+    },
+    {
+      "title": "Removing events that arrived twice",
+      "prompt": "These tables may hold errors. In LedgerLoop's raw data, two rows of subscription_events are copies when subscription_id, event_type, event_date and mrr_delta_local all match. Keep the row with the lowest event_id. Look only at subscription_id 1 to 6. Return each event once: event_id, subscription_id, event_type, event_date and mrr_delta_local.",
+      "clauses": [
+        {
+          "text": "WITH numbered AS (  -- one row per subscription_events row as it arrived",
+          "subgoal": "source_grain",
+          "why": "Every row that arrived, copies included, gets a number."
+        },
+        {
+          "text": "SELECT event_id, subscription_id, event_type, event_date, mrr_delta_local, ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no",
+          "subgoal": "metrics",
+          "why": "The partition is the four columns a copy repeats, so an event and its copies share one window; the lowest event_id comes first."
+        },
+        {
+          "text": "FROM subscription_events WHERE subscription_id <= 6)",
+          "subgoal": "source_grain",
+          "why": "The raw table, as it arrived, for the first six subscriptions so the copies are easy to spot."
+        },
+        {
+          "text": "SELECT event_id, subscription_id, event_type, event_date, mrr_delta_local",
+          "subgoal": "metrics",
+          "why": "The event's own columns, without the helper number."
+        },
+        {
+          "text": "FROM numbered",
+          "subgoal": "source_grain",
+          "why": "The outer query reads the numbered rows."
+        },
+        {
+          "text": "WHERE copy_no = 1",
+          "subgoal": "row_filter",
+          "why": "One row per event: the copy with the lowest event_id."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-PAT-02-E1-01",
+    "EX-SQL-PAT-02-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-PAT-02-E1-03",
+    "EX-SQL-PAT-02-E1-04",
+    "EX-SQL-PAT-02-E2-01",
+    "EX-SQL-PAT-02-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-PAT-02-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-PAT-02-E1-06",
+    "EX-SQL-PAT-02-E1-07",
+    "EX-SQL-PAT-02-E2-03",
+    "EX-SQL-PAT-02-E2-04",
+    "EX-SQL-PAT-02-E2-05",
+    "EX-SQL-PAT-02-E2-06",
+    "EX-SQL-PAT-02-E3-01",
+    "EX-SQL-PAT-02-E3-02",
+    "EX-SQL-PAT-02-E2-31",
+    "EX-SQL-PAT-02-E2-32",
+    "EX-SQL-PAT-02-E2-33",
+    "EX-SQL-PAT-02-E1-42",
+    "EX-SQL-PAT-02-E2-41",
+    "EX-SQL-PAT-02-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "why_clause": {
+    "clause": "SELECT event_id, subscription_id, event_type, event_date, mrr_delta_local, ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no",
+    "stem": "Why does the window partition by subscription_id, event_type, event_date and mrr_delta_local, and not by event_id?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Because a window cannot partition by an ID column."
+      },
+      {
+        "id": "b",
+        "text": "So the result comes out sorted by subscription and date."
+      },
+      {
+        "id": "c",
+        "text": "Because a copy repeats those four columns under a new event_id, so only they put an event and its copies in one window."
+      },
+      {
+        "id": "d",
+        "text": "So that events of the same subscription share one number."
+      }
+    ],
+    "correct_id": "c",
+    "explanation": "Each copy has its own event_id, so partitioning by event_id would give every row a window of its own, and every row would be numbered 1. The four columns that a copy repeats are what make two rows one event, so they define the window, and event_id only orders the copies inside it. A window can use any column, it does not sort the result, and different events of one subscription stay in different windows."
+  }
+}

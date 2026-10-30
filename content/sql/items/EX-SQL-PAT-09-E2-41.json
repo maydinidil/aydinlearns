@@ -1,0 +1,90 @@
+{
+  "id": "EX-SQL-PAT-09-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "promo",
+    "overlap"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-choose-promo-units",
+  "template_params": {
+    "table": "order_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Which query gives the units sold on promotion for each promotion that started in 2025, counting a sale once, for the promotion its line carries?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o0bb9db7",
+      "text": "SELECT p.promo_id, SUM(s.units) AS promo_units\nFROM promotions p\nJOIN promotion_products pp ON pp.promo_id = p.promo_id\nJOIN sales s ON s.product_id = pp.product_id\n  AND s.order_date BETWEEN p.start_date AND p.end_date\nWHERE p.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY p.promo_id",
+      "misconception_id": "ERR-LOG-01"
+    },
+    {
+      "oid": "ob5950ef",
+      "text": "SELECT p.promo_id, SUM(ol.quantity) AS promo_units\nFROM promotions p\nJOIN order_lines ol ON ol.promo_id = p.promo_id\nWHERE p.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY p.promo_id",
+      "misconception_id": null
+    },
+    {
+      "oid": "o6cae021",
+      "text": "SELECT p.promo_id, COUNT(*) AS promo_units\nFROM promotions p\nJOIN order_lines ol ON ol.promo_id = p.promo_id\nWHERE p.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY p.promo_id",
+      "misconception_id": "ERR-LOG-04"
+    },
+    {
+      "oid": "o8a5bc4c",
+      "text": "SELECT p.promo_id, SUM(s.units) AS promo_units\nFROM promotions p\nJOIN order_lines ol ON ol.promo_id = p.promo_id\nJOIN sales s ON s.order_line_id = ol.order_line_id\n  AND s.order_date >= p.start_date AND s.order_date < p.end_date\nWHERE p.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY p.promo_id",
+      "misconception_id": "ERR-LOG-06"
+    }
+  ]
+}

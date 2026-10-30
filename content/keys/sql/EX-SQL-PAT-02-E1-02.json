@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-02-E1-02",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per activation event\n  SELECT user_id, event_name,\n         ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY event_ts DESC, event_name) AS rn\n  FROM activation_events\n)\nSELECT event_name, COUNT(*) AS users\nFROM ranked\nWHERE rn = 1\nGROUP BY event_name",
+  "alternatives": [
+    "WITH latest AS (  -- one row per activated user\n  SELECT ae.user_id, ae.event_name\n  FROM activation_events ae\n  WHERE NOT EXISTS (SELECT 1 FROM activation_events ae2\n                    WHERE ae2.user_id = ae.user_id\n                      AND (ae2.event_ts > ae.event_ts OR (ae2.event_ts = ae.event_ts AND ae2.event_name < ae.event_name)))\n)\nSELECT event_name, COUNT(*) AS users\nFROM latest\nGROUP BY event_name",
+    "SELECT t.event_name, COUNT(*) AS users\nFROM (\n  -- one row per activation event, numbered within its user from the latest\n  SELECT user_id, event_name,\n         ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY event_ts DESC, event_name) AS rn\n  FROM activation_events\n) AS t\nWHERE t.rn = 1\nGROUP BY t.event_name"
+  ],
+  "other_way": {
+    "sql": "WITH latest AS (  -- one row per activated user\n  SELECT ae.user_id, ae.event_name\n  FROM activation_events ae\n  WHERE NOT EXISTS (SELECT 1 FROM activation_events ae2\n                    WHERE ae2.user_id = ae.user_id\n                      AND (ae2.event_ts > ae.event_ts OR (ae2.event_ts = ae.event_ts AND ae2.event_name < ae.event_name)))\n)\nSELECT event_name, COUNT(*) AS users\nFROM latest\nGROUP BY event_name",
+    "tradeoff": "NOT EXISTS finds each user's latest event without a window, but the self-comparison is slower on a big table."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per activation event\n  SELECT user_id, event_name,\n         RANK() OVER (PARTITION BY user_id ORDER BY event_ts DESC) AS rn\n  FROM activation_events\n)\nSELECT event_name, COUNT(*) AS users\nFROM ranked\nWHERE rn = 1\nGROUP BY event_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (  -- one row per activation event\n  SELECT user_id, event_name,\n         ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS rn\n  FROM activation_events\n)\nSELECT event_name, COUNT(*) AS users\nFROM ranked\nWHERE rn = 1\nGROUP BY event_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT event_name, COUNT(*) AS users FROM activation_events GROUP BY event_name"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per activation event\n  SELECT user_id, event_name,\n         ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY ___) AS rn\n  FROM activation_events\n)\nSELECT event_name, COUNT(*) AS users\nFROM ranked\nWHERE ___\nGROUP BY event_name",
+  "solver": {
+    "prompt_hash": "f6173dddb1ccc46c",
+    "schema_version": "274493673e20",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH r AS (SELECT user_id, event_name, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY event_ts DESC, event_name) AS rn FROM activation_events)\nSELECT event_name, COUNT(*) AS users FROM r WHERE rn = 1 GROUP BY event_name\n",
+    "at": "2026-10-28T14:57:00.183Z"
+  }
+}

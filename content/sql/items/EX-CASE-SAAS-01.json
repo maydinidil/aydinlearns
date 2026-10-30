@@ -1,0 +1,192 @@
+{
+  "id": "EX-CASE-SAAS-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "case",
+    "inbox",
+    "saas",
+    "mrr",
+    "arpa",
+    "month_over_month",
+    "mrr_monthly"
+  ],
+  "level": 6,
+  "source_ids": [
+    "04:CASE-SAAS-01",
+    "ERRATA:E-215"
+  ],
+  "verified": true,
+  "as_of": "2026-10-29",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-CASE-SAAS-01-mrr-arpa-by-month",
+  "template_params": {
+    "year": "2025",
+    "grain": "month",
+    "compare_with": "the month before",
+    "source": "mrr_monthly"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_cases",
+  "prompt": "Lieselot, the CFO, is writing LedgerLoop's 2025 investor update and asks for the MRR, its growth on the month before, the active accounts and the average revenue per account (ARPA) for each month of 2025. Take MRR from mrr_monthly: one row per account and month, with the account's MRR in euros on the month's last day, all converted at one fixed rate; an account with no row in a month had no MRR then. An account is active in a month when it has MRR on that month's last day. Return one row for each month from January to December 2025, with five columns in this order: month, the first day of the month; mrr_eur, the month's total MRR in euros, not rounded; active_accounts; arpa_eur, mrr_eur divided by active_accounts, rounded to 2 decimals; and mrr_growth_pct, mrr_eur minus the month before's total MRR, as a percentage of the month before's total (2.5 for 2.5%), rounded to 1 decimal. The month before January 2025 is December 2024, and every month from December 2024 to December 2025 has MRR and has ended. Sort by month from oldest to newest.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "mrr_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "active_accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "arpa_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "mrr_growth_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "active_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "arpa_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "mrr_growth_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the MRR and count the accounts for each month, starting with December 2024 so that January has a month to compare with.",
+    "Set each month's total beside the month before's, divide the change by the earlier total, and keep only the months of 2025 at the end."
+  ],
+  "subgoals": [
+    {
+      "from": 128,
+      "to": 212,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 215,
+      "to": 231,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 234,
+      "to": 301,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 304,
+      "to": 318,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 406,
+      "to": 527,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 530,
+      "to": 542,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 545,
+      "to": 745,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 746,
+      "to": 759,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 760,
+      "to": 792,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 793,
+      "to": 807,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each row of mrr_monthly is one account with MRR at a month's end, so a month's rows give its MRR and active accounts, and December 2024 gives January its base."
+}

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-02-E2-02",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per lead\n  SELECT email, source,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at, lead_id) AS rn\n  FROM leads\n)\nSELECT source, COUNT(*) AS contacts\nFROM ranked\nWHERE rn = 1\nGROUP BY source",
+  "alternatives": [
+    "WITH firsts AS (  -- one row per email\n  SELECT email, MIN(created_at) AS created_at\n  FROM leads\n  GROUP BY email\n),\nfirst_ids AS (  -- one row per email\n  SELECT l.email, MIN(l.lead_id) AS lead_id\n  FROM leads l\n  JOIN firsts f ON f.email = l.email AND f.created_at = l.created_at\n  GROUP BY l.email\n)\nSELECT l.source, COUNT(*) AS contacts\nFROM first_ids fi\nJOIN leads l ON l.lead_id = fi.lead_id\nGROUP BY l.source",
+    "SELECT t.source, COUNT(*) AS contacts\nFROM (\n  -- one row per lead, numbered within its email from the earliest\n  SELECT email, source,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at, lead_id) AS rn\n  FROM leads\n) AS t\nWHERE t.rn = 1\nGROUP BY t.source"
+  ],
+  "other_way": {
+    "sql": "WITH firsts AS (  -- one row per email\n  SELECT email, MIN(created_at) AS created_at\n  FROM leads\n  GROUP BY email\n),\nfirst_ids AS (  -- one row per email\n  SELECT l.email, MIN(l.lead_id) AS lead_id\n  FROM leads l\n  JOIN firsts f ON f.email = l.email AND f.created_at = l.created_at\n  GROUP BY l.email\n)\nSELECT l.source, COUNT(*) AS contacts\nFROM first_ids fi\nJOIN leads l ON l.lead_id = fi.lead_id\nGROUP BY l.source",
+    "tradeoff": "The earliest time per email, then the lowest lead_id at it, needs no window but takes two grouping steps and a join back."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per lead\n  SELECT email, source,\n         RANK() OVER (PARTITION BY email ORDER BY created_at) AS rn\n  FROM leads\n)\nSELECT source, COUNT(*) AS contacts\nFROM ranked\nWHERE rn = 1\nGROUP BY source"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-36",
+      "sql": "WITH contacts AS (SELECT DISTINCT email, source FROM leads) SELECT source, COUNT(*) AS contacts FROM contacts GROUP BY source"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (  -- one row per lead\n  SELECT email, source,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at DESC, lead_id) AS rn\n  FROM leads\n)\nSELECT source, COUNT(*) AS contacts\nFROM ranked\nWHERE rn = 1\nGROUP BY source"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per lead\n  SELECT email, source,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at, lead_id) AS rn\n  FROM leads\n)\nSELECT source, COUNT(*) AS contacts\nFROM ranked\nWHERE ___\nGROUP BY source",
+  "solver": {
+    "prompt_hash": "8caa20e449060caf",
+    "schema_version": "a1ce675defac",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH r AS (SELECT email, source, ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at, lead_id) AS rn FROM leads)\nSELECT source, COUNT(*) AS contacts FROM r WHERE rn = 1 GROUP BY source\n",
+    "at": "2026-10-28T14:57:00.832Z"
+  }
+}

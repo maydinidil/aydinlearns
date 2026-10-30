@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-PAT-10-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "new",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-new-mrr-month-currency",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Finance wants the new MRR LedgerLoop booked in each month of 2025 (event_date from 1 January to 31 December 2025). Each event's event_type names its movement (new, expansion, contraction, churn or reactivation); a reactivation is an account coming back after it churned, never new MRR. Leave out the opening events: they carry the MRR subscriptions already had when the data starts on 1 January 2024. Count an event in the month of its event_date. Amounts stay in each subscription's own currency, so give one row per currency. Return three columns, in this order: month_start (the first day of the month), currency and new_mrr, the sum of mrr_delta_local of the new events. Return one row for each month and currency with new MRR. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "currency",
+        "type_class": "text"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025 and currency with new MRR"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "currency",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start",
+      "currency"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the new events of 2025 and add their MRR up by month and currency.",
+    "Only event_type new is new business; a reactivation is an account that came back."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 82,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 83,
+      "to": 118,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 119,
+      "to": 145,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 146,
+      "to": 207,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 208,
+      "to": 301,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 302,
+      "to": 370,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Only new events count as new MRR, and keeping the currency in the grain never adds pounds to euros."
+}

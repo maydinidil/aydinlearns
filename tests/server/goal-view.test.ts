@@ -91,8 +91,8 @@ test('goalView: concept states, the solved cases with their exports (S4B-08, S4B
   const d = await deps(h, content);
   const view = goalView({ content, replay: d.state.current(), attempts: await d.logger.readAll('attempts'), events: await d.logger.readAll('events') });
   assert.deepEqual(view.casesSolved, [
-    { case_id: DAILY_ID, level: 1, exported: true, real: false },
-    { case_id: OPENER_ID, level: 1, exported: false, real: false },
+    { case_id: DAILY_ID, level: 1, exported: true, real: false, world: 'PRICE', kind: 'daily' },
+    { case_id: OPENER_ID, level: 1, exported: false, real: false, world: 'PRICE', kind: 'opener' },
   ], 'in case ID order; the started inbox case is not solved');
   assert.deepEqual(view.liveReps.map((r) => r.passed), [true, true, true, false]);
   assert.ok(view.liveReps.every((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.local_date)), 'Amsterdam dates');
@@ -111,7 +111,7 @@ test('goalView: concept states, the solved cases with their exports (S4B-08, S4B
   // The same history with no case_export event: replay's case status names no export, so nothing counts as exported.
   const bare = await deps({ attempts: h.attempts, events: h.events.filter((e) => (e as { event: string }).event !== 'case_export') }, content);
   const unexported = await readGoalView(bare);
-  assert.deepEqual(unexported.casesSolved, [{ case_id: DAILY_ID, level: 1, exported: false, real: false }, { case_id: OPENER_ID, level: 1, exported: false, real: false }]);
+  assert.deepEqual(unexported.casesSolved, [{ case_id: DAILY_ID, level: 1, exported: false, real: false, world: 'PRICE', kind: 'daily' }, { case_id: OPENER_ID, level: 1, exported: false, real: false, world: 'PRICE', kind: 'opener' }]);
   assert.deepEqual(evaluateGoal(LEVEL_3, unexported, today).criteria[1], { label: '1 case solved and exported', met: false, available: true, done: 0, total: 1 });
 });
 

@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-PAT-10-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "quick_ratio",
+    "fx"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-quick-ratio",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025,
+    "fx_date": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Investors ask for the SaaS quick ratio of each quarter of 2025 (event_date from 1 January to 31 December 2025): the MRR gained from new, expansion and reactivation events divided by the MRR lost to contraction and churn events, the loss taken as a positive amount. Each event's event_type names its movement (new, expansion, contraction, churn or reactivation); a reactivation is an account coming back after it churned, never new MRR. Leave out the opening events: they carry the MRR subscriptions already had when the data starts on 1 January 2024. Convert every amount to euros at one fixed rate, that of 31 December 2025: multiply by fx_rates.eur_per_unit for the subscription's currency on 2025-12-31. Round the ratio to 2 decimals with ROUND; it is missing for a quarter that lost no MRR. Return two columns, in this order: quarter_start (the first day of the quarter) and quick_ratio. Return one row for each quarter of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "quarter_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "quick_ratio",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "quarter_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "quick_ratio",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "quarter_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the gains and the losses of each quarter with two conditional sums, then divide.",
+    "Losses are negative in mrr_delta_local, so flip their sign before dividing the gains by them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 74,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 75,
+      "to": 201,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 346,
+      "to": 372,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 373,
+      "to": 434,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 435,
+      "to": 513,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 514,
+      "to": 545,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 546,
+      "to": 612,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 613,
+      "to": 671,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Gains over losses, both at one fixed rate, show how many euros of MRR each quarter won for every euro it lost."
+}

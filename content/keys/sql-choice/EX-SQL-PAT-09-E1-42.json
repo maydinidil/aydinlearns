@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-09-E1-42",
+  "item_version": 1,
+  "value": 13,
+  "explanation": "DATE '2025-04-20' - DATE '2025-04-07' is 13, so the query keeps the days 1 to 13 before 7 April: 25 March to 6 April, 13 rows. The promotion itself lasts 14 days, because both its first and last day count, so this baseline is one day short; it needs end_date - start_date + 1.",
+  "solver": {
+    "prompt_hash": "9a94892cfb66d27e",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "13",
+    "at": "2026-10-28T14:57:24.803Z"
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-PAT-04-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "week_spine",
+    "zero_fill",
+    "app_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-week-spine",
+  "template_params": {
+    "table": "app_events",
+    "spine": "range"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each week from the week of 6 October 2025 to the week of 29 December 2025, how many in-app events did LedgerLoop record across the accounts with app events? Weeks start on Monday, and event_ts is a UTC instant: put each event in the week of its UTC day. Every week of the range has a row, and a week with no events shows 0. Return two columns, in this order: week_start (the Monday) and events. Return one row for each week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list the Mondays of the range with a seven-day step, then attach the weekly counts.",
+    "The spine must be weeks, like the counts: a list of days would give seven rows per week, six of them 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 517,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 518,
+      "to": 570,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 571,
+      "to": 583,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 584,
+      "to": 633,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "A spine of Mondays has the same grain as the weekly counts, so each week gets one row, with 0 when nobody used the app."
+}

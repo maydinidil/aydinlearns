@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-LEDGER-L6",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM accounts\nWHERE created_at >= TIMESTAMP '2024-02-01 00:00:00'\n  AND created_at < TIMESTAMP '2024-05-01 00:00:00'",
+    "CP4": "SELECT ROUND(100.0 * (\n         COUNT(*) FILTER (WHERE created_at >= TIMESTAMP '2025-02-01 00:00:00' AND created_at < TIMESTAMP '2025-05-01 00:00:00')\n       - COUNT(*) FILTER (WHERE created_at >= TIMESTAMP '2024-02-01 00:00:00' AND created_at < TIMESTAMP '2024-05-01 00:00:00'))\n       / COUNT(*) FILTER (WHERE created_at >= TIMESTAMP '2024-02-01 00:00:00' AND created_at < TIMESTAMP '2024-05-01 00:00:00'), 1)\nFROM accounts"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "of0b1be9",
+      "explanation": "Listing every segment and month first, with 0 where none was created, keeps each month in place, so counting 12 rows back over only the months that have accounts pairs a month with the wrong one."
+    },
+    "CP5": {
+      "correct_oid": "oc2bff62",
+      "explanation": "The result shows when new account wins fell, not why, so the price rise is a lead to test; taking the price back on this alone could cost revenue and still not win the accounts back."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "5ed1986aca8837b0",
+      "key_hash": "6a30ad76b6df7550",
+      "at": "2026-10-28T14:57:26.929Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "171b4a1d6b97d8dd",
+      "key_hash": "350c7861ad3220b1",
+      "at": "2026-10-28T14:57:26.929Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "74bd1898d434f687",
+      "key_hash": "e5ea8b93b1a79bc5",
+      "at": "2026-10-28T14:57:26.929Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "244c60ff2fabb7b2",
+      "key_hash": "7c146ad3d33fd670",
+      "at": "2026-10-28T14:57:26.929Z"
+    }
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "id": "EX-SQL-PAT-10-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "movements",
+    "currency"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-movements-gbp",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025,
+    "currency": "GBP"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The UK team reports in pounds. For the subscriptions billed in GBP, give each month's movements in 2025 (event_date from 1 January to 31 December 2025): new, expansion, reactivation, contraction and churn MRR in pounds, signed as in mrr_delta_local. Each event's event_type names its movement (new, expansion, contraction, churn or reactivation); a reactivation is an account coming back after it churned, never new MRR. Leave out the opening events: they carry the MRR subscriptions already had when the data starts on 1 January 2024. Count an event in the month of its event_date. A kind with no event that month shows 0. Return six columns, in this order: month_start (the first day of the month), new_mrr, expansion_mrr, reactivation_mrr, contraction_mrr and churn_mrr. Return one row for each month with at least one GBP movement event. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churn_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "churn_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the GBP movement events of 2025, then write one conditional sum per kind of movement.",
+    "The currency is on subscriptions; within one currency the amounts can be added as they are."
+  ],
+  "subgoals": [
+    {
+      "from": 60,
+      "to": 164,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 165,
+      "to": 193,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 194,
+      "to": 257,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 258,
+      "to": 387,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 390,
+      "to": 409,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 410,
+      "to": 489,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 490,
+      "to": 581,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 582,
+      "to": 679,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 680,
+      "to": 775,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 776,
+      "to": 858,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 859,
+      "to": 869,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 870,
+      "to": 890,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Staying in one currency needs no conversion, and one conditional sum per kind keeps each movement apart."
+}

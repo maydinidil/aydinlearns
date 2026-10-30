@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-09-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT s.order_line_id, s.product_id, s.order_date, s.units,\n  CASE WHEN ol.promo_id IS NULL THEN 'full price' ELSE 'promo' END AS price_type\nFROM sales s\nJOIN order_lines ol ON ol.order_line_id = s.order_line_id\nWHERE s.order_date BETWEEN DATE '2025-04-03' AND DATE '2025-04-10'\n  AND s.product_id IN (\n    SELECT pp.product_id\n    FROM promotion_products pp\n    JOIN promotions p ON p.promo_id = pp.promo_id\n    WHERE p.start_date BETWEEN DATE '2025-04-01' AND DATE '2025-04-30'\n  )",
+  "alternatives": [
+    "WITH spring_products AS (\n  -- one row per product of a promotion that started in April 2025\n  SELECT DISTINCT pp.product_id\n  FROM promotion_products pp\n  JOIN promotions p ON p.promo_id = pp.promo_id\n  WHERE p.start_date BETWEEN DATE '2025-04-01' AND DATE '2025-04-30'\n)\nSELECT s.order_line_id, s.product_id, s.order_date, s.units,\n  CASE WHEN ol.promo_id IS NULL THEN 'full price' ELSE 'promo' END AS price_type\nFROM sales s\nJOIN spring_products sp ON sp.product_id = s.product_id\nJOIN order_lines ol ON ol.order_line_id = s.order_line_id\nWHERE s.order_date BETWEEN DATE '2025-04-03' AND DATE '2025-04-10'",
+    "SELECT s.order_line_id, s.product_id, s.order_date, s.units,\n  CASE WHEN ol.promo_id IS NOT NULL THEN 'promo' ELSE 'full price' END AS price_type\nFROM sales s\nJOIN order_lines ol ON ol.order_line_id = s.order_line_id\nWHERE s.order_date BETWEEN DATE '2025-04-03' AND DATE '2025-04-10'\n  AND EXISTS (\n    SELECT 1 FROM promotion_products pp\n    JOIN promotions p ON p.promo_id = pp.promo_id\n    WHERE pp.product_id = s.product_id\n      AND p.start_date BETWEEN DATE '2025-04-01' AND DATE '2025-04-30'\n  )"
+  ],
+  "other_way": {
+    "sql": "WITH spring_products AS (\n  -- one row per product of a promotion that started in April 2025\n  SELECT DISTINCT pp.product_id\n  FROM promotion_products pp\n  JOIN promotions p ON p.promo_id = pp.promo_id\n  WHERE p.start_date BETWEEN DATE '2025-04-01' AND DATE '2025-04-30'\n)\nSELECT s.order_line_id, s.product_id, s.order_date, s.units,\n  CASE WHEN ol.promo_id IS NULL THEN 'full price' ELSE 'promo' END AS price_type\nFROM sales s\nJOIN spring_products sp ON sp.product_id = s.product_id\nJOIN order_lines ol ON ol.order_line_id = s.order_line_id\nWHERE s.order_date BETWEEN DATE '2025-04-03' AND DATE '2025-04-10'",
+    "tradeoff": "A CTE that lists the products once with DISTINCT works too; without DISTINCT, a product in two promotions repeats its lines."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT s.order_line_id, s.product_id, s.order_date, s.units, CASE WHEN ol.promo_id = NULL THEN 'full price' ELSE 'promo' END AS price_type FROM sales s JOIN order_lines ol ON ol.order_line_id = s.order_line_id WHERE s.order_date BETWEEN DATE '2025-04-03' AND DATE '2025-04-10' AND s.product_id IN ( SELECT pp.product_id FROM promotion_products pp JOIN promotions p ON p.promo_id = pp.promo_id WHERE p.start_date BETWEEN DATE '2025-04-01' AND DATE '2025-04-30' )"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT s.order_line_id, s.product_id, s.order_date, s.units, CASE WHEN ol.promo_id IS NULL THEN 'full price' ELSE 'promo' END AS price_type FROM sales s JOIN order_lines ol ON ol.order_line_id = s.order_line_id JOIN promotion_products pp ON pp.product_id = s.product_id JOIN promotions p ON p.promo_id = pp.promo_id WHERE p.start_date BETWEEN DATE '2025-04-01' AND DATE '2025-04-30' AND s.order_date BETWEEN DATE '2025-04-03' AND DATE '2025-04-10'"
+    }
+  ],
+  "hint3_partial": "SELECT s.order_line_id, s.product_id, s.order_date, s.units,\n  CASE WHEN ___ THEN 'full price' ELSE 'promo' END AS price_type\nFROM sales s\nJOIN order_lines ol ON ol.order_line_id = s.order_line_id\nWHERE s.order_date BETWEEN DATE '2025-04-03' AND DATE '2025-04-10'\n  AND s.product_id IN (\n    SELECT pp.product_id\n    FROM promotion_products pp\n    JOIN promotions p ON p.promo_id = pp.promo_id\n    WHERE p.start_date BETWEEN DATE '2025-04-01' AND DATE '2025-04-30'\n  )",
+  "solver": {
+    "prompt_hash": "9d6f96cef63982fe",
+    "schema_version": "a3c4a1bb944a",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT s.order_line_id, s.product_id, s.order_date, s.units, CASE WHEN ol.promo_id IS NULL THEN 'full price' ELSE 'promo' END AS price_type\nFROM sales s JOIN order_lines ol ON ol.order_line_id = s.order_line_id\nWHERE s.order_date BETWEEN DATE '2025-04-03' AND DATE '2025-04-10'\n  AND s.product_id IN (SELECT pp.product_id FROM promotion_products pp JOIN promotions p ON p.promo_id = pp.promo_id WHERE p.start_date BETWEEN DATE '2025-04-01' AND DATE '2025-04-30')\n",
+    "at": "2026-10-28T14:57:14.657Z"
+  }
+}

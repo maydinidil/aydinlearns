@@ -7,7 +7,8 @@ for it, so no v0 table's draws change (GEN-02), and nothing v0 built is changed 
 tables are appended to TABLE_ORDER only. Sprint 4a adds competitor_prices (level 3) from its reserved
 stream, built after the order data, so no earlier table changes (S4-02). Sprint 6 adds cost_history from its reserved
 stream (S6-07) and the raw order quirks (raw.py, S6-02) from the quirks stream after the product quirks, so no table
-built before changes.
+built before changes. Sprint 8 Part 2 adds inventory_chain_daily (S8-15, E-212) from the last reserved stream, after every
+other table.
 """
 from __future__ import annotations
 
@@ -286,6 +287,32 @@ RECHECK_GAP_HOURS = (6, 13)                                # integers(low, high)
 # rounded half up to the cent. Every other product keeps products.unit_cost_eur for its whole life. 05 gives no cost
 # history; the category, date and size are this sprint's plant for CASE-PRICE-05's Q2 against Q3 2025 bridge.
 COST_RISE = {"parent_category": "Audio", "from": "2025-07-01", "rise_pct": 8}
+
+# ---- Sprint 8 Part 2: chain-wide daily stock (E-017, E-212, S8-15) -------------------------------------------------------------
+# inventory_chain_daily: each physical store's units on hand at the close of each day, for the products of INVENTORY_CHAIN's
+# categories (PlayBox 5, FIND-01-09's console, and the other consoles and the controllers, enough for a stock cover question across
+# stores). The webshop's stock is not in it: E-017 keeps the web SKUs for inventory_daily. A store has rows while it is open (to its
+# close_date), and a product from its launch date. It draws only from the inventory_chain stream TABLE_ORDER reserved for it, after
+# every other table, and reads the order data, so no other table changes (GEN-02).
+# Each store and product follows a reorder-point rule: when the day before closed at or below its reorder point (lead days of the
+# pair's average daily sales, and at least the pair's own shelf minimum), a delivery arrives that morning and fills the shelf to its order-up-to level (cycle days more); the day
+# closes at the stock after that delivery less the units the store sold. A store that would sell its last unit gets an urgent
+# delivery that morning instead, so no shelf runs empty on a sale and the only days with 0 on hand are FIND-01-09's. A pair present on
+# the window's first day starts between its two levels; one that starts later (a store opening or a launch) gets its first delivery
+# that day. Every number below is a calibration estimate, not sourced data.
+INVENTORY_TABLES = ["inventory_chain_daily"]                 # loaded after cost_history
+INVENTORY_CHAIN = {
+    "children": ("Consoles", "Controllers"),
+    "lead_days": (3, 8),                                     # integers(low, high): days of average sales the reorder point holds
+    "cycle_days": (14, 36),                                  # integers(low, high): days of average sales a delivery brings
+    # integers(low, high): each pair's shelf minimum, the fewest units it keeps before it reorders (V1 review finding 1: a slow
+    # seller's display stock differs from store to store, rather than every one sitting at the same level).
+    "shelf_minimum": (2, 7),
+    "max_rows": 2_000_000,                                   # E-212
+}
+# FIND-01-09 on the stock: PlayBox 5 has 0 on hand in every store from STOCKOUT's start to its end. Sales of it are already 0 on those
+# days (build_orders), so its units cannot sell out on the first day: every store's remaining units go back to the supplier that day,
+# and no delivery comes until the day after the end, when every store is refilled.
 
 
 def d(s: str | None) -> dt.date | None:
@@ -977,6 +1004,78 @@ def build_cost_history(rng: np.random.Generator, products: pa.Table, categories:
     })
 
 
+def inventory_products(pf: dict) -> np.ndarray:
+    """The product ids inventory_chain_daily covers: every product of INVENTORY_CHAIN's child categories, in id order."""
+    return np.flatnonzero(np.isin(pf["child"], INVENTORY_CHAIN["children"])) + 1
+
+
+def build_inventory_chain(rng: np.random.Generator, pf: dict, stores: pa.Table, orders: pa.Table, order_lines: pa.Table) -> pa.Table:
+    """S8-15 (E-212): inventory_chain_daily, each physical store's closing stock of each product of INVENTORY_CHAIN's categories, one
+    row per day it is open from the product's launch, ordered by day, store and product. Every draw is made in fixed shapes before any
+    data-dependent step, so the stream stays aligned."""
+    nd = (WINDOW_END - WINDOW_START).days + 1
+    products = inventory_products(pf)
+    phys = [s for s in stores.to_pylist() if s["store_id"] != 99]
+    store_ids = np.array([s["store_id"] for s in phys])
+    n_s, n_p = len(phys), len(products)
+    lead = rng.integers(*INVENTORY_CHAIN["lead_days"], (n_s, n_p))
+    cycle = rng.integers(*INVENTORY_CHAIN["cycle_days"], (n_s, n_p))
+    fill = rng.random((n_s, n_p))
+    shelf_minimum = rng.integers(*INVENTORY_CHAIN["shelf_minimum"], (n_s, n_p))
+
+    # Units sold per day, store and product (an order counts on its UTC date, as the sales view's order_date).
+    order_day = ((orders.column("order_ts").to_numpy().astype("datetime64[D]") - np.datetime64(WINDOW_START)).astype(np.int64))
+    order_store = orders.column("store_id").to_numpy()
+    line_order = order_lines.column("order_id").to_numpy() - 1             # order ids run 1..n in order
+    line_product = order_lines.column("product_id").to_numpy()
+    p_index = np.full(len(pf["child"]) + 1, -1)
+    p_index[products] = np.arange(n_p)
+    s_index = np.full(max(int(order_store.max()), int(store_ids.max())) + 1, -1)   # the webshop (99) stays -1
+    s_index[store_ids] = np.arange(n_s)
+    li, ls = p_index[line_product], s_index[order_store[line_order]]
+    keep = (li >= 0) & (ls >= 0)
+    sold = np.zeros((nd, n_s, n_p), dtype=np.int64)
+    np.add.at(sold, (order_day[line_order[keep]], ls[keep], li[keep]), order_lines.column("quantity").to_numpy()[keep])
+
+    # Each pair's days: from the window's start, the store's opening or the product's launch, to the store's close or the window's end.
+    opened = np.array([day_of(s["opened_on"]) for s in phys])
+    closed = np.array([day_of(s["close_date"]) if s["close_date"] is not None else nd - 1 for s in phys])
+    first = np.maximum(np.maximum(opened[:, None], pf["launch"][products - 1][None, :]), 0)
+    last = np.minimum(closed, nd - 1)[:, None].repeat(n_p, axis=1)
+    days = np.maximum(last - first + 1, 0)
+    total = sold.sum(axis=0)
+    # Integer arithmetic only (ceilings of whole-number ratios): the reorder point holds lead days of average sales, and at least the
+    # pair's shelf minimum, and a delivery brings cycle days of them.
+    reorder = np.maximum((total * lead + days - 1) // np.maximum(days, 1), shelf_minimum)
+    order_up_to = reorder + np.maximum((total * cycle + days - 1) // np.maximum(days, 1), 1)
+    start = np.where(first == 0, reorder + 1 + (fill * (order_up_to - reorder)).astype(np.int64), 0)
+
+    out = np.full((nd, n_s, n_p), -1, dtype=np.int64)
+    out_start, out_end = day_of(d(STOCKOUT["start"])), day_of(d(STOCKOUT["end"]))
+    plant = int(np.flatnonzero(products == STOCKOUT["product_id"])[0])
+    prev = np.zeros((n_s, n_p), dtype=np.int64)
+    for k in range(nd):
+        active = (first <= k) & (k <= last)
+        prev = np.where(first == k, start, prev)
+        shelf = np.where(prev <= reorder, order_up_to, prev)
+        # A store that would sell its last unit gets an urgent delivery that morning, so the day closes with stock.
+        close = np.maximum(shelf, sold[k] + 1) - sold[k]
+        if out_start <= k <= out_end:                     # FIND-01-09: nothing on hand, nothing delivered
+            close[:, plant] = 0
+        if (close[active] < 0).any():
+            raise ValueError("inventory_chain_daily: a store sold more than it held")
+        out[k][active] = close[active]
+        prev = close
+    k, s, p = np.nonzero(out >= 0)
+    epoch = (WINDOW_START - dt.date(1970, 1, 1)).days
+    return pa.table({
+        "snapshot_date": pa.array((epoch + k).astype(np.int32), pa.date32()),
+        "store_id": pa.array(store_ids[s], pa.int32()),
+        "product_id": pa.array(products[p], pa.int32()),
+        "units_on_hand": pa.array(out[k, s, p], pa.int32()),
+    })
+
+
 def sinterklaas_days() -> list[dt.date]:
     """E-079: 20 Nov to 5 Dec of each year, without Black Week (the Monday before Black Friday to Cyber Monday)."""
     out = []
@@ -1012,6 +1111,9 @@ def generate(seed: int = SEED) -> tuple[dict, dict]:
     clean["competitor_prices"] = build_competitor_prices(r["competitor_prices"], pf, demand, clean["price_history"])
     # Sprint 6 (S6-07): cost history, from its reserved stream, after every other table; nothing above changes.
     clean["cost_history"] = build_cost_history(r["cost_history"], clean["products"], categories)
+    # Sprint 8 Part 2 (S8-15, E-212): chain-wide daily stock, from the last reserved stream, after every other table; it reads the
+    # order data and changes nothing above.
+    clean["inventory_chain_daily"] = build_inventory_chain(r["inventory_chain"], pf, clean["stores"], clean["orders"], clean["order_lines"])
     # Sprint 6 (S6-02): voltmarkt_raw's tables. The product quirks draw from the quirks stream first, as before sprint 6, so
     # raw products stays as it was; the order quirks then draw from the same stream. raw.py imports this module, so it is
     # imported here, when generate() runs.
@@ -1270,6 +1372,59 @@ def validate_competitor_prices(tables: dict) -> dict:
             "median_ratio": {k: round(float(v), 4) for k, v in sorted(medians.items())}}
 
 
+def validate_inventory_chain(tables: dict) -> dict:
+    """Sprint 8 Part 2 (S8-15, E-212): inventory_chain_daily's grain, size, products, store days, FIND-01-09's validation band and
+    its stock movements, measured in SQL. Returns counts for the truth file."""
+    c = tables["clean"]
+    con = duckdb.connect(config=NO_NETWORK)
+    con.execute("SET TimeZone = 'UTC'")
+    stock = "inventory_chain_daily"
+    first, last = STOCKOUT["start"], STOCKOUT["end"]
+    out_days = (d(last) - d(first)).days + 1                   # 05's FIND-01-09: 22 days
+    try:
+        for name in (stock, "stores", "products", "categories", "orders", "order_lines"):
+            con.register(name, c[name])
+        rows, keys, missing, negative = con.execute(f"""SELECT count(*), count(DISTINCT (snapshot_date, store_id, product_id)),
+                4 * count(*) - count(snapshot_date) - count(store_id) - count(product_id) - count(units_on_hand),
+                count(*) FILTER (WHERE units_on_hand < 0) FROM {stock}""").fetchone()
+        children = ", ".join(f"'{x}'" for x in INVENTORY_CHAIN["children"])
+        subset = f"SELECT product_id FROM products JOIN categories USING (category_id) WHERE category_name IN ({children})"
+        wrong_products = con.execute(f"""SELECT (SELECT count(*) FROM (SELECT product_id FROM {stock} EXCEPT {subset}))
+                                              + (SELECT count(*) FROM ({subset} EXCEPT SELECT product_id FROM {stock}))""").fetchone()[0]
+        n_products, n_stores = con.execute(f"SELECT count(DISTINCT product_id), count(DISTINCT store_id) FROM {stock}").fetchone()
+        off_days = con.execute(f"""SELECT count(*) FROM (SELECT store_id, product_id, min(snapshot_date) AS f, max(snapshot_date) AS l, count(*) AS n
+                                                         FROM {stock} GROUP BY ALL) i
+            LEFT JOIN stores s USING (store_id) LEFT JOIN products p USING (product_id)
+            WHERE s.store_id IS NULL OR s.store_id = 99 OR p.product_id IS NULL
+               OR i.f <> greatest(DATE '{WINDOW_START}', s.opened_on, p.launch_date)
+               OR i.l <> least(DATE '{WINDOW_END}', coalesce(s.close_date, DATE '{WINDOW_END}')) OR i.n <> i.l - i.f + 1""").fetchone()[0]
+        stockout = con.execute(f"""SELECT count(*) FILTER (WHERE zero <> {out_days}), count(*) FILTER (WHERE NOT around), count(*)
+            FROM (SELECT store_id, count(*) FILTER (WHERE snapshot_date BETWEEN DATE '{first}' AND DATE '{last}' AND units_on_hand = 0) AS zero,
+                         bool_and(units_on_hand > 0) FILTER (WHERE snapshot_date IN (DATE '{first}' - 1, DATE '{last}' + 1)) AS around
+                  FROM {stock} WHERE product_id = {STOCKOUT['product_id']} GROUP BY 1
+                  HAVING min(snapshot_date) < DATE '{first}' AND max(snapshot_date) > DATE '{last}')""").fetchone()
+        moves = con.execute(f"""WITH sold AS (SELECT o.store_id, ol.product_id, CAST(o.order_ts AS DATE) AS d, sum(ol.quantity) AS units
+                                              FROM order_lines ol JOIN orders o USING (order_id) GROUP BY ALL),
+            m AS (SELECT i.*, lag(i.units_on_hand) OVER (PARTITION BY i.store_id, i.product_id ORDER BY i.snapshot_date) AS prev,
+                         coalesce(s.units, 0) AS sold
+                  FROM {stock} i LEFT JOIN sold s ON s.store_id = i.store_id AND s.product_id = i.product_id AND s.d = i.snapshot_date)
+            SELECT count(*) FILTER (WHERE prev IS NOT NULL AND units_on_hand - prev + sold < 0
+                                    AND NOT (product_id = {STOCKOUT['product_id']} AND snapshot_date = DATE '{first}')),
+                   count(*) FILTER (WHERE units_on_hand = 0 AND sold > 0) FROM m""").fetchone()
+    finally:
+        con.close()
+    _check(rows == keys, f"{stock}: {rows - keys} repeated (snapshot_date, store_id, product_id)")
+    _check(missing == 0 and negative == 0, f"{stock}: {missing} missing values, {negative} negative stock levels")
+    _check(rows < INVENTORY_CHAIN["max_rows"], f"{stock}: {rows} rows, E-212 keeps it under {INVENTORY_CHAIN['max_rows']:,}")
+    _check(wrong_products == 0, f"{stock}: {wrong_products} products outside {INVENTORY_CHAIN['children']}")
+    _check(off_days == 0, f"{stock}: {off_days} store and product pairs miss days, or hold days the store is closed or before launch")
+    _check(stockout[0] == 0 and stockout[1] == 0 and stockout[2] > 0,
+           f"FIND-01-09: {stockout[0]} stores without {out_days} days of 0 on hand, {stockout[1]} out of stock on the days around them")
+    _check(moves[0] == 0, f"{stock}: {moves[0]} days whose stock falls by more than that day's sales")
+    _check(moves[1] == 0, f"{stock}: {moves[1]} days that sell while closing with nothing on hand")
+    return {"rows": rows, "products": n_products, "stores": n_stores, "FIND-01-09": {"zero_days": out_days, "stores": stockout[2]}}
+
+
 def validate(tables: dict, truth: dict) -> dict:
     """GEN-06 on clean data (design §10): the v0 facts, then the order data. Returns the measured findings.
 
@@ -1278,6 +1433,7 @@ def validate(tables: dict, truth: dict) -> dict:
     validate_v0(tables, truth)
     measured = validate_orders(tables)
     measured["competitor_prices"] = validate_competitor_prices(tables)
+    measured["inventory_chain_daily"] = validate_inventory_chain(tables)   # sprint 8 Part 2 (S8-15)
     return measured
 
 

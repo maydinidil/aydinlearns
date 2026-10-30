@@ -1,0 +1,210 @@
+{
+  "id": "EX-SQL-PAT-04-E2-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "date_spine",
+    "count_star",
+    "left_join"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-predict-count-star",
+  "template_params": {
+    "table": "orders"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Store BE-09 (store_id 19) opened on 1 March 2025 and took no orders before that day. On 1, 2 and 3 March it took 20, 16 and 20 orders (UTC days). Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT d.cal_date AS day, COUNT(*) AS orders\nFROM calendar d\nLEFT JOIN orders o ON CAST(o.order_ts AS DATE) = d.cal_date AND o.store_id = 19\nWHERE d.cal_date BETWEEN DATE '2025-02-26' AND DATE '2025-03-03'\nGROUP BY d.cal_date",
+  "options": [
+    {
+      "oid": "o85ac960",
+      "text": "The three February days show 0",
+      "misconception_id": "ERR-LOG-04",
+      "table": {
+        "columns": [
+          "day",
+          "orders"
+        ],
+        "rows": [
+          [
+            "2025-02-26",
+            0
+          ],
+          [
+            "2025-02-27",
+            0
+          ],
+          [
+            "2025-02-28",
+            0
+          ],
+          [
+            "2025-03-01",
+            20
+          ],
+          [
+            "2025-03-02",
+            16
+          ],
+          [
+            "2025-03-03",
+            20
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o2b418c5",
+      "text": "Only the three March days come back",
+      "misconception_id": "ERR-LOG-39",
+      "table": {
+        "columns": [
+          "day",
+          "orders"
+        ],
+        "rows": [
+          [
+            "2025-03-01",
+            20
+          ],
+          [
+            "2025-03-02",
+            16
+          ],
+          [
+            "2025-03-03",
+            20
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o53ad353",
+      "text": "The three February days show 1",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "day",
+          "orders"
+        ],
+        "rows": [
+          [
+            "2025-02-26",
+            1
+          ],
+          [
+            "2025-02-27",
+            1
+          ],
+          [
+            "2025-02-28",
+            1
+          ],
+          [
+            "2025-03-01",
+            20
+          ],
+          [
+            "2025-03-02",
+            16
+          ],
+          [
+            "2025-03-03",
+            20
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ocd5cd77",
+      "text": "The three February days show a missing count",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "day",
+          "orders"
+        ],
+        "rows": [
+          [
+            "2025-02-26",
+            null
+          ],
+          [
+            "2025-02-27",
+            null
+          ],
+          [
+            "2025-02-28",
+            null
+          ],
+          [
+            "2025-03-01",
+            20
+          ],
+          [
+            "2025-03-02",
+            16
+          ],
+          [
+            "2025-03-03",
+            20
+          ]
+        ]
+      }
+    }
+  ]
+}

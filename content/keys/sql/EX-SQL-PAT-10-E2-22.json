@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-10-E2-22",
+  "item_version": 2,
+  "reference_sql": "SELECT s.currency, COUNT(*) AS invoices, SUM(i.amount_local / 12) AS renewal_mrr\nFROM invoices i\nJOIN subscriptions s ON s.subscription_id = i.subscription_id\nWHERE s.billing_period = 'annual'\n  AND i.invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND month(i.invoice_date) = month(s.start_date)\n  AND day(i.invoice_date) = day(s.start_date)\nGROUP BY s.currency",
+  "alternatives": [
+    "SELECT s.currency, COUNT(*) AS invoices, SUM(i.amount_local) / 12 AS renewal_mrr\nFROM invoices i\nJOIN subscriptions s ON s.subscription_id = i.subscription_id\nWHERE s.billing_period = 'annual'\n  AND i.invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND month(i.invoice_date) = month(s.start_date)\n  AND day(i.invoice_date) = day(s.start_date)\nGROUP BY s.currency",
+    "WITH annual AS (\n  -- one row per annual subscription\n  SELECT subscription_id, currency, start_date\n  FROM subscriptions\n  WHERE billing_period = 'annual'\n)\nSELECT a.currency, COUNT(*) AS invoices, SUM(i.amount_local / 12) AS renewal_mrr\nFROM invoices i\nJOIN annual a ON a.subscription_id = i.subscription_id\nWHERE i.invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND date_diff('month', a.start_date, i.invoice_date) % 12 = 0\n  AND day(i.invoice_date) = day(a.start_date)\nGROUP BY a.currency"
+  ],
+  "other_way": {
+    "sql": "WITH annual AS (\n  -- one row per annual subscription\n  SELECT subscription_id, currency, start_date\n  FROM subscriptions\n  WHERE billing_period = 'annual'\n)\nSELECT a.currency, COUNT(*) AS invoices, SUM(i.amount_local / 12) AS renewal_mrr\nFROM invoices i\nJOIN annual a ON a.subscription_id = i.subscription_id\nWHERE i.invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND date_diff('month', a.start_date, i.invoice_date) % 12 = 0\n  AND day(i.invoice_date) = day(a.start_date)\nGROUP BY a.currency",
+    "tradeoff": "A month count that is a whole number of years picks the same invoices, but date_diff counts month boundaries, so the day test stays."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-51",
+      "sql": "SELECT s.currency, COUNT(*) AS invoices, SUM(i.amount_local) AS renewal_mrr FROM invoices i JOIN subscriptions s ON s.subscription_id = i.subscription_id WHERE s.billing_period = 'annual' AND i.invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND month(i.invoice_date) = month(s.start_date) AND day(i.invoice_date) = day(s.start_date) GROUP BY s.currency"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT s.currency, COUNT(*) AS invoices, SUM(CAST(i.amount_local AS INTEGER) // 12) AS renewal_mrr FROM invoices i JOIN subscriptions s ON s.subscription_id = i.subscription_id WHERE s.billing_period = 'annual' AND i.invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND month(i.invoice_date) = month(s.start_date) AND day(i.invoice_date) = day(s.start_date) GROUP BY s.currency"
+    }
+  ],
+  "hint3_partial": "SELECT s.currency, COUNT(*) AS invoices, SUM(___) AS renewal_mrr\nFROM invoices i\nJOIN subscriptions s ON s.subscription_id = i.subscription_id\nWHERE s.billing_period = 'annual'\n  AND i.invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND month(i.invoice_date) = month(s.start_date)\n  AND day(i.invoice_date) = day(s.start_date)\nGROUP BY s.currency",
+  "solver": {
+    "prompt_hash": "8a9e3ac76670ffd2",
+    "schema_version": "025b95c08069",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT s.currency AS currency, COUNT(*) AS invoices, SUM(i.amount_local / 12) AS renewal_mrr\nFROM invoices i JOIN subscriptions s ON s.subscription_id = i.subscription_id\nWHERE s.billing_period = 'annual'\n  AND i.invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND month(i.invoice_date) = month(s.start_date)\n  AND day(i.invoice_date) = day(s.start_date)\nGROUP BY s.currency\n",
+    "at": "2026-10-28T16:44:15.244Z"
+  }
+}

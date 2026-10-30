@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-10-E2-41",
+  "item_version": 1,
+  "correct_oid": "od0d48de",
+  "explanation": "Only events typed new are new business, and grouping by currency keeps pounds and francs apart from euros. A reactivation is a returning account, and every positive change that is not an expansion also takes in the opening balances of January 2024, which existed before the data starts. Dropping the currency adds unconverted amounts together.",
+  "solver": {
+    "prompt_hash": "2b1283164edb06dd",
+    "grader_version": "choice.3",
+    "chosen": "od0d48de",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.818Z"
+  }
+}

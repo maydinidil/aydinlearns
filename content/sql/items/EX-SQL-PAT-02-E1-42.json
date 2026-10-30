@@ -1,0 +1,76 @@
+{
+  "id": "EX-SQL-PAT-02-E1-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_rows",
+    "latest_per_key",
+    "row_number",
+    "subscriptions"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-predict-rows-latest-per-key",
+  "template_params": {
+    "table": "subscriptions",
+    "key": "account"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How many rows does this query return? subscriptions holds 1,546 subscriptions of 1,447 accounts; every one of those accounts has at least one subscription, and an account that came back has more than one.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "WITH ranked AS (\n  SELECT account_id, subscription_id, start_date,\n         ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY start_date DESC, subscription_id DESC) AS rn\n  FROM subscriptions\n)\nSELECT account_id, subscription_id, start_date\nFROM ranked\nWHERE rn = 1",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

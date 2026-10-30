@@ -1,0 +1,133 @@
+{
+  "concept_id": "SQL-PAT-05",
+  "version": 1,
+  "reading_md": "## From long to wide\n\nData usually arrives **long**: one row per month and channel. Reports are often **wide**: one row per month, one column per channel. Turning long into wide is a pivot.\n\n### Conditional aggregation: the portable pivot\n\nGroup by what each row stands for, and give every column its own condition:\n\n```sql\nSELECT month,\n  COUNT(*) FILTER (WHERE channel = 'store') AS store_orders,\n  COUNT(*) FILTER (WHERE channel = 'web')   AS web_orders\nFROM monthly_orders\nGROUP BY month\n```\n\n- **GROUP BY the row label only.** Group by the channel too and each month splits into two rows (`ERR-LOG-07`).\n- **One condition per column.** `SUM(CASE WHEN channel = 'web' THEN revenue_eur ELSE 0 END)` works on every engine; `SUM(revenue_eur) FILTER (WHERE channel = 'web')` is shorter.\n\n### Missing or 0 in a cell with no rows\n\nSay what a cell with nothing to add up should show, and check that the query does it (`ERR-LOG-17`):\n\n- `COUNT(*) FILTER (...)` gives **0**.\n- `SUM(CASE WHEN ... THEN x END)` with no ELSE, and `SUM(x) FILTER (...)`, give a **missing value**. Add `ELSE 0`, or wrap the sum in `COALESCE(..., 0)`, when the question wants 0.\n- `COUNT(channel = 'web')` counts every row, true or false; it is not a filtered count (`ERR-LOG-04`).\n\n### The column list is written by hand\n\nEach column names one value. A value you leave out, such as a third invoice status, is in no column, and a total built from the named columns misses it (`ERR-LOG-03`). Check the values first with `SELECT DISTINCT`, and compare the columns' sum with `COUNT(*)`.\n\n### DuckDB's PIVOT\n\nDuckDB has a PIVOT clause too:\n\n```sql\nSELECT *\nFROM (SELECT month, channel FROM monthly_orders) AS o\nPIVOT (COUNT(*) FOR channel IN ('store', 'web') GROUP BY month)\n```\n\n**Always write the IN list.** Without it, this form is a syntax error, and DuckDB's short form `PIVOT t ON col USING ...` becomes two statements, which the app refuses. PIVOT names its columns after the values, gives 0 for a COUNT but a missing value for a SUM, and runs on DuckDB only: PostgreSQL and SQL Server write it differently or have none. Conditional aggregation runs on every engine, so interviews expect it, and every answer key here uses it.",
+  "syntax_md": "```sql\nSELECT month,                                                   -- the row label\n  COUNT(*) FILTER (WHERE channel = 'store') AS store_orders,   -- 0 when none\n  SUM(CASE WHEN channel = 'web' THEN units ELSE 0 END) AS web_units  -- ELSE 0 for 0\nFROM sales\nGROUP BY month;                                                 -- the row label only\n```\n\n- One condition per column; group by the row label only.\n- `COUNT(*) FILTER` gives 0; a SUM gives a missing value unless it has `ELSE 0` or COALESCE.\n- DuckDB's PIVOT needs its IN list: `PIVOT (COUNT(*) FOR channel IN ('store', 'web') GROUP BY month)`.",
+  "dialect_note": "Conditional aggregation runs on every engine; FILTER (WHERE ...) runs in DuckDB and PostgreSQL, while BigQuery and SQL Server use CASE inside the aggregate. PIVOT is DuckDB's own form here: SQL Server and BigQuery write PIVOT with other syntax, and PostgreSQL has none. Write the IN list whenever you use DuckDB's PIVOT.",
+  "worked_examples": [
+    {
+      "title": "Orders per month by channel",
+      "prompt": "For each month of 2024, count Voltmarkt's store orders and web orders in two columns, with 0 for a channel with no orders that month.",
+      "clauses": [
+        {
+          "text": "SELECT CAST(date_trunc('month', order_ts) AS DATE) AS month,",
+          "subgoal": "metrics",
+          "why": "The row label: one row will stand for one month."
+        },
+        {
+          "text": "  COUNT(*) FILTER (WHERE channel = 'store') AS store_orders,",
+          "subgoal": "metrics",
+          "why": "A count that keeps only store orders becomes the first column; it is 0 when none match."
+        },
+        {
+          "text": "  COUNT(*) FILTER (WHERE channel = 'web') AS web_orders",
+          "subgoal": "metrics",
+          "why": "The same count for the web: each value of channel gets its own column."
+        },
+        {
+          "text": "FROM orders",
+          "subgoal": "source_grain",
+          "why": "One row per order, the long data."
+        },
+        {
+          "text": "WHERE order_ts >= TIMESTAMP '2024-01-01 00:00:00' AND order_ts < TIMESTAMP '2025-01-01 00:00:00'",
+          "subgoal": "row_filter",
+          "why": "2024 only, in UTC."
+        },
+        {
+          "text": "GROUP BY CAST(date_trunc('month', order_ts) AS DATE)",
+          "subgoal": "output_grain",
+          "why": "Group by the row label only; adding channel here would split each month into two rows."
+        }
+      ]
+    },
+    {
+      "title": "Units with and without a promotion",
+      "prompt": "For each Headphones product sold in 2024, split its units into promotion units and full-price units, with 0 where a product has none of a kind.",
+      "clauses": [
+        {
+          "text": "SELECT ol.product_id,",
+          "subgoal": "metrics",
+          "why": "The row label: one row per product."
+        },
+        {
+          "text": "  SUM(CASE WHEN ol.promo_id IS NOT NULL THEN ol.quantity ELSE 0 END) AS promo_units,",
+          "subgoal": "metrics",
+          "why": "Units of promotion lines; ELSE 0 makes a product with no promotion show 0, not missing."
+        },
+        {
+          "text": "  SUM(CASE WHEN ol.promo_id IS NULL THEN ol.quantity ELSE 0 END) AS full_price_units",
+          "subgoal": "metrics",
+          "why": "Units of the other lines, so the two columns add up to all the units."
+        },
+        {
+          "text": "FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id",
+          "subgoal": "source_grain",
+          "why": "One row per order line, with its order date and its product category."
+        },
+        {
+          "text": "WHERE p.category_id = 15 AND o.order_ts >= TIMESTAMP '2024-01-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-01-01 00:00:00'",
+          "subgoal": "row_filter",
+          "why": "Headphones lines of 2024."
+        },
+        {
+          "text": "GROUP BY ol.product_id",
+          "subgoal": "output_grain",
+          "why": "One row per product, the promotion split into columns."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-PAT-05-E1-01",
+    "EX-SQL-PAT-05-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-PAT-05-E1-03",
+    "EX-SQL-PAT-05-E1-04",
+    "EX-SQL-PAT-05-E2-01",
+    "EX-SQL-PAT-05-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-PAT-05-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-PAT-05-E1-06",
+    "EX-SQL-PAT-05-E1-07",
+    "EX-SQL-PAT-05-E2-03",
+    "EX-SQL-PAT-05-E2-04",
+    "EX-SQL-PAT-05-E2-05",
+    "EX-SQL-PAT-05-E2-06",
+    "EX-SQL-PAT-05-E3-01",
+    "EX-SQL-PAT-05-E3-02",
+    "EX-SQL-PAT-05-E2-31",
+    "EX-SQL-PAT-05-E1-42",
+    "EX-SQL-PAT-05-E2-41",
+    "EX-SQL-PAT-05-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "why_clause": {
+    "clause": "  SUM(CASE WHEN ol.promo_id IS NOT NULL THEN ol.quantity ELSE 0 END) AS promo_units,",
+    "stem": "What does ELSE 0 change in this column?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A product with no promotion lines shows 0 instead of a missing value."
+      },
+      {
+        "id": "b",
+        "text": "It stops the sum counting lines that have no promotion."
+      },
+      {
+        "id": "c",
+        "text": "Nothing: SUM always returns 0 when nothing matches."
+      },
+      {
+        "id": "d",
+        "text": "It turns the sum into a count of lines."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "Without ELSE, the CASE gives a missing value for every line without a promotion. SUM skips missing values, and when all of a product's values are missing it returns a missing value, not 0. ELSE 0 gives those lines 0, so the sum is 0 for a product with no promotion. Lines without a promotion add nothing either way; SUM does not return 0 by itself."
+  }
+}

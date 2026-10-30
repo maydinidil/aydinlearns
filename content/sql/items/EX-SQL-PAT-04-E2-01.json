@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-PAT-04-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "week_spine",
+    "zero_fill",
+    "signups"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-week-spine",
+  "template_params": {
+    "table": "signups",
+    "spine": "range"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each week from the week of 6 January 2025 to the week of 31 March 2025, how many users signed up for Mailvora? Weeks start on Monday, and signup_ts holds UTC time: put each signup in the week of its UTC day. Every week of the range has a row, and a week with no signups shows 0. Return two columns, in this order: week_start (the Monday) and signups. Return one row for each week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per week, the weeks of 6 January to 31 March 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the final query: every Monday from the list of weeks, with that week's signups or 0.",
+    "The list of weeks and the weekly counts must share one grain, a Monday per week, and every week stays even with no signups."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 513,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 514,
+      "to": 568,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 569,
+      "to": 581,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 582,
+      "to": 631,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 514,
+    "stage2": 204
+  },
+  "faded_shape": "WITH weeks AS (\n  -- one row per week, the weeks of 6 January to 31 March 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-01-06', DATE '2025-04-07', INTERVAL 7 DAY)\n), weekly AS (\n  -- one row per week with signups\n  SELECT CAST(date_trunc('week', signup_ts) AS DATE) AS week_start, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-06 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-04-07 00:00:00+00'\n  GROUP BY CAST(date_trunc('week', signup_ts) AS DATE)\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "A spine of Mondays matches the weekly counts one to one; the LEFT JOIN keeps the weeks with no signups as 0."
+}

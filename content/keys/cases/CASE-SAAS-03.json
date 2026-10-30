@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-SAAS-03",
+  "truths": {
+    "CP2": "SELECT COUNT(DISTINCT account_id) AS reactivated_accounts\nFROM subscription_events\nWHERE event_type = 'reactivation'\n  AND event_date >= DATE '2025-07-01'\n  AND event_date <= DATE '2025-09-30'",
+    "CP4": "WITH months AS (\n  -- one row per month from June to September 2025\n  SELECT DISTINCT month\n  FROM mrr_monthly\n  WHERE month >= DATE '2025-06-01'\n    AND month <= DATE '2025-09-01'\n),\naccounts_in_window AS (\n  -- one row per account with MRR at the end of at least one of those months\n  SELECT DISTINCT account_id\n  FROM mrr_monthly\n  WHERE month >= DATE '2025-06-01'\n    AND month <= DATE '2025-09-01'\n),\nfilled AS (\n  -- one row per account and month, with 0 for a month without MRR\n  SELECT a.account_id, m.month, COALESCE(r.mrr_eur, 0) AS mrr\n  FROM accounts_in_window AS a\n  CROSS JOIN months AS m\n  LEFT JOIN mrr_monthly AS r\n    ON r.account_id = a.account_id\n   AND r.month = m.month\n),\ncompared AS (\n  -- one row per account and month, with its MRR at the end of the month before\n  SELECT account_id, month, mrr,\n         LAG(mrr) OVER (PARTITION BY account_id ORDER BY month) AS mrr_before\n  FROM filled\n),\nnew_accounts AS (\n  -- one row per account and month in which its first subscription started\n  SELECT DISTINCT account_id, CAST(date_trunc('month', event_date) AS DATE) AS month\n  FROM subscription_events\n  WHERE event_type = 'new'\n),\nmovements AS (\n  -- one total per movement over July to September 2025\n  SELECT SUM(CASE WHEN c.mrr_before = 0 AND c.mrr > 0 AND n.account_id IS NOT NULL THEN c.mrr ELSE 0 END) AS new_mrr,\n         SUM(CASE WHEN c.mrr_before > 0 AND c.mrr > c.mrr_before THEN c.mrr - c.mrr_before ELSE 0 END) AS expansion_mrr,\n         SUM(CASE WHEN c.mrr_before > 0 AND c.mrr > 0 AND c.mrr < c.mrr_before THEN c.mrr_before - c.mrr ELSE 0 END) AS contraction_lost,\n         SUM(CASE WHEN c.mrr_before > 0 AND c.mrr = 0 THEN c.mrr_before ELSE 0 END) AS churn_lost\n  FROM compared AS c\n  LEFT JOIN new_accounts AS n\n    ON n.account_id = c.account_id\n   AND n.month = c.month\n  WHERE c.month >= DATE '2025-07-01'\n)\nSELECT ROUND(100.0 * (churn_lost + contraction_lost) / (new_mrr + expansion_mrr), 1) AS taken_back_pct\nFROM movements"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o8533ed9",
+      "explanation": "Only the subscription events show whether this is the account's first subscription; mrr_monthly starts in January 2024, so an account that left that month and came back has no earlier row and would wrongly count as new."
+    },
+    "CP5": {
+      "correct_oid": "o0f3dfdd",
+      "explanation": "The bridge shows how much churn and contraction took back of what sales booked, so the deck names the larger loss and its accounts; it shows neither that more new sales nor the price rise would close the gap."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "830824ce1c8acf04",
+      "key_hash": "99f94ab3069b6962",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "546df6281bf85b44",
+      "key_hash": "b5e190c024ab20fc",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "eed97960179541f9",
+      "key_hash": "d54d62618ce7f39b",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "bb40c3b85692b73b",
+      "key_hash": "2b769f9f55bc003f",
+      "at": "2026-10-29T22:26:59.071Z"
+    }
+  }
+}

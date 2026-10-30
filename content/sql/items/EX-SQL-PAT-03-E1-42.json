@@ -1,0 +1,80 @@
+{
+  "id": "EX-SQL-PAT-03-E1-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_rows",
+    "year_over_year",
+    "self_join",
+    "inner_join",
+    "ad_spend_daily"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-predict-rows-inner-yoy",
+  "template_params": {
+    "table": "ad_spend_daily"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "YouTube (channel_id 5) ran in bursts: it had spend in January, June, August, September, October, November and December 2025, and in January, February, March, May, July, September and November 2024. How many rows does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "WITH monthly AS (\n  -- one row per month with YouTube spend\n  SELECT CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 5\n  GROUP BY CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT m.month, m.spend_eur, p.spend_eur AS spend_prev_year_eur\nFROM monthly m\nJOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR\nWHERE m.month >= DATE '2025-01-01'",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

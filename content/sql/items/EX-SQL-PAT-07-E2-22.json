@@ -1,0 +1,213 @@
+{
+  "id": "EX-SQL-PAT-07-E2-22",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "ordered_funnel",
+    "step_rate"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-ordered-by-quarter",
+  "template_params": {
+    "funnel": "signup, activation, payment",
+    "period": "2025",
+    "by": "quarter",
+    "order": "payment at or after activation"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each quarter of 2025, how did the users who signed up in it move through the signup funnel, in order? A user is activated at the first first_campaign_sent event, and counts as paid only when the user's first payment (paid_at, refunded or not) came at or after that activation. A user whose first payment came before the activation does not count as paid, even if a later payment came after it, and neither does a user with no activation. The quarter is the quarter of signup_ts, in UTC. Return five columns, in this order: signup_quarter (the first day of the quarter), signed_up, activated, paid (each a number of users) and paid_step_rate, paid over activated, as a fraction between 0 and 1; it is missing for a quarter with no activated user. Return one row for each quarter. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "signup_quarter",
+        "type_class": "temporal"
+      },
+      {
+        "name": "signed_up",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid_step_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "signup_quarter",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "signed_up",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid_step_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "signup_quarter"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, flag each user's steps in order: activated, then a first payment at or after that activation.",
+    "Group by the quarter of the signup; the step rate divides the paid users by the activated users, with NULLIF for a quarter with none."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 75,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 123,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 126,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 151,
+      "to": 191,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 194,
+      "to": 210,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 214,
+      "to": 280,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 283,
+      "to": 332,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 335,
+      "to": 414,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 417,
+      "to": 435,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 439,
+      "to": 531,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 534,
+      "to": 688,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 691,
+      "to": 791,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 794,
+      "to": 906,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 909,
+      "to": 1230,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1231,
+      "to": 1241,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1242,
+      "to": 1265,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The paid step needs a first payment at or after the activation, and the step rate divides by the activated users of the quarter."
+}

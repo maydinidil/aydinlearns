@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-07-E1-06",
+  "item_version": 2,
+  "reference_sql": "WITH visitors AS (  -- one row per visitor with a session in March 2025\n  SELECT DISTINCT visitor_id\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\nsigned AS (  -- one row per user who signed up in March 2025\n  SELECT user_id, visitor_id\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\nact AS (  -- one row per activated user\n  SELECT DISTINCT user_id\n  FROM activation_events\n  WHERE event_name = 'first_campaign_sent'\n)\nSELECT COUNT(*) AS visitors,\n       COUNT(s.user_id) AS signed_up,\n       COUNT(a.user_id) AS activated\nFROM visitors v\nLEFT JOIN signed s ON s.visitor_id = v.visitor_id\nLEFT JOIN act a ON a.user_id = s.user_id",
+  "alternatives": [
+    "SELECT COUNT(DISTINCT v.visitor_id) AS visitors,\n       COUNT(DISTINCT s.user_id) AS signed_up,\n       COUNT(DISTINCT a.user_id) AS activated\nFROM sessions v\nLEFT JOIN signups s ON s.visitor_id = v.visitor_id AND s.signup_ts >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\nLEFT JOIN activation_events a ON a.user_id = s.user_id AND a.event_name = 'first_campaign_sent'\nWHERE v.session_start >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND v.session_start < TIMESTAMPTZ '2025-04-01 00:00:00+00'",
+    "WITH visitors AS (  -- one row per visitor with a session in March 2025, 1 or 0 for each later step\n  SELECT v.visitor_id,\n         MAX(CASE WHEN s.user_id IS NOT NULL THEN 1 ELSE 0 END) AS is_signed,\n         MAX(CASE WHEN EXISTS (SELECT 1 FROM activation_events e WHERE e.user_id = s.user_id AND e.event_name = 'first_campaign_sent') THEN 1 ELSE 0 END) AS is_activated\n  FROM sessions v\n  LEFT JOIN signups s ON s.visitor_id = v.visitor_id AND date_trunc('month', s.signup_ts) = TIMESTAMPTZ '2025-03-01 00:00:00+00'\n  WHERE v.session_start >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND v.session_start < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n  GROUP BY v.visitor_id\n)\nSELECT COUNT(*) AS visitors, SUM(is_signed) AS signed_up, SUM(is_activated) AS activated\nFROM visitors"
+  ],
+  "other_way": {
+    "sql": "SELECT COUNT(DISTINCT v.visitor_id) AS visitors,\n       COUNT(DISTINCT s.user_id) AS signed_up,\n       COUNT(DISTINCT a.user_id) AS activated\nFROM sessions v\nLEFT JOIN signups s ON s.visitor_id = v.visitor_id AND s.signup_ts >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\nLEFT JOIN activation_events a ON a.user_id = s.user_id AND a.event_name = 'first_campaign_sent'\nWHERE v.session_start >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND v.session_start < TIMESTAMPTZ '2025-04-01 00:00:00+00'",
+    "tradeoff": "COUNT(DISTINCT ...) on one joined query is short, but it hides that a visitor's many sessions repeat the rows."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH visitors AS (  -- one row per visitor with a session in March 2025\n  SELECT visitor_id\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\nsigned AS (  -- one row per user who signed up in March 2025\n  SELECT user_id, visitor_id\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\nact AS (  -- one row per activated user\n  SELECT DISTINCT user_id\n  FROM activation_events\n  WHERE event_name = 'first_campaign_sent'\n)\nSELECT COUNT(*) AS visitors,\n       COUNT(s.user_id) AS signed_up,\n       COUNT(a.user_id) AS activated\nFROM visitors v\nLEFT JOIN signed s ON s.visitor_id = v.visitor_id\nLEFT JOIN act a ON a.user_id = s.user_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH visitors AS (  -- one row per visitor with a session in March 2025\n  SELECT DISTINCT visitor_id\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\nsigned AS (  -- one row per user who signed up in March 2025\n  SELECT user_id, visitor_id\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\nact AS (  -- one row per activated user\n  SELECT DISTINCT user_id\n  FROM activation_events\n  WHERE event_name = 'first_campaign_sent'\n)\nSELECT COUNT(*) AS visitors,\n       COUNT(s.user_id) AS signed_up,\n       COUNT(a.user_id) AS activated\nFROM visitors v\nJOIN signed s ON s.visitor_id = v.visitor_id\nLEFT JOIN act a ON a.user_id = s.user_id"
+    }
+  ],
+  "hint3_partial": "WITH visitors AS (  -- one row per visitor with a session in March 2025\n  SELECT ___\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\nsigned AS (  -- one row per user who signed up in March 2025\n  SELECT user_id, visitor_id\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\nact AS (  -- one row per activated user\n  SELECT DISTINCT user_id\n  FROM activation_events\n  WHERE event_name = 'first_campaign_sent'\n)\nSELECT COUNT(*) AS visitors,\n       COUNT(s.user_id) AS signed_up,\n       COUNT(a.user_id) AS activated\nFROM visitors v\nLEFT JOIN signed s ON s.visitor_id = v.visitor_id\nLEFT JOIN act a ON a.user_id = s.user_id",
+  "solver": {
+    "prompt_hash": "476b1b10c6817dee",
+    "schema_version": "f15a6c968c13",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH v AS (\n  SELECT DISTINCT visitor_id\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\ns AS (\n  SELECT v.visitor_id, u.user_id,\n         EXISTS (SELECT 1 FROM activation_events a WHERE a.user_id = u.user_id AND a.event_name = 'first_campaign_sent') AS act\n  FROM v\n  LEFT JOIN signups u ON u.visitor_id = v.visitor_id\n        AND u.signup_ts >= TIMESTAMPTZ '2025-03-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n)\nSELECT COUNT(*) AS visitors,\n       COUNT(*) FILTER (WHERE user_id IS NOT NULL) AS signed_up,\n       COUNT(*) FILTER (WHERE user_id IS NOT NULL AND act) AS activated\nFROM s\n",
+    "at": "2026-10-28T16:44:11.780Z"
+  }
+}

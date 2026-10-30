@@ -622,8 +622,9 @@ into grader test cases.
 02's other per-exercise flags keep these defaults:
 - `set_semantics`: false (bags, so duplicates count)
 - `nulls_position`: checked only when order matters and the prompt states it. **(amended 2026-10-23, sprint 7d, S7D-06)** Not
-  built: the order check accepts every placement, key by key (§5 step 5). Three prompts do state it (missing values last),
-  and the check does not enforce it there; a backlog row holds the decision (F2-2-2)
+  built: the order check accepts every placement, key by key (§5 step 5). **(amended 2026-10-30, sprint 8 Part 2, 0.8.1, S8-22)**
+  Only `EX-MOCK-TAKE-A` still states it (missing values last), and the check does not enforce it there; `EX-CASE-DQ-03`
+  and `EX-CASE-PRICE-03` now say missing values may come first or last. A backlog row holds the decision (F2-2-2)
 - `case_insensitive`: false
 - `strict_column_order`: false
 - a validator query: allowed for open-ended items
@@ -798,9 +799,27 @@ Mailvora has four, 04's personas renamed to Dublin names (sprint 6, P39):
 | Siobhán | Lifecycle marketing manager | CASE-MKT-03, originally e-commerce manager Bram's (the case became a signup funnel) |
 | Declan | Head of growth | CASE-MKT-04, originally Eva's |
 
+**(amended 2026-10-28, sprint 8 Part 1, 0.8.0) LedgerLoop has four** (S8-12), in the case world `SAAS`:
+
+| Manager | Role | Asks |
+|---|---|---|
+| Lieselot | CFO | |
+| Wannes | Head of customer success | |
+| Griet | Revenue operations lead | |
+| Nele | Growth marketing manager | CASE-LEDGER-L6, the level 6 opener |
+
+The level 6 opener is in world `SAAS`, like the SaaS cases that follow in Part 2. A goal that counts SaaS cases counts
+inbox cases only, never the opener (S8-C27). A LedgerLoop daily case picks its manager from these four
+(`schemas/case.ts`).
+
 The real-data cases are take-home briefs from the hiring team of a fictional employer, never the
 data's owner (P42): Noor, Analytics lead (CASE-REAL-01), and Ruben, Pricing analytics manager
 (CASE-REAL-02).
+
+**(amended 2026-10-30, sprint 8 Part 2, 0.8.1)** The two dataset cases of Part 2 are asked the same way (S8-17): Ruben asks
+`CASE-REAL-03` (Olist) and Noor asks `CASE-MAVEN-01` (Maven Toy Store). In LedgerLoop's world `SAAS` the five SaaS cases are
+Lieselot's (`CASE-SAAS-01` and `-04`), Wannes's (`-02`) and Griet's (`-03` and `-05`), and `CASE-MKT-05` is Nele's (S8-C29).
+Sanne asks `CASE-RETAIL-01` and Yara asks `CASE-RETAIL-04` (S8-C30).
 
 The cast IDs (`PER-*`) are reserved now, so aydindutch can reuse them (§15).
 
@@ -1010,6 +1029,40 @@ added this section on 2026-10-02.
 | LedgerLoop (CO-02, Ghent) | B2B SaaS | Slice 7 | Opening-balance MRR events: about €11M ARR (about €0.9M MRR) already exists on day 1, so the opening events must sum to about €0.9M MRR (FIND-02-03). Leads, opportunities, COGS and full S&M expense. Check FIND-02-01 and FIND-02-15 |
 | Noordkant (CO-04, Amsterdam) | Retail e-commerce operations | After the first applications | Stock receipts. A returned-units rule: `returns` already carries `order_line_id` but has no units, so the view treats a return as the whole line (units = `order_lines.quantity`). The 04 case SQL joins returns through `order_line_id`. Check FIND-04-12 |
 
+**(amended 2026-10-28, sprint 8 Part 1, 0.8.0) LedgerLoop as built** (E-208, E-210, E-211, S8-04, S8-C11, S8-C14, S8-C19):
+- **Size:** seed 2202, 2024-01-01 to 2025-12-31, about 1,450 accounts and six plans (five plans and Starter's
+  2025-02-01 price change). No list price changed; Enterprise has none (custom contracts). 05's 4,000 paying accounts
+  cannot hold at its prices with about €0.9M opening MRR, so the counts are smaller (E-210).
+- **MRR:** one source, the sum of a subscription's `mrr_delta_local` events up to a date. Each subscription active on
+  2024-01-01 has one `opening` event that day. No table holds a past plan: `subscriptions.plan_id` is the plan at the
+  subscription's end or at `as_of_date` (E-211).
+- **Rates and formulas:** country code `GB`. The simple payback formula, CAC over mean new MRR times gross margin, is
+  what FIND-02-15 is calibrated with; a case that asks for it states its formula. NRR and GRR convert start and end
+  MRR at the 2025-12-31 rate, and a bridge in several currencies uses one fixed date's rate (E-211).
+- **Time:** clean times are Brussels local time, except `app_events.event_ts`, which is UTC; raw `payments.attempted_at`
+  is UTC (Q-02-04). Clean records every event on its `event_date`, so no clean column pair differs there (S8-C19).
+- **Raw quirks, by ID:** Q-02-01 (events sent twice, about 7% of events), Q-02-02 (late records, raw only), Q-02-03
+  (GBP and CHF amounts labelled EUR), Q-02-04 (UTC timestamps), Q-02-07 (25 test accounts, raw only).
+- **Edge schemas** (S8-07, S8-C14): `ledgerloop_edge_saas` (clean LedgerLoop: opening events, contractions on a
+  renewal day, a reactivation, renewals, GBP and CHF subscriptions, ties on MRR, and app events that tell Brussels days
+  from UTC days), `ledgerloop_edge_clean` (the raw items' copy: an event sent twice, a late record, amounts labelled
+  EUR, UTC payment times, a test account), `voltmarkt_edge_pat` and `mailvora_edge_pat` (the level 6 patterns on the two
+  older companies: ties in rankings, events at the same moment, missing spend, sessions across midnight and an exact
+  30-minute gap).
+
+**(amended 2026-10-30, sprint 8 Part 2, 0.8.1) As built** (E-212, E-215, E-216, E-217, S8-C28, S8-C35, S8-C39):
+- **Voltmarkt:** `inventory_chain_daily (snapshot_date, store_id, product_id, units_on_hand)`, the closing stock of each day for 59
+  Consoles and Controllers products in the 25 physical stores (about 950,000 rows), appended at the end of the spawn order.
+  PlayBox 5's remaining units go back to the supplier on 6 December 2024 and every store is refilled on 28 December, so
+  stock can leave a store without a sale (E-217). `CASE-RETAIL-04` reads 1 to 28 December 2024 with closing stock on 29
+  December. `voltmarkt_edge_pat` holds December 2024 stock rows.
+- **LedgerLoop:** the view `mrr_monthly (account_id, month, mrr_eur)` in `ledgerloop` and `ledgerloop_edge_saas`: one row per
+  account and month where the MRR in force on the last day is above 0, converted at one fixed date's rate (E-215). Whether
+  an account is new comes from its subscription events, never from its first row (E-216).
+- **The edge** `ledgerloop_edge_cases` (S8-C39): fixed rows built for the six LedgerLoop cases' windows, with its own
+  `mrr_monthly`. `ledgerloop_edge_saas` is unchanged, because Part 1's items read it.
+- **Registry:** `DS-RETAIL-01` and `DS-MKT-03`, with `olist_edge` and `maven_toy_store_edge` (E-213, E-214), above.
+
 **The canonical beginner sales view** (T-15) is Voltmarkt's `sales`, at order-line grain.
 - **Columns:** order date, week and month; store, country and channel; category and product;
   units, net revenue and unit cost.
@@ -1090,7 +1143,7 @@ the owner.**
 | When | Datasets |
 |---|---|
 | Slice 5 (mid November) | 8 Week SQL Challenge case studies, Online Retail II, Breakfast at the Frat. **As built (0.6.1, S6-21 to S6-23):** one record each in `content/datasets/registry.json`; `npm run prep:datasets` reads the owner's downloads into `data/real/` and rebuilds; the edge schemas `online_retail_ii_edge` and `breakfast_at_the_frat_edge` are always built |
-| Slice 7 (mid December) | Olist, Maven Toy Store |
+| Slice 7 (mid December) | Olist, Maven Toy Store. **As built (0.8.1, S8-16, E-213, E-214):** records `DS-RETAIL-01` (Olist, `real: true`, CC BY-NC-SA 4.0, the geolocation file not read) and `DS-MKT-03` (Maven Fuzzy Factory, `real: false`, Public Domain as its page states, read 2026-10-29), each with six manager questions with fixed dates; `npm run prep:datasets` reads the owner's downloads (a copy is used only if it holds every listed file); the schemas `olist` and `maven_toy_store` and the edge schemas `olist_edge` and `maven_toy_store_edge` are always built |
 | After the first applications | KKBox as the SaaS capstone, if the Kaggle check passes (review #18a): `transactions`, `transactions_v2`, `members_v3` (review #13), plus `train_v2` for churn labels; the `user_logs` files are skipped. The 09 MRR-bridge fixes (review #16) apply first |
 | Post-v1 | Dominick's, Carbo-Loading, Criteo, Robyn and Meridian (labelled simulated or transformed), plus TheLook and the GA4 sample, which need the same Google Cloud pull as the deferred bridge |
 
@@ -1538,7 +1591,27 @@ starter query. The slice 0 row above is `ERR-LOG-20` (averaging ratios, E-142) a
 | `ERR-LOG-37` | Missing PARTITION BY | `SQL-WIN-01` | E-189 |
 | `ERR-LOG-38` | ROWS versus RANGE | `SQL-WIN-04` | E-189 |
 | `ERR-LOG-39` | No date spine: periods with no rows vanish | `SQL-PAT-04` | E-189 |
+| `ERR-LOG-44` | A funnel step counted without the step before it | `SQL-PAT-07` | E-209 |
+| `ERR-LOG-45` | A funnel rate divided by the wrong step | `SQL-PAT-07` | E-209 |
+| `ERR-LOG-46` | Cohort months worked out from days divided by 30 | `SQL-PAT-06` | E-209 |
+| `ERR-LOG-47` | A returning account booked as new | `SQL-PAT-10` | E-209 |
+| `ERR-LOG-48` | A partial period compared with a full one | `SQL-PAT-03` | E-209 |
+| `ERR-LOG-49` | A change worked out the wrong way round | `SQL-PAT-03` | E-209 |
+| `ERR-LOG-50` | A cohort dated by the wrong event | `SQL-PAT-06` | E-209 |
+| `ERR-LOG-51` | An annual plan's price counted as one month's MRR | `SQL-PAT-10` | E-209 |
 | `ERR-SYN-08` | A window function in WHERE, GROUP BY, HAVING, an aggregate or another window (amended 2026-10-22, S7C-08; 2026-10-23, D121), from six DuckDB messages ("WHERE clause", "GROUP BY clause" and "HAVING clause cannot contain window functions", "aggregate function calls cannot contain window function calls", "window function calls cannot be nested", and the Parser Error "window functions are not allowed in window definitions" for a window in another window's PARTITION BY or ORDER BY, which used to read as `ERR-SYN-01`) | `SQL-WIN-01` | E-189, E-206, E-207 |
+
+**(amended 2026-10-28, sprint 8 Part 1, 0.8.0, `GRADER_VERSION` `8a.1`)** `ERR-LOG-44` to `ERR-LOG-51` come from E-209 and
+S8-C06: the four of S8-08's list that fit no ID, and four more where none fit. `ERR-LOG-48` also covers a store or
+account that opened or closed during a period (a partial period too). `ERR-LOG-18`'s feedback no longer says the rows
+are right (S8-C08). The other level 6 mistakes keep their IDs, and a mistake whose feedback would be about another
+mistake is `ERR-LOG-00`.
+
+**PIVOT** (S8-C07, S8-C09): a PIVOT with an IN list is one SELECT and passes the gate, with the note "This PIVOT form is
+DuckDB's own: other databases write it differently or have none. Conditional aggregation runs everywhere." Without an IN
+list the long form (a GROUP BY inside) is a syntax error and the short form `PIVOT t ON col USING ...` becomes two
+statements, which the gate refuses; no gate change (F2-2-M1). C11 allows PIVOT only as an other
+way, from `SQL-PAT-05` (the `pivot` construct), and such a way has an IN list. UNPIVOT has its own note.
 
 A scalar subquery at the wrong grain stays `ERR-LOG-07`, and a scalar subquery that returns many rows stays
 `ERR-SEM-05`. (`ERR-LOG-28` and `ERR-LOG-29` came in sprint 4c; see its record.)

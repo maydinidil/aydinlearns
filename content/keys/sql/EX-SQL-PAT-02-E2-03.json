@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-02-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT customer_id, order_ts,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)\nSELECT date_trunc('month', order_ts) AS last_order_month, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY date_trunc('month', order_ts)",
+  "alternatives": [
+    "WITH latest AS (  -- one row per known customer\n  SELECT customer_id, MAX(order_ts) AS order_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT date_trunc('month', order_ts) AS last_order_month, COUNT(*) AS customers\nFROM latest\nGROUP BY date_trunc('month', order_ts)",
+    "SELECT date_trunc('month', t.order_ts) AS last_order_month, COUNT(*) AS customers\nFROM (\n  -- one row per order of a known customer, numbered from the latest\n  SELECT customer_id, order_ts,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n) AS t\nWHERE t.rn = 1\nGROUP BY date_trunc('month', t.order_ts)"
+  ],
+  "other_way": {
+    "sql": "WITH latest AS (  -- one row per known customer\n  SELECT customer_id, MAX(order_ts) AS order_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT date_trunc('month', order_ts) AS last_order_month, COUNT(*) AS customers\nFROM latest\nGROUP BY date_trunc('month', order_ts)",
+    "tradeoff": "Only the latest time matters, so MAX(order_ts) per customer works with no window, but it cannot return the order's other columns."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT customer_id, order_ts,\n         RANK() OVER (PARTITION BY customer_id ORDER BY order_ts DESC) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)\nSELECT date_trunc('month', order_ts) AS last_order_month, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY date_trunc('month', order_ts)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT customer_id, order_ts,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)\nSELECT date_trunc('month', order_ts) AS last_order_month, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY date_trunc('month', order_ts)"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT customer_id, order_ts,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY ___) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)\nSELECT date_trunc('month', order_ts) AS last_order_month, COUNT(*) AS customers\nFROM ranked\nWHERE ___\nGROUP BY date_trunc('month', order_ts)",
+  "solver": {
+    "prompt_hash": "a3de81a0e72aaf72",
+    "schema_version": "7ed366279088",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH r AS (SELECT customer_id, order_ts, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn FROM orders WHERE customer_id IS NOT NULL)\nSELECT CAST(date_trunc('month', order_ts) AS DATE) AS last_order_month, COUNT(*) AS customers FROM r WHERE rn = 1 GROUP BY 1\n",
+    "at": "2026-10-28T14:57:00.984Z"
+  }
+}

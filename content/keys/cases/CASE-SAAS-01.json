@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-SAAS-01",
+  "truths": {
+    "CP2": "SELECT COUNT(DISTINCT account_id) AS accounts\nFROM mrr_monthly\nWHERE month >= DATE '2025-01-01'\n  AND month <= DATE '2025-12-01'",
+    "CP4": "SELECT ROUND(100.0 * (SUM(CASE WHEN month = DATE '2025-12-01' THEN mrr_eur ELSE 0 END)\n                      - SUM(CASE WHEN month = DATE '2024-12-01' THEN mrr_eur ELSE 0 END))\n             / SUM(CASE WHEN month = DATE '2024-12-01' THEN mrr_eur ELSE 0 END), 1) AS mrr_growth_2025_pct\nFROM mrr_monthly\nWHERE month IN (DATE '2024-12-01', DATE '2025-12-01')"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o2849c7a",
+      "explanation": "The March rows of mrr_monthly are each active account's MRR in euros on 31 March, one row per account; events dated in March are only that month's changes, and an account with an earlier row may have churned since."
+    },
+    "CP5": {
+      "correct_oid": "o8687452",
+      "explanation": "ARPA is MRR over active accounts, so it rises when small accounts leave as well as when prices rise; with accounts falling, the table alone cannot credit the price rise, and it shows no fall in revenue either."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "6cb90086b83327f8",
+      "key_hash": "915c7e4307e24c26",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "70d5ded2a32390b2",
+      "key_hash": "610a243fd0f187f8",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "c8768f78bca84ed1",
+      "key_hash": "c7ac5eb0661e6b87",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "c9a64d232eb1417d",
+      "key_hash": "bf178f2025ac189f",
+      "at": "2026-10-29T22:26:59.071Z"
+    }
+  }
+}

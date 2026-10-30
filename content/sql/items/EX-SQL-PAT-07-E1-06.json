@@ -1,0 +1,177 @@
+{
+  "id": "EX-SQL-PAT-07-E1-06",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "users_per_step",
+    "sessions",
+    "signups"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-visitor-funnel",
+  "template_params": {
+    "funnel": "visit, signup, activation",
+    "period": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "How did the website's visitors of March 2025 move through the signup funnel? Take the visitors with at least one session that started in March 2025 (session_start, a UTC instant, read in UTC). Of those, a visitor counts as signed up when the visitor's signup (signups.visitor_id) also happened in March 2025, in UTC, and as activated when that user has a first_campaign_sent event at any time. A visitor has at most one signup. Return three columns, in this order: visitors, signed_up and activated, each a number of visitors. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "visitors",
+        "type_class": "numeric"
+      },
+      {
+        "name": "signed_up",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "visitors",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "signed_up",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list the March visitors once each, before joining anything to them.",
+    "A visitor can have many sessions, so reduce sessions to visitors first; then keep every visitor with outer joins to the signups and the activations."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 71,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 100,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 103,
+      "to": 116,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 119,
+      "to": 235,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 239,
+      "to": 299,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 302,
+      "to": 328,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 331,
+      "to": 343,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 346,
+      "to": 454,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 458,
+      "to": 497,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 500,
+      "to": 523,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 526,
+      "to": 548,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 551,
+      "to": 591,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 594,
+      "to": 697,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 698,
+      "to": 804,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Reducing sessions to visitors first makes every count a count of visitors, and the outer joins keep the visitors who never signed up."
+}

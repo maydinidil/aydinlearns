@@ -56,7 +56,7 @@ learner's effort is never the lever. Every slice goes live before the goal it se
 | 7 (done) | 6 | 2026-11-20 | G-STAGE-2 to 5 and G-RECRUITMENT-READY (2026-12-11): the recruiter mocks; applications go out | Done: every recruiter mock runs end to end, and the readiness board shows all six stages. Part 1 as 0.7.0 (2026-10-21): level 5 and the screen mock; Part 2 as 0.7.1 (2026-10-22): the knowledge, case-round and take-home mocks. Released as the public `v0.7.1` (2026-10-22). See [the sprint 7 record](2026-10-21-sprint-7-record.md) |
 | 7c (done) | 6 (fix and polish) | 2026-10-22 | None of its own: it clears the findings and backlog rows the sprint 7 mocks left | Done as 0.7.2 (2026-10-22): Codex F37 and F38 fixed, the tutor closed while any mock runs (D117), two log fields on `mock_open` (D116), the grader's window-function diagnosis, wider C53, clearer prompts, and 33 backlog rows closed. Released as the public `v0.7.2` (2026-10-23). See [the sprint 7 record](2026-10-21-sprint-7-record.md), its "Sprint 7c (0.7.2)" part |
 | 7d (done) | 6 (fix and polish) | 2026-10-23 | None of its own: it clears the backlog rows the 7c reviews left | Done as 0.7.3 (2026-10-23): log format version 8, the grader's `ERR-SYN-08` for a window in a window definition (`GRADER_VERSION` `7d.1`), the tutor's mock line kept current, edge data plants, the release check script and skill, and 20 backlog rows closed. Codex F40 and F41 fixed before the merge. Released as the public `v0.7.3` (2026-10-24). See [the sprint 7d record](2026-10-23-sprint-7d-record.md) |
-| 8 | 7 | 2026-12-07 | G-SQL-LEVEL-6 (2026-12-23): business patterns and SaaS cases | Level 6 is completable; SaaS cases pass on LedgerLoop |
+| 8 (done) | 7 | 2026-12-07 | G-SQL-LEVEL-6 (2026-12-23): business patterns and SaaS cases | Done as 0.8.0 (2026-10-28; PR #57 merged 2026-10-29) and 0.8.1 (2026-10-30): level 6 is completable, with LedgerLoop, its opener and two daily cases; then the five SaaS cases and `CASE-MKT-05`, `CASE-RETAIL-01` and `-04`, Olist and Maven Toy Store with a case each, and four backlog rows. The public `v0.8.1` follows the merge. See [the sprint 8 record](2026-10-27-sprint-8-record.md) |
 | 9+ | rest of v1 | January onward | G-SQL-LEVEL-7 (2027-01-29) | Not set in the design yet; set it when planning |
 | Future | post-v1 (2.0 or later) | no date | | |
 
@@ -453,7 +453,15 @@ now that the final gate and the release have passed. Its rulings, reviews, slips
 
 ## Sprint 8: slice 7, SQL level 6, LedgerLoop, more real data
 
-Live by 2026-12-07.
+Live by 2026-12-07. Plan
+[`docs/superpowers/plans/2026-10-27-aydinlearns-sprint-8.md`](../superpowers/plans/2026-10-27-aydinlearns-sprint-8.md),
+decisions D124 to D127, rulings S8-01 to S8-23.
+
+**Status: done. Part 1 as 0.8.0 (2026-10-28, private; PR #57 merged 2026-10-29, Codex found nothing); Part 2 as 0.8.1 (2026-10-30; the public `v0.8.1` follows the merge).** Part 1 built SQL level 6
+(10 lessons, 264 exercises, a drill of 50), LedgerLoop with its four edge schemas, the opener `CASE-LEDGER-L6` and two
+daily cases, `ERR-LOG-44` to `ERR-LOG-51` and `GRADER_VERSION` `8a.1`. Part 2 built the five SaaS cases, `CASE-MKT-05`,
+Olist and Maven Toy Store (with `CASE-REAL-03` and `CASE-MAVEN-01`), `CASE-RETAIL-01` and `-04` on a new chain-wide stock
+table, and four backlog rows (D126, D127). Maven Toy Store's page states "License: Public Domain" (read 2026-10-29). See [the sprint 8 record](2026-10-27-sprint-8-record.md).
 
 **Contents and jobs:**
 1. Level 6, business patterns (10 concepts, SQL-PAT-01 to -10): top-N per group, dedup, period

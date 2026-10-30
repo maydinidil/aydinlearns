@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-RETAIL-04",
+  "truths": {
+    "CP2": "WITH stockout_pairs AS (\n  -- one row per store and product with at least one day closed at 0 units from 1 to 28 December 2024\n  SELECT store_id, product_id\n  FROM inventory_chain_daily\n  WHERE snapshot_date BETWEEN DATE '2024-12-01' AND DATE '2024-12-28'\n    AND units_on_hand = 0\n  GROUP BY store_id, product_id\n)\nSELECT COUNT(*) FROM stockout_pairs",
+    "CP4": "WITH store_sales AS (\n  -- one row per store, product and UTC day with store sales from 1 to 28 December 2024\n  SELECT o.store_id, ol.product_id, CAST(o.order_ts AS DATE) AS sale_date, SUM(ol.quantity) AS units\n  FROM orders AS o\n  JOIN order_lines AS ol ON ol.order_id = o.order_id\n  WHERE o.channel = 'store'\n    AND o.order_ts >= TIMESTAMP '2024-12-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2024-12-29 00:00:00'\n  GROUP BY o.store_id, ol.product_id, CAST(o.order_ts AS DATE)\n),\nstock_days AS (\n  -- one row per store, product and day of the window, with that day's units sold (0 when none)\n  SELECT i.store_id, i.product_id, i.snapshot_date, i.units_on_hand, COALESCE(s.units, 0) AS units\n  FROM inventory_chain_daily AS i\n  LEFT JOIN store_sales AS s\n    ON s.store_id = i.store_id AND s.product_id = i.product_id AND s.sale_date = i.snapshot_date\n  WHERE i.snapshot_date BETWEEN DATE '2024-12-01' AND DATE '2024-12-28'\n),\nrates AS (\n  -- one row per store and product: the weekly rate over its in-stock days and over all 28 days\n  SELECT store_id, product_id,\n         7.0 * SUM(CASE WHEN units_on_hand > 0 THEN units ELSE 0 END)\n           / NULLIF(SUM(CASE WHEN units_on_hand > 0 THEN 1 ELSE 0 END), 0) AS in_stock_rate,\n         7.0 * SUM(units) / 28 AS every_day_rate\n  FROM stock_days\n  GROUP BY store_id, product_id\n)\nSELECT COUNT(*)\nFROM inventory_chain_daily AS c\nJOIN rates AS r ON r.store_id = c.store_id AND r.product_id = c.product_id\nWHERE c.snapshot_date = DATE '2024-12-29'\n  AND r.in_stock_rate > 0\n  AND c.units_on_hand / r.in_stock_rate < 2\n  AND c.units_on_hand / r.every_day_rate >= 2"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o028c7d2",
+      "explanation": "A day with no stock could not sell, so it leaves the rate; an in-stock day with no sale is real demand of 0, so keeping only the days with sales would raise the rate."
+    },
+    "CP5": {
+      "correct_oid": "oa741756",
+      "explanation": "Cover is a forecast at the December in-stock rate, which for PlayBox 5 comes from a few peak-season days and leaves out stock on order; a rate over every day counts days the shelf could not sell and hides demand."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "0311bd7e7bf5b1ea",
+      "key_hash": "7c6b871656ebadf1",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "ffdf92fb32b874fc",
+      "key_hash": "939718c80d120f3e",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "7ff83c8cc73fe693",
+      "key_hash": "d3469ca0a7ddaafa",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "597f0c7fa1d4a7b1",
+      "key_hash": "585aa2879330fb17",
+      "at": "2026-10-29T22:26:59.071Z"
+    }
+  }
+}

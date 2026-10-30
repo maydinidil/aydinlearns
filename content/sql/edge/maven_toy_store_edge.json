@@ -1,0 +1,41 @@
+{
+  "schema": "maven_toy_store_edge",
+  "mirrors": "maven_toy_store",
+  "family": "fictional",
+  "contains": [
+    "sessions in March and October 2013 with a missing UTM source, campaign and content and no referring site: visitors who typed the address",
+    "a session in March 2013 with a missing UTM source that came from a search engine's site: an unpaid search visit",
+    "a session in June 2013 with two orders, and sessions with no order",
+    "a session that started at 23:55 on 31 July 2013 whose order came at 00:05 on 1 August 2013",
+    "a session that started at 23:59 on 31 December 2013 whose order came at 00:10 on 1 January 2014",
+    "orders with two items: a primary product and one more",
+    "refunded order items, in March 2013 and March 2014",
+    "visitors with a repeat session"
+  ],
+  "tables": {
+    "website_sessions": [
+      "sessions in March and October 2013 with a missing UTM source, campaign and content and no referring site: visitors who typed the address",
+      "a session in March 2013 with a missing UTM source that came from a search engine's site: an unpaid search visit",
+      "a session in June 2013 with two orders, and sessions with no order",
+      "a session that started at 23:55 on 31 July 2013 whose order came at 00:05 on 1 August 2013",
+      "a session that started at 23:59 on 31 December 2013 whose order came at 00:10 on 1 January 2014",
+      "visitors with a repeat session"
+    ],
+    "website_pageviews": [
+      "a session in June 2013 with two orders, and sessions with no order"
+    ],
+    "orders": [
+      "a session in June 2013 with two orders, and sessions with no order",
+      "a session that started at 23:55 on 31 July 2013 whose order came at 00:05 on 1 August 2013",
+      "a session that started at 23:59 on 31 December 2013 whose order came at 00:10 on 1 January 2014",
+      "orders with two items: a primary product and one more"
+    ],
+    "order_items": [
+      "orders with two items: a primary product and one more",
+      "refunded order items, in March 2013 and March 2014"
+    ],
+    "order_item_refunds": [
+      "refunded order items, in March 2013 and March 2014"
+    ]
+  }
+}

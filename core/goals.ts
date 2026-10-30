@@ -6,16 +6,20 @@ export type GoalCriterion =
   | { kind: 'mock_pass'; mock: 'screen' | 'knowledge' | 'case_round' | 'take_home' | 'ga4_readiness' }
   | { kind: 'external'; result: 'ga4_exam' | 'portfolio_piece'; count: number; real_data_min?: number }
   | { kind: 'live_rep'; window_weeks: number; min_logged: number; min_passed: number }
-  /** S4B-20: solved cases (replay); with `exported`, only those a case_export event names; with `level_min`, only cases of that level or above. */
-  | { kind: 'case_solved'; count: number; exported?: boolean; level_min?: number }
+  /** S4B-20: solved cases (replay); with `exported`, only those a case_export event names; with `level_min`, only cases of that level or above. S8-18, S8-C27: with `world`, only inbox cases of that world (never an opener). */
+  | { kind: 'case_solved'; count: number; exported?: boolean; level_min?: number; world?: string }
   /** S4B-20: analyses on a real dataset; "not yet available" until the dataset registry (sprint 6). */
   | { kind: 'real_data_analysis'; count: number };
 
 export interface Goal { id: string; title: string; target_date: string; stage: number | null; criteria: GoalCriterion[] }
 
-/** D58: what is wrong with a concept_state criterion's selectors (as parsed from goals.json); [] when it is fine. Other kinds are not checked here. */
+/** S8-18: the values a case_solved `world` may take; tests/core/goal-eval.test.ts pins it to schemas/case.ts CASE_WORLDS (core stays free of schemas). */
+export const GOAL_CASE_WORLDS: readonly string[] = ['PRICE', 'RETAIL', 'MKT', 'DQ', 'SAAS'];
+
+/** D58: what is wrong with a concept_state criterion's selectors (as parsed from goals.json); [] when it is fine. A case_solved world is checked too. Other kinds are not checked here. */
 export function goalCriterionProblems(c: unknown): string[] {
   const r = (c && typeof c === 'object' ? c : {}) as Record<string, unknown>;
+  if (r.kind === 'case_solved') return r.world === undefined || (typeof r.world === 'string' && GOAL_CASE_WORLDS.includes(r.world)) ? [] : [`world must be one of ${GOAL_CASE_WORLDS.join(', ')}`];
   if (r.kind !== 'concept_state' || r.concept_ids === undefined) return [];
   const problems: string[] = [];
   if (r.concept_id !== undefined) problems.push('concept_ids cannot be used together with concept_id');

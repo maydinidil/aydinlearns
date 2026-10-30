@@ -1,0 +1,202 @@
+{
+  "id": "EX-SQL-PAT-09-E1-06",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "uplift"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-did-not-double",
+  "template_params": {
+    "table": "order_lines",
+    "baseline": "same_length",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Which 2025 promotions failed to double unit sales? Take each promotion that started in 2025 (start_date from 1 January to 31 December 2025) and compare the units sold on promotion with the baseline units. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0 units. Keep the promotions whose units on promotion are less than twice the baseline units. Return three columns, in this order: promo_id, promo_units and baseline_units. Return one row for each promotion kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, compare the two totals: keep a promotion when its units are below twice its baseline.",
+    "Both totals need their 0 for a period with no sale before you compare them, or the comparison is missing and drops the row."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 128,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 129,
+      "to": 146,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 213,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 277,
+      "to": 323,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 324,
+      "to": 338,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 339,
+      "to": 388,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 389,
+      "to": 410,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 476,
+      "to": 518,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 519,
+      "to": 533,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 534,
+      "to": 590,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 591,
+      "to": 637,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 638,
+      "to": 694,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 695,
+      "to": 716,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 719,
+      "to": 813,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 814,
+      "to": 826,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 827,
+      "to": 872,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 873,
+      "to": 920,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 921,
+      "to": 974,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Each promotion is compared with a baseline of its own length, so the filter keeps the ones whose units fell short of twice that."
+}

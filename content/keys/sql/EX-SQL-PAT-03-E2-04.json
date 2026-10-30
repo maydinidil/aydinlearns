@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E2-04",
+  "item_version": 1,
+  "reference_sql": "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', paid_at) AS DATE) AS quarter, SUM(amount_eur) AS paid_eur\n  FROM payments\n  WHERE NOT refunded\n    AND paid_at >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('quarter', paid_at) AS DATE)\n), compared AS (\n  -- one row per quarter, with the quarter before\n  SELECT quarter, paid_eur, LAG(paid_eur) OVER (ORDER BY quarter) AS prev_paid_eur\n  FROM quarterly\n)\nSELECT quarter, paid_eur,\n  ROUND(100.0 * (paid_eur - prev_paid_eur) / prev_paid_eur, 1) AS change_pct\nFROM compared",
+  "alternatives": [
+    "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', paid_at) AS DATE) AS quarter, SUM(amount_eur) AS paid_eur\n  FROM payments\n  WHERE NOT refunded\n    AND paid_at >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('quarter', paid_at) AS DATE)\n)\nSELECT q.quarter, q.paid_eur,\n  ROUND(100.0 * (q.paid_eur - p.paid_eur) / p.paid_eur, 1) AS change_pct\nFROM quarterly q\nLEFT JOIN quarterly p ON p.quarter = q.quarter - INTERVAL 3 MONTH",
+    "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', paid_at) AS DATE) AS quarter, SUM(amount_eur) AS paid_eur\n  FROM payments\n  WHERE NOT refunded\n    AND paid_at >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('quarter', paid_at) AS DATE)\n)\nSELECT quarter, paid_eur,\n  ROUND(100.0 * paid_eur / LAG(paid_eur) OVER (ORDER BY quarter) - 100, 1) AS change_pct\nFROM quarterly"
+  ],
+  "other_way": {
+    "sql": "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', paid_at) AS DATE) AS quarter, SUM(amount_eur) AS paid_eur\n  FROM payments\n  WHERE NOT refunded\n    AND paid_at >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('quarter', paid_at) AS DATE)\n)\nSELECT q.quarter, q.paid_eur,\n  ROUND(100.0 * (q.paid_eur - p.paid_eur) / p.paid_eur, 1) AS change_pct\nFROM quarterly q\nLEFT JOIN quarterly p ON p.quarter = q.quarter - INTERVAL 3 MONTH",
+    "tradeoff": "A self-join on the quarter three months earlier works without windows, but needs the date step written by hand."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', paid_at) AS DATE) AS quarter, SUM(amount_eur) AS paid_eur\n  FROM payments\n  WHERE NOT refunded\n    AND paid_at >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('quarter', paid_at) AS DATE)\n) SELECT quarter, paid_eur, ROUND(100.0 * (paid_eur - LAG(paid_eur) OVER (ORDER BY quarter)) / paid_eur, 1) AS change_pct FROM quarterly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', paid_at) AS DATE) AS quarter, SUM(amount_eur) AS paid_eur\n  FROM payments\n  WHERE NOT refunded\n    AND paid_at >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('quarter', paid_at) AS DATE)\n) SELECT quarter, paid_eur, ROUND((paid_eur - LAG(paid_eur) OVER (ORDER BY quarter)) / LAG(paid_eur) OVER (ORDER BY quarter), 1) AS change_pct FROM quarterly"
+    }
+  ],
+  "hint3_partial": "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', paid_at) AS DATE) AS quarter, SUM(amount_eur) AS paid_eur\n  FROM payments\n  WHERE NOT refunded\n    AND paid_at >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('quarter', paid_at) AS DATE)\n), compared AS (\n  -- one row per quarter, with the quarter before\n  SELECT quarter, paid_eur, LAG(paid_eur) OVER (ORDER BY ___) AS prev_paid_eur\n  FROM quarterly\n)\nSELECT quarter, paid_eur,\n  ROUND(100.0 * (paid_eur - prev_paid_eur) / prev_paid_eur, 1) AS change_pct\nFROM compared",
+  "solver": {
+    "prompt_hash": "deabe6f72c46d7cd",
+    "schema_version": "168fc0a711d4",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH q AS (\n  SELECT CAST(date_trunc('quarter', paid_at AT TIME ZONE 'UTC') AS DATE) AS quarter, SUM(amount_eur) AS paid_eur\n  FROM payments\n  WHERE NOT refunded\n    AND (paid_at AT TIME ZONE 'UTC') >= TIMESTAMP '2024-01-01 00:00:00'\n    AND (paid_at AT TIME ZONE 'UTC') < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY 1\n), c AS (\n  SELECT quarter, paid_eur, LAG(paid_eur) OVER (ORDER BY quarter) AS prev\n  FROM q\n)\nSELECT quarter, paid_eur, ROUND(100.0 * (paid_eur - prev) / prev, 1) AS change_pct\nFROM c\n",
+    "at": "2026-10-28T14:57:03.017Z"
+  }
+}

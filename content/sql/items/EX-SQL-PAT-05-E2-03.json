@@ -1,0 +1,153 @@
+{
+  "id": "EX-SQL-PAT-05-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "mrr",
+    "currency"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-segment-by-currency",
+  "template_params": {
+    "table": "subscription_events",
+    "columns": "currency"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each account segment, what was LedgerLoop's MRR on 31 December 2025 in each billing currency, without converting it? A subscription's MRR on a date is the sum of its subscription_events.mrr_delta_local with event_date on or before that date, in its subscriptions.currency. Return four columns, in this order: segment, mrr_eur, mrr_gbp and mrr_chf, each the total in that currency (currency 'EUR', 'GBP' and 'CHF'). A currency with no MRR in a segment shows 0. Return one row for each segment with a subscription. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "mrr_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "mrr_gbp",
+        "type_class": "numeric"
+      },
+      {
+        "name": "mrr_chf",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "mrr_gbp",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "mrr_chf",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add each subscription's events up to 31 December 2025, then total that MRR per segment in one column per currency.",
+    "Group by the segment alone; the currency belongs in the three columns, and a currency a segment does not use shows 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 228,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 229,
+      "to": 246,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 247,
+      "to": 473,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 474,
+      "to": 484,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 485,
+      "to": 546,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 547,
+      "to": 593,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 594,
+      "to": 612,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The events summed to the date give each MRR; one conditional sum per currency keeps the amounts apart, with 0 where a segment has none."
+}

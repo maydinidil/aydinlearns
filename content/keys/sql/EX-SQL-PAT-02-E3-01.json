@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-02-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH numbered AS (  -- one row per subscription_events row dated on or before 2025-06-30\n  SELECT subscription_id, mrr_delta_local,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-06-30'\n)\nSELECT subscription_id,\n       SUM(mrr_delta_local) AS mrr_with_copies,\n       SUM(mrr_delta_local) FILTER (WHERE copy_no = 1) AS mrr\nFROM numbered\nGROUP BY subscription_id\nHAVING COUNT(*) > COUNT(*) FILTER (WHERE copy_no = 1)",
+  "alternatives": [
+    "WITH events AS (  -- one row per event dated on or before 2025-06-30\n  SELECT subscription_id, mrr_delta_local, COUNT(*) AS n_rows\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-06-30'\n  GROUP BY subscription_id, event_type, event_date, mrr_delta_local\n)\nSELECT subscription_id, SUM(mrr_delta_local * n_rows) AS mrr_with_copies, SUM(mrr_delta_local) AS mrr\nFROM events\nGROUP BY subscription_id\nHAVING SUM(n_rows) > COUNT(*)",
+    "SELECT t.subscription_id,\n       SUM(t.mrr_delta_local) AS mrr_with_copies,\n       SUM(CASE WHEN t.copy_no = 1 THEN t.mrr_delta_local ELSE 0 END) AS mrr\nFROM (\n  -- one row per subscription_events row dated on or before 2025-06-30\n  SELECT subscription_id, mrr_delta_local,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-06-30'\n) AS t\nGROUP BY t.subscription_id\nHAVING COUNT(*) > SUM(CASE WHEN t.copy_no = 1 THEN 1 ELSE 0 END)"
+  ],
+  "other_way": {
+    "sql": "WITH events AS (  -- one row per event dated on or before 2025-06-30\n  SELECT subscription_id, mrr_delta_local, COUNT(*) AS n_rows\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-06-30'\n  GROUP BY subscription_id, event_type, event_date, mrr_delta_local\n)\nSELECT subscription_id, SUM(mrr_delta_local * n_rows) AS mrr_with_copies, SUM(mrr_delta_local) AS mrr\nFROM events\nGROUP BY subscription_id\nHAVING SUM(n_rows) > COUNT(*)",
+    "tradeoff": "Grouping by the event columns first gives each event once with its row count, so both sums need no window."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-36",
+      "sql": "WITH events AS (SELECT subscription_id, mrr_delta_local, COUNT(*) AS n_rows FROM subscription_events WHERE event_date <= DATE '2025-06-30' GROUP BY subscription_id, event_type, event_date, mrr_delta_local, recorded_at) SELECT subscription_id, SUM(mrr_delta_local * n_rows) AS mrr_with_copies, SUM(mrr_delta_local) AS mrr FROM events GROUP BY subscription_id HAVING SUM(n_rows) > COUNT(*)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH numbered AS (  -- one row per subscription_events row dated on or before 2025-06-30\n  SELECT subscription_id, mrr_delta_local,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n  WHERE event_date < DATE '2025-06-30'\n)\nSELECT subscription_id, SUM(mrr_delta_local) AS mrr_with_copies, SUM(mrr_delta_local) FILTER (WHERE copy_no = 1) AS mrr FROM numbered GROUP BY subscription_id HAVING COUNT(*) > COUNT(*) FILTER (WHERE copy_no = 1)"
+    }
+  ],
+  "hint3_partial": "WITH numbered AS (  -- one row per subscription_events row dated on or before 2025-06-30\n  SELECT subscription_id, mrr_delta_local,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-06-30'\n)\nSELECT subscription_id,\n       SUM(mrr_delta_local) AS mrr_with_copies,\n       SUM(mrr_delta_local) FILTER (WHERE ___) AS mrr\nFROM numbered\nGROUP BY subscription_id\nHAVING ___",
+  "solver": {
+    "prompt_hash": "b7fbac9209e3bdfd",
+    "schema_version": "3cbf032d825b",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH d AS (SELECT subscription_id, mrr_delta_local, ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS rn FROM subscription_events WHERE event_date <= DATE '2025-06-30')\nSELECT subscription_id, SUM(mrr_delta_local) AS mrr_with_copies, SUM(mrr_delta_local) FILTER (WHERE rn = 1) AS mrr\nFROM d GROUP BY subscription_id HAVING COUNT(*) > COUNT(*) FILTER (WHERE rn = 1)\n",
+    "at": "2026-10-28T14:57:01.439Z"
+  }
+}

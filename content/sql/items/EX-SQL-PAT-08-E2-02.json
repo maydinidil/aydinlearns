@@ -1,0 +1,208 @@
+{
+  "id": "EX-SQL-PAT-08-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "running_sum",
+    "app_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-WIN-04",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-session-table",
+  "template_params": {
+    "table": "app_events",
+    "month": "2025-11"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The product team flagged users 17, 128, 129 and 278 for odd gaps between their app events. Build their session table for November 2025: use only their app events from 1 to 30 November 2025 (UTC days of event_ts), so each user's first event in November starts session 1. A user's first app event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant, never between clock times. For each session, show the user, its number (counting from 1 for each user in time order), its first event's event_ts, how many events it holds, and its length in seconds from its first to its last event (0 for a session of one event). Return five columns, in this order: user_id, session_no, session_start, events and length_seconds. Return one row for each session. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "session_no",
+        "type_class": "numeric"
+      },
+      {
+        "name": "session_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric"
+      },
+      {
+        "name": "length_seconds",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per session of the four users in November 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "session_no",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "session_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "length_seconds",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "user_id",
+      "session_no"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, flag the session starts and turn the flags into a session number with a running sum.",
+    "Once every event carries its user and session number, one GROUP BY on the two gives the start, the count and the length."
+  ],
+  "subgoals": [
+    {
+      "from": 77,
+      "to": 114,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 115,
+      "to": 199,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 200,
+      "to": 217,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 218,
+      "to": 369,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 448,
+      "to": 485,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 486,
+      "to": 594,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 595,
+      "to": 606,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 686,
+      "to": 713,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 714,
+      "to": 853,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 854,
+      "to": 868,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 871,
+      "to": 950,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 951,
+      "to": 1014,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1015,
+      "to": 1028,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1029,
+      "to": 1057,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 486,
+    "stage2": 486
+  },
+  "faded_shape": "WITH gaps AS (\n  -- one row per app event of the four users in November 2025\n  SELECT event_id, user_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n  WHERE user_id IN (17, 128, 129, 278)\n    AND event_ts >= TIMESTAMPTZ '2025-11-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-12-01 00:00:00+00'\n), flagged AS (\n  -- one row per app event of the four users in November 2025\n  SELECT event_id, user_id, event_ts,\n",
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The running sum gives every event its session number, so grouping by user and session number turns the events into sessions.",
+  "faded_suffix": "\n  FROM flagged\n)\nSELECT user_id, session_no, MIN(event_ts) AS session_start, COUNT(*) AS events,\n  epoch(MAX(event_ts)) - epoch(MIN(event_ts)) AS length_seconds\nFROM numbered\nGROUP BY user_id, session_no"
+}

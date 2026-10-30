@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-02-E1-04",
+  "item_version": 2,
+  "reference_sql": "WITH ranked AS (  -- one row per session of a visitor who signed up\n  SELECT s.visitor_id, s.utm_source,\n         ROW_NUMBER() OVER (PARTITION BY s.visitor_id ORDER BY s.session_start, s.session_id) AS rn\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n)\nSELECT utm_source, COUNT(*) AS visitors\nFROM ranked\nWHERE rn = 1\nGROUP BY utm_source",
+  "alternatives": [
+    "WITH firsts AS (  -- one row per visitor who signed up\n  SELECT s.visitor_id, MIN(s.session_start) AS first_start\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n  GROUP BY s.visitor_id\n),\nfirst_ids AS (  -- one row per visitor who signed up\n  SELECT s.visitor_id, MIN(s.session_id) AS session_id\n  FROM sessions s\n  JOIN firsts f ON f.visitor_id = s.visitor_id AND f.first_start = s.session_start\n  GROUP BY s.visitor_id\n)\nSELECT s.utm_source, COUNT(*) AS visitors\nFROM first_ids fi\nJOIN sessions s ON s.session_id = fi.session_id\nGROUP BY s.utm_source",
+    "SELECT t.utm_source, COUNT(*) AS visitors\nFROM (\n  -- one row per session of a visitor who signed up, numbered from the first\n  SELECT s.visitor_id, s.utm_source,\n         ROW_NUMBER() OVER (PARTITION BY s.visitor_id ORDER BY s.session_start, s.session_id) AS rn\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n) AS t\nWHERE t.rn = 1\nGROUP BY t.utm_source"
+  ],
+  "other_way": {
+    "sql": "WITH firsts AS (  -- one row per visitor who signed up\n  SELECT s.visitor_id, MIN(s.session_start) AS first_start\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n  GROUP BY s.visitor_id\n),\nfirst_ids AS (  -- one row per visitor who signed up\n  SELECT s.visitor_id, MIN(s.session_id) AS session_id\n  FROM sessions s\n  JOIN firsts f ON f.visitor_id = s.visitor_id AND f.first_start = s.session_start\n  GROUP BY s.visitor_id\n)\nSELECT s.utm_source, COUNT(*) AS visitors\nFROM first_ids fi\nJOIN sessions s ON s.session_id = fi.session_id\nGROUP BY s.utm_source",
+    "tradeoff": "Taking the earliest start, then the lowest session_id at that start, needs no window but takes two grouping steps."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per session of a visitor who signed up\n  SELECT s.visitor_id, s.utm_source,\n         RANK() OVER (PARTITION BY s.visitor_id ORDER BY s.session_start) AS rn\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n)\nSELECT utm_source, COUNT(*) AS visitors\nFROM ranked\nWHERE rn = 1\nGROUP BY utm_source"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (  -- one row per session of a visitor who signed up\n  SELECT s.visitor_id, s.utm_source,\n         ROW_NUMBER() OVER (PARTITION BY s.visitor_id ORDER BY s.session_start DESC, s.session_id) AS rn\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n)\nSELECT utm_source, COUNT(*) AS visitors\nFROM ranked\nWHERE rn = 1\nGROUP BY utm_source"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT s.utm_source, COUNT(*) AS visitors FROM sessions s JOIN signups u ON u.visitor_id = s.visitor_id GROUP BY s.utm_source"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per session of a visitor who signed up\n  SELECT s.visitor_id, s.utm_source,\n         ROW_NUMBER() OVER (PARTITION BY s.visitor_id ORDER BY s.session_start, s.session_id) AS rn\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n)\nSELECT utm_source, COUNT(*) AS visitors\nFROM ranked\nWHERE ___\nGROUP BY utm_source",
+  "solver": {
+    "prompt_hash": "30a308729be7eab6",
+    "schema_version": "8a14021f2dee",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT utm_source, COUNT(*) AS visitors\nFROM (\n  SELECT s.visitor_id, s.utm_source,\n         ROW_NUMBER() OVER (PARTITION BY s.visitor_id ORDER BY s.session_start ASC, s.session_id ASC) AS rn\n  FROM sessions s\n  WHERE s.visitor_id IN (SELECT visitor_id FROM signups)\n) t\nWHERE rn = 1\nGROUP BY utm_source\n",
+    "at": "2026-10-28T16:44:10.899Z"
+  }
+}

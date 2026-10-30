@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-08-E2-41",
+  "item_version": 1,
+  "correct_oid": "od037be0",
+  "explanation": "The gap must come from the same user's previous event, so LAG needs PARTITION BY user_id; a first event has no LAG and must count by itself; and the gap is compared as time, 30 minutes. Partitioning by account mixes the account's users into one stream, so one user's events can split or join another user's session.",
+  "solver": {
+    "prompt_hash": "9a2201fbc6f9f714",
+    "grader_version": "choice.3",
+    "chosen": "od037be0",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.797Z"
+  }
+}

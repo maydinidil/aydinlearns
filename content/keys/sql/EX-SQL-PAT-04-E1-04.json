@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E1-04",
+  "item_version": 1,
+  "reference_sql": "WITH days AS (\n  -- one row per day, 1 to 14 December 2025\n  SELECT CAST(range AS DATE) AS day\n  FROM range(DATE '2025-12-01', DATE '2025-12-15', INTERVAL 1 DAY)\n), daily AS (\n  -- one row per UTC day with app events\n  SELECT CAST(event_ts AS DATE) AS day, COUNT(*) AS events\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-12-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-12-15 00:00:00+00'\n  GROUP BY CAST(event_ts AS DATE)\n)\nSELECT d.day, COALESCE(e.events, 0) AS events\nFROM days d\nLEFT JOIN daily e ON e.day = d.day",
+  "alternatives": [
+    "WITH days AS (\n  -- one row per day, 1 to 14 December 2025\n  SELECT CAST(generate_series AS DATE) AS day\n  FROM generate_series(DATE '2025-12-01', DATE '2025-12-14', INTERVAL 1 DAY)\n)\nSELECT d.day, (SELECT COUNT(*) FROM app_events e WHERE CAST(e.event_ts AS DATE) = d.day) AS events\nFROM days d",
+    "WITH days AS (\n  -- one row per day, 1 to 14 December 2025\n  SELECT CAST(range AS DATE) AS day\n  FROM range(DATE '2025-12-01', DATE '2025-12-15', INTERVAL 1 DAY)\n)\nSELECT d.day, COUNT(e.event_id) AS events\nFROM days d\nLEFT JOIN app_events e ON CAST(e.event_ts AS DATE) = d.day\nGROUP BY d.day"
+  ],
+  "other_way": {
+    "sql": "WITH days AS (\n  -- one row per day, 1 to 14 December 2025\n  SELECT CAST(generate_series AS DATE) AS day\n  FROM generate_series(DATE '2025-12-01', DATE '2025-12-14', INTERVAL 1 DAY)\n)\nSELECT d.day, (SELECT COUNT(*) FROM app_events e WHERE CAST(e.event_ts AS DATE) = d.day) AS events\nFROM days d",
+    "tradeoff": "A count subquery per day gives 0 on its own, but it scans the events once for every day of the range."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH days AS (\n  -- one row per day, 1 to 14 December 2025\n  SELECT CAST(range AS DATE) AS day\n  FROM range(DATE '2025-12-01', DATE '2025-12-15', INTERVAL 1 DAY)\n), daily AS (\n  -- one row per UTC day with app events\n  SELECT CAST(event_ts AS DATE) AS day, COUNT(*) AS events\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-12-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-12-15 00:00:00+00'\n  GROUP BY CAST(event_ts AS DATE)\n) SELECT day, events FROM daily"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH days AS (\n  -- one row per day, 1 to 14 December 2025\n  SELECT CAST(range AS DATE) AS day\n  FROM range(DATE '2025-12-01', DATE '2025-12-15', INTERVAL 1 DAY)\n), daily AS (\n  -- one row per UTC day with app events\n  SELECT CAST(event_ts AS DATE) AS day, COUNT(*) AS events\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-12-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-12-15 00:00:00+00'\n  GROUP BY CAST(event_ts AS DATE)\n) SELECT d.day, e.events FROM days d LEFT JOIN daily e ON e.day = d.day"
+    }
+  ],
+  "hint3_partial": "WITH days AS (\n  -- one row per day, 1 to 14 December 2025\n  SELECT CAST(range AS DATE) AS day\n  FROM range(DATE '2025-12-01', DATE '2025-12-15', INTERVAL 1 DAY)\n), daily AS (\n  -- one row per UTC day with app events\n  SELECT CAST(event_ts AS DATE) AS day, COUNT(*) AS events\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-12-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-12-15 00:00:00+00'\n  GROUP BY CAST(event_ts AS DATE)\n)\nSELECT d.day, ___ AS events\nFROM days d\nLEFT JOIN daily e ON e.day = d.day",
+  "solver": {
+    "prompt_hash": "632fce38bdf17d47",
+    "schema_version": "c66411aea2e3",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH days AS (\n  SELECT CAST(d AS DATE) AS day FROM generate_series(DATE '2025-12-01', DATE '2025-12-14', INTERVAL 1 DAY) t(d)\n), e AS (\n  SELECT CAST(event_ts AT TIME ZONE 'UTC' AS DATE) AS day, COUNT(*) AS events\n  FROM app_events\n  WHERE (event_ts AT TIME ZONE 'UTC') >= TIMESTAMP '2025-12-01 00:00:00'\n    AND (event_ts AT TIME ZONE 'UTC') < TIMESTAMP '2025-12-15 00:00:00'\n  GROUP BY 1\n)\nSELECT d.day, COALESCE(e.events, 0) AS events\nFROM days d LEFT JOIN e ON e.day = d.day\n",
+    "at": "2026-10-28T14:57:04.766Z"
+  }
+}

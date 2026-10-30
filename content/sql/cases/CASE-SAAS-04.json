@@ -1,0 +1,171 @@
+{
+  "case_id": "CASE-SAAS-04",
+  "kind": "inbox",
+  "level": 6,
+  "world": "SAAS",
+  "company_id": "ledgerloop",
+  "schema": "ledgerloop",
+  "title": "NRR and GRR by segment, September 2024 to September 2025",
+  "persona": {
+    "name": "Lieselot",
+    "role": "CFO"
+  },
+  "brief": {
+    "decision": "Which retention figures go into the investor data room, and how their method is explained",
+    "deadline": "The data room opens to investors in 10 days"
+  },
+  "data_needed": [
+    "mrr_monthly",
+    "accounts"
+  ],
+  "expected_output": {
+    "columns": [
+      "segment",
+      "start_accounts",
+      "start_mrr",
+      "end_mrr",
+      "nrr_pct",
+      "grr_pct"
+    ],
+    "grain": "one row per segment, then one Total row for all segments together",
+    "sort": [
+      {
+        "column": "segment",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "prompt": "Lieselot needs the 12-month NRR and GRR from September 2024 to September 2025, with MRR from mrr_monthly, where a month with no row means the account had no MRR. Before you write any SQL, which accounts should both figures follow?",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-04:CP1",
+      "options": [
+        {
+          "oid": "o6667c3b",
+          "text": "Every account with a row for September 2025, each compared with its own row for September 2024"
+        },
+        {
+          "oid": "o0a51c0a",
+          "text": "Every account with a row for September 2024, followed to September 2025, where an account with no row then counts as 0"
+        },
+        {
+          "oid": "oa61a82f",
+          "text": "Every account with a row in either month, so the accounts won after September 2024 add their September 2025 MRR to both figures too"
+        },
+        {
+          "oid": "oa25eac6",
+          "text": "Every account with a row in both months, so an account that left during the year does not pull the figures down"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "prompt": "Lieselot first wants to know how many accounts left. mrr_monthly holds one row per account and month in which the account had MRR on the last day of the month, mrr_eur in euros at one fixed exchange rate; a month with no row means no MRR. Take the accounts with a row for September 2024. How many of them have no row for September 2025? Type a whole number.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-SAAS-04:CP2",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "accounts"
+      },
+      "truth_key": "CASE-SAAS-04:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Lieselot's question.",
+      "credits_concepts": [
+        "SQL-PAT-06",
+        "SQL-JOIN-02",
+        "SQL-SET-01",
+        "SQL-CTE-01",
+        "SQL-AGG-02"
+      ],
+      "item_id": "EX-CASE-SAAS-04"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Lieselot's headline is the gross revenue retention of all segments together. mrr_monthly holds one row per account and month in which the account had MRR on the last day of the month, mrr_eur in euros at one fixed exchange rate; a month with no row means no MRR. Take the accounts with a row for September 2024: each one's start MRR is its September 2024 mrr_eur, and its end MRR its September 2025 mrr_eur, or 0 when it has no row for that month. Cap each account's end MRR at its own start MRR. What is 100 times the total of the capped end MRR divided by the total start MRR? Type the percentage rounded to 1 decimal, for example 91.5.",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-04:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-SAAS-04:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "prompt": "Lieselot's result shows an NRR above 100 for all segments together, for Enterprise and for Mid-Market, while SMB's NRR is below 100 and its GRR is the lowest of the three segments. What can Lieselot tell investors from this result?",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-04:CP5",
+      "options": [
+        {
+          "oid": "o3ff2904",
+          "text": "No account in the base left: an NRR above 100 for all segments together means the September 2024 accounts lost no MRR to churn or downgrades during the year."
+        },
+        {
+          "oid": "ofcc063d",
+          "text": "The base grew on its own because expansion outweighed churn and contraction; the gap between NRR and GRR shows how much of that rests on expansion."
+        },
+        {
+          "oid": "o8794079",
+          "text": "LedgerLoop's total MRR grew by the NRR minus 100 over the year, because NRR also takes in the accounts won after September 2024."
+        },
+        {
+          "oid": "odbb6027",
+          "text": "Every Enterprise and Mid-Market account grew its MRR, because a segment's NRR above 100 means each of its accounts ended above where it started."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "prompt": "Write 2 to 4 sentences for Lieselot: the headline retention figures, what they mean for the data room, one caveat about how NRR and GRR are defined, and one next step.",
+      "credits_concepts": []
+    }
+  ],
+  "model_plan": "Metric formula: nrr_pct, 100 times the base's total end MRR divided by its total start MRR; grr_pct, 100 times the total of each account's end MRR capped at its start MRR, divided by the total start MRR; both rounded to 1 decimal.\nOutput grain: one row per segment, then one Total row for all segments together.\nTables and keys: mrr_monthly for September 2024 joined to accounts on account_id for the segment, and left joined to mrr_monthly for September 2025 on account_id.\nFilters: the base is the accounts with a row for September 2024; an account that only has MRR later is left out.\nEdge cases: an account with no row for September 2025 ends at 0 and stays in the base; the cap works per account, so one account's growth cannot hide another's loss; the Total row comes from the same base, stacked under the segments.\nExpected row count: 4",
+  "model_answer_template": "Of the accounts that paid LedgerLoop in September 2024, {CP2} had no MRR a year later, and the base kept {CP4} percent of its MRR before any expansion. Expansion lifted net retention above 100 percent for all segments together, mostly in Enterprise and Mid-Market, while SMB lost MRR on balance and has the weakest gross retention. Companies define NRR differently, so the data room should state the method: a fixed September 2024 base, MRR at one fixed exchange rate, and new accounts left out. Next, split SMB's lost MRR into churn and contraction and check how much of it followed the Starter price rise of February 2025.",
+  "follow_up_question": "What will investors read into the gap between NRR and GRR in each segment?",
+  "data_source": {
+    "label": "Fictional, generated data: LedgerLoop",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 4,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-PAT-06"
+  ],
+  "metric_ids": [
+    "MET-SAAS-06",
+    "MET-SAAS-07"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

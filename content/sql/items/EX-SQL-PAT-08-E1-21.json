@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-PAT-08-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "lag",
+    "app_events",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-starts-per-day",
+  "template_params": {
+    "table": "app_events",
+    "from": "2025-12-01",
+    "to": "2025-12-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How many app sessions started on each UTC day from 1 to 5 December 2025 (both days included)? Work the gaps out over every app event, so an event on 1 December is compared with the user's previous event, even an earlier one. A user's first app event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant, never between clock times. Count a session on the UTC day of its first event. Return two columns, in this order: session_day and sessions. Return one row for each day with at least one session start. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "session_day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "session_day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "session_day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read each user's previous event over all events, then count the session starts on those five days.",
+    "Filter the days only after the window has run, so the first December event still sees November's."
+  ],
+  "subgoals": [
+    {
+      "from": 42,
+      "to": 69,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 70,
+      "to": 154,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 155,
+      "to": 172,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 175,
+      "to": 241,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 242,
+      "to": 251,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 252,
+      "to": 430,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 431,
+      "to": 462,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The window sees every earlier event, so only real session starts on the five days are counted, each on its UTC day."
+}

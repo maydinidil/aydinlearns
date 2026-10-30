@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-08-E2-42",
+  "item_version": 1,
+  "correct_oid": "o2fab2fc",
+  "explanation": "The first event has no LAG, so it is flagged 1. From 09:06:50 to 09:36:51 is 30 minutes and 1 second, more than 30 minutes, so the fourth event is flagged 1 as well; every other gap is a few minutes. The running sum of the flags gives 1, 1, 1, 2, 2. Reading the gap as exactly 30 minutes keeps everything in session 1.",
+  "solver": {
+    "prompt_hash": "868310d0c66245bf",
+    "grader_version": "choice.3",
+    "chosen": "o2fab2fc",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.799Z"
+  }
+}

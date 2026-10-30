@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-06-E1-42",
+  "item_version": 1,
+  "value": 12,
+  "explanation": "The months step keeps one row per cohort month, so three rows: October, November and December 2025. range(0, 4) gives the offsets 0, 1, 2 and 3, and the CROSS JOIN pairs each cohort month with each offset: 3 times 4 is 12 rows. The number of accounts does not matter, because DISTINCT has already reduced them to one row per month.",
+  "solver": {
+    "prompt_hash": "158694d3fbf2970b",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "12",
+    "at": "2026-10-28T14:57:24.778Z"
+  }
+}

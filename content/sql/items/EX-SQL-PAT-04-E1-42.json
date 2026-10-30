@@ -1,0 +1,80 @@
+{
+  "id": "EX-SQL-PAT-04-E1-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_rows",
+    "date_spine",
+    "grid",
+    "cross_join"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-predict-rows-grid",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Voltmarkt's categories belong to 7 parent categories. How many rows does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "WITH weeks AS (\n  -- one row per week, the weeks of 3 to 24 March 2025\n  SELECT DISTINCT week_start\n  FROM calendar\n  WHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n), parents AS (\n  -- one row per parent category\n  SELECT DISTINCT parent_category\n  FROM categories\n), weekly AS (\n  -- one row per parent category and week with sales\n  SELECT parent_category, order_week AS week_start, SUM(units) AS units\n  FROM sales\n  WHERE order_week BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n  GROUP BY parent_category, order_week\n)\nSELECT p.parent_category, w.week_start, COALESCE(s.units, 0) AS units\nFROM parents p\nCROSS JOIN weeks w\nLEFT JOIN weekly s ON s.parent_category = p.parent_category AND s.week_start = w.week_start",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

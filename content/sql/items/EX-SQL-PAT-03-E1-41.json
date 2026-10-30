@@ -1,0 +1,201 @@
+{
+  "id": "EX-SQL-PAT-03-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "year_over_year",
+    "self_join",
+    "new_store"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-predict-yoy-new-store",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Store NL-13 opened on 1 September 2024. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "WITH monthly AS (\n  -- one row per month with orders at store NL-13\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-13'\n  GROUP BY order_month\n)\nSELECT m.month, m.revenue_eur, p.revenue_eur AS revenue_prev_year_eur\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR\nWHERE m.month BETWEEN DATE '2025-07-01' AND DATE '2025-10-01'",
+  "options": [
+    {
+      "oid": "o1975878",
+      "text": "July and August have no 2024 month to compare with, so revenue_prev_year_eur is 0.00",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "month",
+          "revenue_eur",
+          "revenue_prev_year_eur"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "212799.25",
+            "0.00"
+          ],
+          [
+            "2025-08-01",
+            "177513.29",
+            "0.00"
+          ],
+          [
+            "2025-09-01",
+            "189609.14",
+            "165713.25"
+          ],
+          [
+            "2025-10-01",
+            "174587.93",
+            "210043.30"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o389c0ea",
+      "text": "July and August show a missing revenue_prev_year_eur",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month",
+          "revenue_eur",
+          "revenue_prev_year_eur"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "212799.25",
+            null
+          ],
+          [
+            "2025-08-01",
+            "177513.29",
+            null
+          ],
+          [
+            "2025-09-01",
+            "189609.14",
+            "165713.25"
+          ],
+          [
+            "2025-10-01",
+            "174587.93",
+            "210043.30"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o054d872",
+      "text": "Only September and October come back",
+      "misconception_id": "ERR-LOG-11",
+      "table": {
+        "columns": [
+          "month",
+          "revenue_eur",
+          "revenue_prev_year_eur"
+        ],
+        "rows": [
+          [
+            "2025-09-01",
+            "189609.14",
+            "165713.25"
+          ],
+          [
+            "2025-10-01",
+            "174587.93",
+            "210043.30"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o6a753a6",
+      "text": "Each month shows the revenue of the month before it",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month",
+          "revenue_eur",
+          "revenue_prev_year_eur"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "212799.25",
+            "192351.91"
+          ],
+          [
+            "2025-08-01",
+            "177513.29",
+            "212799.25"
+          ],
+          [
+            "2025-09-01",
+            "189609.14",
+            "177513.29"
+          ],
+          [
+            "2025-10-01",
+            "174587.93",
+            "189609.14"
+          ]
+        ]
+      }
+    }
+  ]
+}

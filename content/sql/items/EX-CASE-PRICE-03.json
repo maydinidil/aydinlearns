@@ -1,6 +1,6 @@
 {
   "id": "EX-CASE-PRICE-03",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -53,7 +53,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_promo",
-  "prompt": "Fleur, in trade marketing, presents the Q3 2025 promotion results to a supplier on Friday and needs the uplift of every product in every promotion that started in Q3 2025, that is with a start date from 2025-07-01 to 2025-09-30, both days included. Every promotion starts on a Monday and ends on a Sunday. Weeks run from Monday to Sunday, and an order counts in the week of its UTC order date. For a promotion and a product in it, the baseline is the product's average weekly units over the 4 weeks just before the promotion's start date, and the promotion average is its average weekly units over the weeks from the start date to the end date. A week in which the product sold nothing counts as 0 units. Return one row for each promotion and product in it, with five columns in this order: promo_id; product_id; baseline_units_wk and promo_units_wk, the two averages, not rounded; and uplift_pct, which is 100 times (promo_units_wk minus baseline_units_wk) divided by baseline_units_wk, rounded to 1 decimal, and missing when the baseline is 0. Sort by uplift_pct from high to low with missing values last, then by promo_id from low to high, then by product_id from low to high.",
+  "prompt": "Fleur, in trade marketing, presents the Q3 2025 promotion results to a supplier on Friday and needs the uplift of every product in every promotion that started in Q3 2025, that is with a start date from 2025-07-01 to 2025-09-30, both days included. Every promotion starts on a Monday and ends on a Sunday. Weeks run from Monday to Sunday, and an order counts in the week of its UTC order date. For a promotion and a product in it, the baseline is the product's average weekly units over the 4 weeks just before the promotion's start date, and the promotion average is its average weekly units over the weeks from the start date to the end date. A week in which the product sold nothing counts as 0 units. Return one row for each promotion and product in it, with five columns in this order: promo_id; product_id; baseline_units_wk and promo_units_wk, the two averages, not rounded; and uplift_pct, which is 100 times (promo_units_wk minus baseline_units_wk) divided by baseline_units_wk, rounded to 1 decimal, and missing when the baseline is 0. Sort by uplift_pct from high to low (missing values may come first or last), then by promo_id from low to high, then by product_id from low to high.",
   "output_contract": {
     "columns": [
       {

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-31",
+  "item_version": 1,
+  "reference_sql": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), invited AS (\n  -- one row per month with invited users\n  SELECT CAST(date_trunc('month', invited_at) AS DATE) AS month, COUNT(*) AS users_invited\n  FROM users\n  WHERE invited_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND invited_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', invited_at) AS DATE)\n)\nSELECT m.month, COALESCE(i.users_invited, 0) AS users_invited\nFROM months m\nLEFT JOIN invited i ON i.month = m.month",
+  "alternatives": [
+    "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n)\nSELECT m.month,\n  (SELECT COUNT(*) FROM users u WHERE CAST(date_trunc('month', u.invited_at) AS DATE) = m.month) AS users_invited\nFROM months m",
+    "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), invited AS (\n  -- one row per month with invited users\n  SELECT CAST(date_trunc('month', invited_at) AS DATE) AS month, COUNT(*) AS users_invited\n  FROM users\n  WHERE invited_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND invited_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', invited_at) AS DATE)\n)\nSELECT m.month, COALESCE(i.users_invited, 0) AS users_invited\nFROM invited i\nRIGHT JOIN months m ON i.month = m.month"
+  ],
+  "other_way": {
+    "sql": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n)\nSELECT m.month,\n  (SELECT COUNT(*) FROM users u WHERE CAST(date_trunc('month', u.invited_at) AS DATE) = m.month) AS users_invited\nFROM months m",
+    "tradeoff": "A count subquery for each month cannot lose a month, but it reads the users again for each one."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), invited AS (\n  -- one row per month with invited users\n  SELECT CAST(date_trunc('month', invited_at) AS DATE) AS month, COUNT(*) AS users_invited\n  FROM users\n  WHERE invited_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND invited_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', invited_at) AS DATE)\n)\nSELECT m.month, COALESCE(i.users_invited, 0) AS users_invited\nFROM months m\nJOIN invited i ON i.month = m.month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), invited AS (\n  -- one row per month with invited users\n  SELECT CAST(date_trunc('month', invited_at) AS DATE) AS month, COUNT(*) AS users_invited\n  FROM users\n  WHERE invited_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND invited_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', invited_at) AS DATE)\n) SELECT m.month, i.users_invited FROM months m LEFT JOIN invited i ON i.month = m.month"
+    }
+  ],
+  "hint3_partial": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), invited AS (\n  -- one row per month with invited users\n  SELECT CAST(date_trunc('month', invited_at) AS DATE) AS month, COUNT(*) AS users_invited\n  FROM users\n  WHERE invited_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND invited_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', invited_at) AS DATE)\n)\nSELECT m.month, COALESCE(i.users_invited, 0) AS users_invited\nFROM months m\n___ JOIN invited i ON i.month = m.month",
+  "solver": {
+    "prompt_hash": "3bb284a0509e3056",
+    "schema_version": "fdec020f6e2e",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH months AS (\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), invited AS (\n  SELECT CAST(date_trunc('month', invited_at) AS DATE) AS month, COUNT(*) AS users_invited\n  FROM users\n  WHERE invited_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND invited_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', invited_at) AS DATE)\n)\nSELECT m.month, COALESCE(i.users_invited, 0) AS users_invited\nFROM months m\nLEFT JOIN invited i ON i.month = m.month\n",
+    "at": "2026-10-28T14:57:05.299Z"
+  }
+}

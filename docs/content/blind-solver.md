@@ -71,6 +71,45 @@ for rows with the same date says) rather than leaning on the default, and may fi
 result in a CTE or with QUALIFY: grading compares results, and a QUALIFY query gets a portability
 note only (S7-20).
 
+**Level 6 prompts** (sprint 8, S8-10) are business patterns: top N per group, deduplication and the
+latest row per key, period comparisons, date spines, pivots, cohorts, funnels, sessions, promotion
+uplift and MRR movements, on Voltmarkt, Mailvora and LedgerLoop. The prompt states in words each
+choice that would otherwise have two right answers, and the solver follows it exactly:
+- the tie rule of every top N, dedup and "latest per key" question, as at level 5; a dedup on
+  `ledgerloop_raw` says which copy to keep ("Keep the row with the lowest event_id.");
+- a period comparison's other period (the previous calendar month, or the same month a year
+  before) and what a period with no rows counts as. A month with no rows still needs its row, so
+  the solver builds a spine (`calendar`, `budget_monthly`, `range()` or `generate_series()`) rather
+  than read LAG over the months that have rows;
+- a cohort's date, the activity that counts, the as-of date and what an immature cell shows: a cell
+  whose month ends after the as-of date is missing unless the prompt says otherwise, while an ended
+  month with no activity is 0. Month offsets count calendar months (`date_diff('month', ...)` on
+  the months' first days), never days divided by 30;
+- a funnel's steps, its base (the step before or the top of the funnel) and whether order counts,
+  always counting distinct users;
+- a session's gap, whether a gap of exactly that length starts a new session, and the time zone of
+  any day or hour reported. The solver works out each gap per user between the two instants, never
+  between wall-clock times, and compares that interval (or the difference of the epoch seconds) with
+  the gap, never a `date_diff` count of minute boundaries; each user's first event starts a session;
+- a pivot's columns and what an empty cell shows. The solver writes conditional aggregation; a
+  PIVOT with an IN list also passes, with a portability note, and one without an IN list is
+  refused;
+- an uplift's baseline (its length and days) and its measure, and how a sale in two overlapping
+  promotions counts.
+
+No level 6 prompt says where missing values go in a sort (S8-22): the grader's order check accepts
+them first or last, so the solver writes no NULLS FIRST or NULLS LAST.
+
+**LedgerLoop notes** (sprint 8, S8-01). A LedgerLoop item's view says `"schema": "ledgerloop"`, or
+`"ledgerloop_raw"` for a raw-data item, and the solver reads the notes with that schema; both show
+from level 6. Every clean LedgerLoop time is Brussels local time with no time zone, except
+`app_events.event_ts`, a UTC instant; on `ledgerloop_raw`, `payments.attempted_at` holds UTC
+instants. A subscription's MRR on a date is the sum of its `subscription_events.mrr_delta_local` up
+to that date, in its own currency (the `subscription_events` notes say so); amounts in GBP and CHF
+are converted with `fx_rates` at the rate the prompt names, and `opening` events stay out of a
+month's movements. On `ledgerloop_raw` the tables may hold errors, and the solver applies exactly
+the rule the prompt gives, as on `voltmarkt_raw`.
+
 **Raw schema notes** (sprint 6, S6-01 and S6-02). A raw-data item's view says `"schema":
 "voltmarkt_raw"`. Its tables have the same names as the clean ones, and `data/schema-notes.json`
 holds a note for each with `"schema": "voltmarkt_raw"` and the line "This table may hold errors."
@@ -153,7 +192,8 @@ Work in <root>. You may read ONLY:
   Use only the tables whose from_level is at or below your level: a learner at that level sees
   no other table. Use only the notes whose schema is the item's own schema (the "schema" field of
   its view): "voltmarkt" for most items, "voltmarkt_raw" for a raw-data item, whose tables may
-  hold errors, and "mailvora" for a Mailvora item.
+  hold errors, "mailvora" for a Mailvora item, and "ledgerloop" or "ledgerloop_raw" for a
+  LedgerLoop item.
 
 Never open anything else: not content/ (items, keys, lessons), pipeline/, knowledge/, server/,
 tests/, docs/, other files under tools/, or another concept's solver-view files. Do not query the
@@ -170,17 +210,27 @@ file:
 - One row per what the prompt says one row stands for. When the output contract has no grain
   line, the prompt's wording is the grain.
 - Times in *_ts columns are UTC. When the prompt asks for a day, week or month in Amsterdam time,
-  convert the time first. On "voltmarkt_raw", read each time as the prompt says.
+  convert the time first. On "voltmarkt_raw", read each time as the prompt says. On "ledgerloop"
+  every time is Brussels local time except app_events.event_ts, a UTC instant; on
+  "ledgerloop_raw", payments.attempted_at is a UTC instant too.
 - Dates relative to "now", such as "the last 30 days", count from the as-of date the prompt gives.
   Write it as a date literal; never use now(), current_date or today().
-- On "voltmarkt_raw", the tables may hold errors. Apply exactly the rule the prompt gives for what
-  is correct (which rows are copies, which spelling is right), and clean nothing else.
+- On "voltmarkt_raw", "mailvora_raw" or "ledgerloop_raw", the tables may hold errors. Apply exactly
+  the rule the prompt gives for what is correct (which rows are copies, which spelling is right),
+  and clean nothing else.
 - Window functions (level 5): follow the prompt's tie rule exactly. A tie-break column it names
   goes last in the window's ORDER BY; when it says tied rows share a place, use RANK or
   DENSE_RANK as it says. Write each frame out (ROWS BETWEEN ... or RANGE BETWEEN ..., as the
   prompt's rule for rows with the same date says). Do what the prompt says with LAG's first row
   and with short windows at the start of a series, and put rows with a missing sort value where it
   says (NULLS FIRST or NULLS LAST).
+- Business patterns (level 6): follow the prompt's tie rule, cohort date and as-of date, funnel
+  base and order, session gap and time zone, and what an empty or immature cell shows, exactly.
+  Give every period the prompt covers its row, with a spine when a period can have no rows. Count
+  month offsets in calendar months, count distinct users in cohorts and funnels, and work out a
+  session gap per user between instants, as an interval, never a date_diff count. Write a pivot
+  with conditional aggregation. A level 6 prompt never says where missing values go in a sort,
+  and either place passes.
 
 When a view holds starter_sql, the prompt asks you to fix that query. Write the whole corrected
 query to the .sql file, not a description of the change.
@@ -517,7 +567,9 @@ Work in <root>. You may read ONLY:
   holding its id, its prompt, and either options (each an oid and a text) or typed (the unit, the
   scale and the number of decimals to give);
 - data/schema-notes.json (the visible tables and views, their grain, keys and sample rows). Use
-  only the tables whose from_level is at or below your level.
+  only the notes whose schema is your CP3 view's schema (the "schema" field of the CP3 item's view:
+  at level 6 Mailvora and LedgerLoop both have a subscriptions and a payments table), and only the
+  tables whose from_level is at or below your level.
 
 Never open anything else: not content/, knowledge/, pipeline/, server/, schemas/, tests/, docs/,
 data/truth/, other files under tools/, or another case's files. Do not query the database, do not
@@ -527,7 +579,8 @@ Write each answer as plain text, with nothing else in the file:
 - a CP3 item: tools/.solver-out/<item ID>.sql, one DuckDB SELECT, as the SQL solver brief asks
   (table names without a schema prefix; the output columns, order, tie-breaks and rounding exactly
   as the prompt states; no ORDER BY unless the prompt asks for an order; times in *_ts columns are
-  UTC);
+  UTC; on a LedgerLoop case every time is Brussels local time except app_events.event_ts, a UTC
+  instant);
 - a checkpoint with options: tools/.solver-out/case/<case ID>-<CP>.txt, the oid of the one option
   you pick, exactly as the view gives it;
 - a checkpoint with typed: tools/.solver-out/case/<case ID>-<CP>.sql, one DuckDB SELECT that

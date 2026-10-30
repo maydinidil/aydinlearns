@@ -33,9 +33,12 @@ async function replayOf(seed: object[]) {
 }
 
 test('78 concepts: Today keeps the daily cap of new concepts, holds the next one back, and a concept with no items does not break the plan', async () => {
-  const seed = [reading(CONCEPTS[0]!.id, ago(60_000)), reading(CONCEPTS[1]!.id, ago(60_000)), reading(CONCEPTS[2]!.id, ago(60_000))];
+  // A fixed clock, so the test does not depend on the time of day (the cap counts Amsterdam days).
+  const clock = new Date('2026-10-20T10:00:00Z');
+  const at = new Date(clock.getTime() - 60_000).toISOString();
+  const seed = [reading(CONCEPTS[0]!.id, at), reading(CONCEPTS[1]!.id, at), reading(CONCEPTS[2]!.id, at)];
   const state = await replayOf(seed);
-  const input = composerInput({ content: loaded, replay: state.current(), section: 'methodology', now: new Date(), examDate: null, sessionId: null, pairs: [], retest: null, openers: [] });
+  const input = composerInput({ content: loaded, replay: state.current(), section: 'methodology', now: clock, examDate: null, sessionId: null, pairs: [], retest: null, openers: [] });
   assert.equal(input.concepts.length, 78);
   assert.equal(input.newConceptsToday, DAILY_NEW_CAP);
   const plan = planToday(input);
@@ -43,7 +46,7 @@ test('78 concepts: Today keeps the daily cap of new concepts, holds the next one
   assert.ok(step, 'a new-concept step is there');
   assert.equal(step.concept_id, null, 'the cap holds the fourth new concept');
   assert.equal(step.held_back, CONCEPTS[3]!.id, 'the next concept in file order waits');
-  const fresh = planToday(composerInput({ content: loaded, replay: (await replayOf([])).current(), section: 'methodology', now: new Date(), examDate: null, sessionId: null, pairs: [], retest: null, openers: [] }));
+  const fresh = planToday(composerInput({ content: loaded, replay: (await replayOf([])).current(), section: 'methodology', now: clock, examDate: null, sessionId: null, pairs: [], retest: null, openers: [] }));
   const first = fresh.steps.find((s) => s.kind === 'new_concept') as { concept_id: string | null };
   assert.equal(first.concept_id, CONCEPTS[0]!.id, 'before any reading the first concept is offered');
 });

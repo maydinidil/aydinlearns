@@ -1,0 +1,211 @@
+{
+  "id": "EX-SQL-PAT-06-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "logo_retention",
+    "immature_cells",
+    "mrr",
+    "spine",
+    "long_table"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-logo-retention-long",
+  "template_params": {
+    "cohort_date": "created_at",
+    "activity": "MRR above 0 at month end",
+    "cohorts": "2025-07 to 2025-12",
+    "offsets": "0-3"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Build LedgerLoop's logo retention table for the accounts created from July to December 2025. An account's cohort month is the month of its created_at (Brussels local time). An account is active at a month's end when the sum of its subscription events' mrr_delta_local with event_date on or before that day is above 0. The month offset counts calendar months from the cohort month, from 0 to 3. The as-of date is 1 January 2026: for a month that ends after it, active_accounts and retention_rate show missing, while a month that has ended with no active account shows 0. Return five columns, in this order: cohort_month (the first day of the month), month_offset, cohort_accounts, active_accounts and retention_rate, active_accounts divided by cohort_accounts as a fraction between 0 and 1. Return one row for each cohort month that has accounts and each month offset from 0 to 3. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cohort_accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "active_accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "retention_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "cohort_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "active_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "retention_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month",
+      "month_offset"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give every cohort account a row for each offset from 0 to 3, with the first day of the month after that month.",
+    "Sum each account's events dated before that day to get its MRR at the month's end; count the accounts above 0, and leave the cell missing when the month ends after 1 January 2026."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 75,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 158,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 161,
+      "to": 174,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 177,
+      "to": 277,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 281,
+      "to": 351,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 354,
+      "to": 482,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 485,
+      "to": 542,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 546,
+      "to": 619,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 622,
+      "to": 740,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 743,
+      "to": 852,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 855,
+      "to": 922,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 925,
+      "to": 1272,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1273,
+      "to": 1281,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1282,
+      "to": 1329,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each cell sums the account's events up to that month's end, and the CASE keeps months after 1 January 2026 missing while an ended month with no paying account shows 0."
+}

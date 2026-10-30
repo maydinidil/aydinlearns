@@ -1,0 +1,211 @@
+{
+  "id": "EX-SQL-PAT-10-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "movements",
+    "spine",
+    "lag"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-WIN-04",
+    "SQL-PAT-04",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-account-month-movement",
+  "template_params": {
+    "table": "subscription_events",
+    "accounts": "1-14",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Customer Success reviews accounts 1 to 14 month by month. For each of them and each month end of 2025 (31 January to 31 December 2025), give the account's MRR at that month end in its own currency and its movement since the month end before. MRR comes from subscription_events: a subscription's MRR on a date is the sum of its mrr_delta_local with event_date on or before that date, in its subscriptions.currency. An account's MRR is the sum over its subscriptions, opening events included, and it is 0 at a month end with no subscription. Name the movement like this: from 0 to above 0 is 'reactivation' when the account had MRR above 0 at an earlier month end (from 31 January 2024 on) and 'new' when it did not; from above 0 to 0 is 'churn'; otherwise up is 'expansion', down is 'contraction' and no change is 'flat'. Return four columns, in this order: account_id, month_end, mrr_local and movement. Return one row for each of the 14 accounts and each month end of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "account_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month_end",
+        "type_class": "temporal"
+      },
+      {
+        "name": "mrr_local",
+        "type_class": "numeric"
+      },
+      {
+        "name": "movement",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per account from 1 to 14 and month end of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "account_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month_end",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_local",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "movement",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "account_id",
+      "month_end"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the CASE that names the movement from the MRR before and after, with reactivation tested before new.",
+    "From 0 to above 0 is new only for an account that never had MRR at an earlier month end; best_before tells you that."
+  ],
+  "subgoals": [
+    {
+      "from": 83,
+      "to": 197,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 257,
+      "to": 335,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 336,
+      "to": 353,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 354,
+      "to": 379,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 380,
+      "to": 476,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 477,
+      "to": 514,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 515,
+      "to": 551,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 608,
+      "to": 644,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 645,
+      "to": 720,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 721,
+      "to": 847,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 848,
+      "to": 866,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 869,
+      "to": 916,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 917,
+      "to": 1228,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1229,
+      "to": 1242,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1243,
+      "to": 1279,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 917,
+    "stage2": 917
+  },
+  "faded_shape": "WITH month_ends AS (\n  -- one row per month end from January 2024 to December 2025\n  SELECT CAST(range AS DATE) - 1 AS month_end\n  FROM range(DATE '2024-02-01', DATE '2026-02-01', INTERVAL 1 MONTH)\n), account_mrr AS (\n  -- one row per account and month end\n  SELECT a.account_id, m.month_end, COALESCE(SUM(e.mrr_delta_local), 0) AS mrr\n  FROM accounts a\n  CROSS JOIN month_ends m\n  LEFT JOIN subscription_events e ON e.account_id = a.account_id AND e.event_date <= m.month_end\n  WHERE a.account_id BETWEEN 1 AND 14\n  GROUP BY a.account_id, m.month_end\n), compared AS (\n  -- one row per account and month end\n  SELECT account_id, month_end, mrr,\n    LAG(mrr) OVER (PARTITION BY account_id ORDER BY month_end) AS prev_mrr,\n    MAX(mrr) OVER (PARTITION BY account_id ORDER BY month_end ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS best_before\n  FROM account_mrr\n)\nSELECT account_id, month_end, mrr AS mrr_local,\n",
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Every month end gets a row from the spine, and the reactivation test comes first, so a returning account is never booked as new.",
+  "faded_suffix": "\nFROM compared\nWHERE month_end >= DATE '2025-01-31'"
+}

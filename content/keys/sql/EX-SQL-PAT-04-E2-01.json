@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-01",
+  "item_version": 1,
+  "reference_sql": "WITH weeks AS (\n  -- one row per week, the weeks of 6 January to 31 March 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-01-06', DATE '2025-04-07', INTERVAL 7 DAY)\n), weekly AS (\n  -- one row per week with signups\n  SELECT CAST(date_trunc('week', signup_ts) AS DATE) AS week_start, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-06 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-04-07 00:00:00+00'\n  GROUP BY CAST(date_trunc('week', signup_ts) AS DATE)\n)\nSELECT w.week_start, COALESCE(s.signups, 0) AS signups\nFROM weeks w\nLEFT JOIN weekly s ON s.week_start = w.week_start",
+  "alternatives": [
+    "WITH weeks AS (\n  -- one row per week, the weeks of 6 January to 31 March 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-01-06', DATE '2025-04-07', INTERVAL 7 DAY)\n)\nSELECT w.week_start,\n  (SELECT COUNT(*) FROM signups s WHERE CAST(date_trunc('week', s.signup_ts) AS DATE) = w.week_start) AS signups\nFROM weeks w",
+    "WITH weeks AS (\n  -- one row per week, the weeks of 6 January to 31 March 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-01-06', DATE '2025-04-07', INTERVAL 7 DAY)\n)\nSELECT w.week_start, COUNT(s.user_id) AS signups\nFROM weeks w\nLEFT JOIN signups s ON CAST(date_trunc('week', s.signup_ts) AS DATE) = w.week_start\nGROUP BY w.week_start"
+  ],
+  "other_way": {
+    "sql": "WITH weeks AS (\n  -- one row per week, the weeks of 6 January to 31 March 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-01-06', DATE '2025-04-07', INTERVAL 7 DAY)\n)\nSELECT w.week_start,\n  (SELECT COUNT(*) FROM signups s WHERE CAST(date_trunc('week', s.signup_ts) AS DATE) = w.week_start) AS signups\nFROM weeks w",
+    "tradeoff": "A count subquery for each week gives 0 by itself, but it reads the signups once per week of the range."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH weeks AS (\n  -- one row per week, the weeks of 6 January to 31 March 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-01-06', DATE '2025-04-07', INTERVAL 7 DAY)\n), weekly AS (\n  -- one row per week with signups\n  SELECT CAST(date_trunc('week', signup_ts) AS DATE) AS week_start, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-06 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-04-07 00:00:00+00'\n  GROUP BY CAST(date_trunc('week', signup_ts) AS DATE)\n) SELECT week_start, signups FROM weekly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH days AS (SELECT CAST(range AS DATE) AS week_start FROM range(DATE '2025-01-06', DATE '2025-04-07', INTERVAL 1 DAY)), weekly AS (SELECT CAST(date_trunc('week', signup_ts) AS DATE) AS week_start, COUNT(*) AS signups FROM signups WHERE signup_ts >= TIMESTAMPTZ '2025-01-06 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-04-07 00:00:00+00' GROUP BY CAST(date_trunc('week', signup_ts) AS DATE)) SELECT d.week_start, COALESCE(s.signups, 0) AS signups FROM days d LEFT JOIN weekly s ON s.week_start = d.week_start"
+    }
+  ],
+  "hint3_partial": "WITH weeks AS (\n  -- one row per week, the weeks of 6 January to 31 March 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-01-06', DATE '2025-04-07', INTERVAL 7 DAY)\n), weekly AS (\n  -- one row per week with signups\n  SELECT CAST(date_trunc('week', signup_ts) AS DATE) AS week_start, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-06 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-04-07 00:00:00+00'\n  GROUP BY CAST(date_trunc('week', signup_ts) AS DATE)\n)\nSELECT w.week_start, COALESCE(s.signups, 0) AS signups\nFROM weeks w\nLEFT JOIN weekly s ON ___",
+  "solver": {
+    "prompt_hash": "b43ebab511955622",
+    "schema_version": "bbce96780a2f",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH weeks AS (\n  SELECT CAST(d AS DATE) AS week_start FROM generate_series(DATE '2025-01-06', DATE '2025-03-31', INTERVAL 7 DAY) t(d)\n), s AS (\n  SELECT CAST(date_trunc('week', signup_ts AT TIME ZONE 'UTC') AS DATE) AS week_start, COUNT(*) AS signups\n  FROM signups\n  WHERE (signup_ts AT TIME ZONE 'UTC') >= TIMESTAMP '2025-01-06 00:00:00'\n    AND (signup_ts AT TIME ZONE 'UTC') < TIMESTAMP '2025-04-07 00:00:00'\n  GROUP BY 1\n)\nSELECT w.week_start, COALESCE(s.signups, 0) AS signups\nFROM weeks w LEFT JOIN s ON s.week_start = w.week_start\n",
+    "at": "2026-10-28T14:57:04.990Z"
+  }
+}

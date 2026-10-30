@@ -1,0 +1,79 @@
+{
+  "id": "EX-SQL-PAT-06-E1-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_rows",
+    "cohort",
+    "spine"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-PAT-04",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-predict-rows-spine",
+  "template_params": {
+    "cohorts": "2025-10 to 2025-12",
+    "offsets": "0-3"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How many rows does this query return? LedgerLoop gained new accounts in every month of 2025.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "WITH cohort AS (  -- one row per account created from October to December 2025\n  SELECT account_id, CAST(date_trunc('month', created_at) AS DATE) AS cohort_month\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2025-10-01 00:00:00' AND created_at < TIMESTAMP '2026-01-01 00:00:00'\n),\nmonths AS (  -- one row per cohort month\n  SELECT DISTINCT cohort_month\n  FROM cohort\n)\nSELECT m.cohort_month, k.month_offset\nFROM months m\nCROSS JOIN range(0, 4) AS k(month_offset)",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

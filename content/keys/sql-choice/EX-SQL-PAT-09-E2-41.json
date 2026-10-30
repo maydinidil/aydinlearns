@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-09-E2-41",
+  "item_version": 1,
+  "correct_oid": "ob5950ef",
+  "explanation": "Each order line records the one promotion it carries, so joining on promo_id counts every sale once, and quantity gives the units. The date-range join counts a sale twice where two promotions overlap on its product; COUNT(*) counts lines, not units; and a range that stops before end_date drops the promotion's last day.",
+  "solver": {
+    "prompt_hash": "7ba3b195d18066fb",
+    "grader_version": "choice.3",
+    "chosen": "ob5950ef",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.808Z"
+  }
+}

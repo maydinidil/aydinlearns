@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-06-E2-41",
+  "item_version": 1,
+  "correct_oid": "of48ffac",
+  "explanation": "The right query dates each user by the signup month, moves both instants to the first day of their month so the offset counts calendar months, leaves refunded payments out and counts each user once. Days divided by 30 put a payment on 1 March after a signup on 31 January at offset 0 instead of 2; dating the cohort by the first payment builds other cohorts than the signup months; and the query with no refund filter counts users whose only payment that month was refunded.",
+  "solver": {
+    "prompt_hash": "8074f63a485268f9",
+    "grader_version": "choice.3",
+    "chosen": "of48ffac",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.780Z"
+  }
+}

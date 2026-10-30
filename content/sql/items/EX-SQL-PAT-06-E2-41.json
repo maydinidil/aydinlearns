@@ -1,0 +1,97 @@
+{
+  "id": "EX-SQL-PAT-06-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "cohort",
+    "month_offset",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-choose-long-counts",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "activity": "payment",
+    "cohorts": "2025-01 to 2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Which query returns, for the users who signed up from January to March 2025, the number of users of each signup month with a payment that was not refunded, in each month offset? The cohort month is the UTC month of signup_ts; the offset counts calendar months from it to the UTC month of paid_at, 0 for the signup month. One row per cohort month and offset with at least one paying user, in the columns cohort_month, month_offset and paying_users.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "of48ffac",
+      "text": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       date_diff('month', date_trunc('month', u.signup_ts), date_trunc('month', p.paid_at)) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS paying_users\nFROM signups u\nJOIN subscriptions s ON s.user_id = u.user_id\nJOIN payments p ON p.subscription_id = s.subscription_id\nWHERE NOT p.refunded\n  AND u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\nGROUP BY 1, 2",
+      "misconception_id": null
+    },
+    {
+      "oid": "o5b25574",
+      "text": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       date_diff('day', u.signup_ts, p.paid_at) // 30 AS month_offset,\n       COUNT(DISTINCT u.user_id) AS paying_users\nFROM signups u\nJOIN subscriptions s ON s.user_id = u.user_id\nJOIN payments p ON p.subscription_id = s.subscription_id\nWHERE NOT p.refunded\n  AND u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\nGROUP BY 1, 2",
+      "misconception_id": "ERR-LOG-46"
+    },
+    {
+      "oid": "o249fe39",
+      "text": "WITH first_pay AS (  -- one row per user who has paid\n  SELECT s.user_id, MIN(p.paid_at) AS first_paid_at\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n  GROUP BY s.user_id\n)\nSELECT CAST(date_trunc('month', f.first_paid_at) AS DATE) AS cohort_month,\n       date_diff('month', date_trunc('month', f.first_paid_at), date_trunc('month', p.paid_at)) AS month_offset,\n       COUNT(DISTINCT f.user_id) AS paying_users\nFROM first_pay f\nJOIN subscriptions s ON s.user_id = f.user_id\nJOIN payments p ON p.subscription_id = s.subscription_id\nWHERE NOT p.refunded\n  AND f.first_paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND f.first_paid_at < TIMESTAMPTZ '2025-04-01 00:00:00+00'\nGROUP BY 1, 2",
+      "misconception_id": "ERR-LOG-50"
+    },
+    {
+      "oid": "of2d2b6f",
+      "text": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       date_diff('month', date_trunc('month', u.signup_ts), date_trunc('month', p.paid_at)) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS paying_users\nFROM signups u\nJOIN subscriptions s ON s.user_id = u.user_id\nJOIN payments p ON p.subscription_id = s.subscription_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\nGROUP BY 1, 2",
+      "misconception_id": null
+    }
+  ]
+}

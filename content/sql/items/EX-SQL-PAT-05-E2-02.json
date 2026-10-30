@@ -1,0 +1,188 @@
+{
+  "id": "EX-SQL-PAT-05-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "orders",
+    "weekday"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-store-by-weekday",
+  "template_params": {
+    "table": "orders",
+    "columns": "weekday"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each Voltmarkt store (stores.store_code), how many orders did it take on each day of the week in 2025? order_ts holds UTC time: use the weekday of the UTC day. Return eight columns, in this order: store_code, mon, tue, wed, thu, fri, sat and sun. A weekday with no orders at a store shows 0. Return one row for each store with orders in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "mon",
+        "type_class": "numeric"
+      },
+      {
+        "name": "tue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "wed",
+        "type_class": "numeric"
+      },
+      {
+        "name": "thu",
+        "type_class": "numeric"
+      },
+      {
+        "name": "fri",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sat",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sun",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store with orders in 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "mon",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "tue",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "wed",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "thu",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "fri",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "sat",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "sun",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write seven counts, one for each ISO weekday number from Monday (1) to Sunday (7).",
+    "isodow gives 1 for Monday and 7 for Sunday; each column keeps only its weekday, and the grouping stays one row per store."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 20,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 21,
+      "to": 418,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 419,
+      "to": 432,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 433,
+      "to": 473,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 474,
+      "to": 576,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 577,
+      "to": 598,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 21,
+    "stage2": 21
+  },
+  "faded_shape": "SELECT s.store_code,\n",
+  "faded_suffix": "\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY s.store_code",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Seven filtered counts turn the weekday from rows into columns, one row per store, with 0 for a weekday the store had no orders."
+}

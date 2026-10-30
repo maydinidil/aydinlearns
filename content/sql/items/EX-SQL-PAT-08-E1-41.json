@@ -1,0 +1,171 @@
+{
+  "id": "EX-SQL-PAT-08-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "sessionisation",
+    "app_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-CASE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-predict-first-event",
+  "template_params": {
+    "table": "app_events"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "User 128's first three app events on 26 October 2025 are at 00:20:00, 00:28:18 and 00:37:17 UTC. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT event_id,\n  CASE WHEN event_ts - LAG(event_ts) OVER (ORDER BY event_ts) > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\nFROM app_events\nWHERE user_id = 128\n  AND event_ts >= TIMESTAMPTZ '2025-10-26 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2025-10-26 00:40:00+00'",
+  "options": [
+    {
+      "oid": "o59f0b36",
+      "text": "The first event shows 1, the others 0",
+      "misconception_id": "ERR-LOG-03",
+      "table": {
+        "columns": [
+          "event_id",
+          "new_session"
+        ],
+        "rows": [
+          [
+            42615,
+            1
+          ],
+          [
+            42616,
+            0
+          ],
+          [
+            42617,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "obea1c71",
+      "text": "Every event shows 0",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "event_id",
+          "new_session"
+        ],
+        "rows": [
+          [
+            42615,
+            0
+          ],
+          [
+            42616,
+            0
+          ],
+          [
+            42617,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ocd443f1",
+      "text": "The first event's flag is missing, the others 0",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "event_id",
+          "new_session"
+        ],
+        "rows": [
+          [
+            42615,
+            null
+          ],
+          [
+            42616,
+            0
+          ],
+          [
+            42617,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o9f1ada0",
+      "text": "Every event shows 1",
+      "misconception_id": "ERR-LOG-34",
+      "table": {
+        "columns": [
+          "event_id",
+          "new_session"
+        ],
+        "rows": [
+          [
+            42615,
+            1
+          ],
+          [
+            42616,
+            1
+          ],
+          [
+            42617,
+            1
+          ]
+        ]
+      }
+    }
+  ]
+}

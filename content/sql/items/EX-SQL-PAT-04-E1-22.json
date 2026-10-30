@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-PAT-04-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "zero_fill",
+    "ad_spend_daily",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-day-spine-channel",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "spine": "range"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each day from 3 to 9 March 2025, how much did Mailvora spend on nonbrand search (channel_name 'nonbrand_search'), across all its campaigns? Spend days are UTC days. Every day of the range has a row, and a day with no spend shows 0. Return two columns, in this order: day and spend_eur. Return one row for each day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, generate the seven days and attach the channel's daily spend.",
+    "A day with no spend has no row in ad_spend_daily, so keep every generated day and show 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 541,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 542,
+      "to": 593,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 594,
+      "to": 605,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 606,
+      "to": 640,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "range() gives all seven days, and the LEFT JOIN with COALESCE shows a day with no nonbrand spend as 0."
+}

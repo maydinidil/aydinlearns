@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-08-E1-42",
+  "item_version": 1,
+  "value": 335,
+  "explanation": "The query keeps every event that starts a session. Each user's first event that day has no LAG, so all 330 users start one; the 5 second events come more than an hour after the first, so each starts another. That is 335 sessions, one row each. Thinking one row per user (330) forgets that a long gap opens a second session.",
+  "solver": {
+    "prompt_hash": "482eb7290ffc8109",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "335",
+    "at": "2026-10-28T14:57:24.794Z"
+  }
+}

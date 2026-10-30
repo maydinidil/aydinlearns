@@ -1,0 +1,153 @@
+{
+  "id": "EX-SQL-PAT-02-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "row_number",
+    "tie_break",
+    "competitor_prices"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-latest-per-key",
+  "template_params": {
+    "table": "competitor_prices",
+    "key": "product",
+    "scope": "TV & Video"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "What is the latest competitor price check of each product in the TV & Video parent category? observed_ts holds UTC time. Keep exactly one check per product. When two checks of a product tie on observed_ts, the one whose competitor comes first alphabetically is kept. Return four columns, in this order: product_id, competitor, observed_ts and price_eur, from that check. Return one row for each TV & Video product with a competitor check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each product's competitor checks from the latest observed_ts down, then keep number 1.",
+    "One check per product even on a tie needs a numbering that splits tied rows, with the stated tie-break last."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 248,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 249,
+      "to": 379,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 380,
+      "to": 420,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 423,
+      "to": 476,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 477,
+      "to": 488,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 489,
+      "to": 501,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "ROW_NUMBER restarts for each product with the latest check first and the competitor's name settling a tie, so rn = 1 keeps one check per product."
+}

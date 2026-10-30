@@ -1,0 +1,54 @@
+{
+  "item_id": "EX-CASE-MAVEN-01",
+  "item_version": 1,
+  "reference_sql": "WITH sessions_2013 AS (\n  -- one row per session started in 2013: its month, its traffic source and the orders placed in it\n  SELECT s.website_session_id,\n         CAST(date_trunc('month', s.created_at) AS DATE) AS session_month,\n         s.utm_source,\n         COUNT(o.order_id) AS orders\n  FROM website_sessions AS s\n  LEFT JOIN orders AS o ON o.website_session_id = s.website_session_id\n  WHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n    AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\n  GROUP BY s.website_session_id, s.created_at, s.utm_source\n)\nSELECT session_month,\n       utm_source,\n       COUNT(*) AS sessions,\n       SUM(orders) AS orders,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE orders > 0) / COUNT(*), 2) AS conversion_pct\nFROM sessions_2013\nGROUP BY session_month, utm_source\nORDER BY session_month, utm_source",
+  "alternatives": [
+    "WITH session_orders AS (\n  -- one row per session that placed an order: how many orders it placed\n  SELECT website_session_id, COUNT(*) AS orders\n  FROM orders\n  GROUP BY website_session_id\n)\nSELECT CAST(date_trunc('month', s.created_at) AS DATE) AS session_month,\n       s.utm_source,\n       COUNT(*) AS sessions,\n       COALESCE(SUM(so.orders), 0) AS orders,\n       ROUND(100.0 * COUNT(so.website_session_id) / COUNT(*), 2) AS conversion_pct\nFROM website_sessions AS s\nLEFT JOIN session_orders AS so ON so.website_session_id = s.website_session_id\nWHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n  AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\nGROUP BY CAST(date_trunc('month', s.created_at) AS DATE), s.utm_source\nORDER BY session_month, utm_source",
+    "SELECT CAST(date_trunc('month', s.created_at) AS DATE) AS session_month,\n       s.utm_source,\n       COUNT(DISTINCT s.website_session_id) AS sessions,\n       COUNT(o.order_id) AS orders,\n       ROUND(100.0 * COUNT(DISTINCT o.website_session_id) / COUNT(DISTINCT s.website_session_id), 2) AS conversion_pct\nFROM website_sessions AS s\nLEFT JOIN orders AS o ON o.website_session_id = s.website_session_id\nWHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n  AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\nGROUP BY CAST(date_trunc('month', s.created_at) AS DATE), s.utm_source\nORDER BY session_month, utm_source"
+  ],
+  "other_way": {
+    "sql": "WITH session_orders AS (\n  -- one row per session that placed an order: how many orders it placed\n  SELECT website_session_id, COUNT(*) AS orders\n  FROM orders\n  GROUP BY website_session_id\n)\nSELECT CAST(date_trunc('month', s.created_at) AS DATE) AS session_month,\n       s.utm_source,\n       COUNT(*) AS sessions,\n       COALESCE(SUM(so.orders), 0) AS orders,\n       ROUND(100.0 * COUNT(so.website_session_id) / COUNT(*), 2) AS conversion_pct\nFROM website_sessions AS s\nLEFT JOIN session_orders AS so ON so.website_session_id = s.website_session_id\nWHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n  AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\nGROUP BY CAST(date_trunc('month', s.created_at) AS DATE), s.utm_source\nORDER BY session_month, utm_source",
+    "tradeoff": "Adding up the orders per session before the join keeps one row per session, so no count needs DISTINCT."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT CAST(date_trunc('month', s.created_at) AS DATE) AS session_month,\n       s.utm_source,\n       COUNT(DISTINCT s.website_session_id) AS sessions,\n       COUNT(o.order_id) AS orders,\n       ROUND(100.0 * COUNT(DISTINCT o.website_session_id) / COUNT(DISTINCT s.website_session_id), 2) AS conversion_pct\nFROM website_sessions AS s\nJOIN orders AS o ON o.website_session_id = s.website_session_id\nWHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n  AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\nGROUP BY CAST(date_trunc('month', s.created_at) AS DATE), s.utm_source\nORDER BY session_month, utm_source"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT CAST(date_trunc('month', s.created_at) AS DATE) AS session_month,\n       s.utm_source,\n       COUNT(DISTINCT s.website_session_id) AS sessions,\n       COUNT(o.order_id) AS orders,\n       ROUND(100.0 * COUNT(o.order_id) / COUNT(DISTINCT s.website_session_id), 2) AS conversion_pct\nFROM website_sessions AS s\nLEFT JOIN orders AS o ON o.website_session_id = s.website_session_id\nWHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n  AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\nGROUP BY CAST(date_trunc('month', s.created_at) AS DATE), s.utm_source\nORDER BY session_month, utm_source"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT CAST(date_trunc('month', s.created_at) AS DATE) AS session_month,\n       s.utm_source,\n       COUNT(*) AS sessions,\n       COUNT(o.order_id) AS orders,\n       ROUND(100.0 * COUNT(o.order_id) / COUNT(*), 2) AS conversion_pct\nFROM website_sessions AS s\nLEFT JOIN orders AS o ON o.website_session_id = s.website_session_id\nWHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n  AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\nGROUP BY CAST(date_trunc('month', s.created_at) AS DATE), s.utm_source\nORDER BY session_month, utm_source"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-12",
+      "sql": "WITH monthly_sessions AS (\n  SELECT CAST(date_trunc('month', created_at) AS DATE) AS session_month,\n         utm_source,\n         COUNT(*) AS sessions\n  FROM website_sessions\n  WHERE created_at >= TIMESTAMP '2013-01-01 00:00:00'\n    AND created_at < TIMESTAMP '2014-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', created_at) AS DATE), utm_source\n),\nmonthly_orders AS (\n  SELECT CAST(date_trunc('month', o.created_at) AS DATE) AS order_month,\n         s.utm_source,\n         COUNT(*) AS orders,\n         COUNT(DISTINCT o.website_session_id) AS ordering_sessions\n  FROM orders AS o\n  JOIN website_sessions AS s ON s.website_session_id = o.website_session_id\n  WHERE o.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n    AND o.created_at < TIMESTAMP '2014-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', o.created_at) AS DATE), s.utm_source\n)\nSELECT ms.session_month,\n       ms.utm_source,\n       ms.sessions,\n       COALESCE(mo.orders, 0) AS orders,\n       ROUND(100.0 * COALESCE(mo.ordering_sessions, 0) / ms.sessions, 2) AS conversion_pct\nFROM monthly_sessions AS ms\nLEFT JOIN monthly_orders AS mo\n  ON mo.order_month = ms.session_month\n AND mo.utm_source IS NOT DISTINCT FROM ms.utm_source\nORDER BY ms.session_month, ms.utm_source"
+    },
+    {
+      "id": "PW5",
+      "error_id": "ERR-LOG-03",
+      "sql": "WITH monthly_sessions AS (\n  SELECT CAST(date_trunc('month', created_at) AS DATE) AS session_month,\n         utm_source,\n         COUNT(*) AS sessions\n  FROM website_sessions\n  WHERE created_at >= TIMESTAMP '2013-01-01 00:00:00'\n    AND created_at < TIMESTAMP '2014-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', created_at) AS DATE), utm_source\n),\nmonthly_orders AS (\n  SELECT CAST(date_trunc('month', s.created_at) AS DATE) AS session_month,\n         s.utm_source,\n         COUNT(*) AS orders,\n         COUNT(DISTINCT o.website_session_id) AS ordering_sessions\n  FROM orders AS o\n  JOIN website_sessions AS s ON s.website_session_id = o.website_session_id\n  WHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n    AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', s.created_at) AS DATE), s.utm_source\n)\nSELECT ms.session_month,\n       ms.utm_source,\n       ms.sessions,\n       COALESCE(mo.orders, 0) AS orders,\n       ROUND(100.0 * COALESCE(mo.ordering_sessions, 0) / ms.sessions, 2) AS conversion_pct\nFROM monthly_sessions AS ms\nLEFT JOIN monthly_orders AS mo\n  ON mo.session_month = ms.session_month\n AND mo.utm_source = ms.utm_source\nORDER BY ms.session_month, ms.utm_source"
+    },
+    {
+      "id": "PW6",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT CAST(date_trunc('month', s.created_at) AS DATE) AS session_month,\n       s.utm_source,\n       COUNT(DISTINCT s.website_session_id) AS sessions,\n       COUNT(o.order_id) AS orders,\n       ROUND(1.0 * COUNT(DISTINCT o.website_session_id) / COUNT(DISTINCT s.website_session_id), 2) AS conversion_pct\nFROM website_sessions AS s\nLEFT JOIN orders AS o ON o.website_session_id = s.website_session_id\nWHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n  AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\nGROUP BY CAST(date_trunc('month', s.created_at) AS DATE), s.utm_source\nORDER BY session_month, utm_source"
+    }
+  ],
+  "hint3_partial": "WITH sessions_2013 AS (\n  -- one row per session started in 2013: its month, its traffic source and the orders placed in it\n  SELECT s.website_session_id,\n         CAST(date_trunc('month', s.created_at) AS DATE) AS session_month,\n         s.utm_source,\n         ___ AS orders\n  FROM website_sessions AS s\n  LEFT JOIN orders AS o ON o.website_session_id = s.website_session_id\n  WHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n    AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\n  GROUP BY s.website_session_id, s.created_at, s.utm_source\n)\nSELECT session_month,\n       utm_source,\n       COUNT(*) AS sessions,\n       SUM(orders) AS orders,\n       ROUND(100.0 * ___ / COUNT(*), 2) AS conversion_pct\nFROM sessions_2013\nGROUP BY session_month, utm_source\nORDER BY session_month, utm_source",
+  "solver": {
+    "prompt_hash": "75f54abc6763b4cb",
+    "schema_version": "aa3815bc44dc",
+    "dataset_version": "841cde984a23f7bd",
+    "grader_version": "8a.1",
+    "query": "WITH o AS (SELECT website_session_id, COUNT(*) AS n FROM orders GROUP BY website_session_id)\nSELECT CAST(DATE_TRUNC('month', s.created_at) AS DATE) AS session_month,\n       s.utm_source,\n       COUNT(*) AS sessions,\n       COALESCE(SUM(o.n), 0) AS orders,\n       ROUND(100.0 * COUNT(o.website_session_id) / COUNT(*), 2) AS conversion_pct\nFROM website_sessions s LEFT JOIN o ON o.website_session_id = s.website_session_id\nWHERE s.created_at >= TIMESTAMP '2013-01-01' AND s.created_at < TIMESTAMP '2014-01-01'\nGROUP BY 1, 2\nORDER BY session_month, utm_source\n",
+    "at": "2026-10-29T22:04:19.454Z"
+  }
+}

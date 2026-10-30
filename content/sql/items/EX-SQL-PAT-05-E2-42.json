@@ -1,0 +1,205 @@
+{
+  "id": "EX-SQL-PAT-05-E2-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "pivot",
+    "value_list",
+    "invoices"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-predict-value-list",
+  "template_params": {
+    "table": "invoices"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "In December 2025, LedgerLoop's Enterprise accounts had 104 paid invoices; Mid-Market had 271 paid and 1 open; SMB had 497 paid, 2 open and 1 uncollectible. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT a.segment,\n  COUNT(*) FILTER (WHERE i.status = 'paid') AS paid,\n  COUNT(*) FILTER (WHERE i.status = 'open') AS open,\n  COUNT(*) AS invoices\nFROM invoices i\nJOIN accounts a ON a.account_id = i.account_id\nWHERE i.invoice_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31'\nGROUP BY a.segment",
+  "options": [
+    {
+      "oid": "o3f75c33",
+      "text": "invoices adds up paid and open",
+      "misconception_id": "ERR-LOG-03",
+      "table": {
+        "columns": [
+          "segment",
+          "paid",
+          "open",
+          "invoices"
+        ],
+        "rows": [
+          [
+            "Enterprise",
+            104,
+            0,
+            104
+          ],
+          [
+            "Mid-Market",
+            271,
+            1,
+            272
+          ],
+          [
+            "SMB",
+            497,
+            2,
+            499
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o9e79efa",
+      "text": "invoices counts every invoice, the uncollectible one included",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "segment",
+          "paid",
+          "open",
+          "invoices"
+        ],
+        "rows": [
+          [
+            "Enterprise",
+            104,
+            0,
+            104
+          ],
+          [
+            "Mid-Market",
+            271,
+            1,
+            272
+          ],
+          [
+            "SMB",
+            497,
+            2,
+            500
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o8e46e9d",
+      "text": "Enterprise's open count is missing",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "segment",
+          "paid",
+          "open",
+          "invoices"
+        ],
+        "rows": [
+          [
+            "Enterprise",
+            104,
+            null,
+            104
+          ],
+          [
+            "Mid-Market",
+            271,
+            1,
+            272
+          ],
+          [
+            "SMB",
+            497,
+            2,
+            500
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oc593094",
+      "text": "The uncollectible invoice is counted as open",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "segment",
+          "paid",
+          "open",
+          "invoices"
+        ],
+        "rows": [
+          [
+            "Enterprise",
+            104,
+            0,
+            104
+          ],
+          [
+            "Mid-Market",
+            271,
+            1,
+            272
+          ],
+          [
+            "SMB",
+            497,
+            3,
+            500
+          ]
+        ]
+      }
+    }
+  ]
+}

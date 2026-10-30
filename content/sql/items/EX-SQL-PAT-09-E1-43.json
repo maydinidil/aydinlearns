@@ -1,0 +1,81 @@
+{
+  "id": "EX-SQL-PAT-09-E1-43",
+  "version": 1,
+  "kind": "which_table",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "which_table",
+    "promo",
+    "overlap"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-which-table",
+  "template_params": {},
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "A product sold on a day when two of its promotions overlapped. Which table tells you the one promotion that sale counted for?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o65e2f15",
+      "text": "promotion_products",
+      "misconception_id": "ERR-LOG-01"
+    },
+    {
+      "oid": "oc4eba5c",
+      "text": "promotions",
+      "misconception_id": null
+    },
+    {
+      "oid": "ofcc910c",
+      "text": "order_lines",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0709a58",
+      "text": "sales",
+      "misconception_id": null
+    }
+  ]
+}

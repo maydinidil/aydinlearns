@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-02",
+  "item_version": 1,
+  "reference_sql": "WITH months AS (\n  -- one row per month of 2024\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n), channels AS (\n  -- one row per order channel\n  SELECT DISTINCT channel\n  FROM orders\n), monthly AS (\n  -- one row per channel and month with orders\n  SELECT channel, CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2024-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY channel, CAST(date_trunc('month', order_ts) AS DATE)\n)\nSELECT c.channel, m.month, COALESCE(o.orders, 0) AS orders\nFROM channels c\nCROSS JOIN months m\nLEFT JOIN monthly o ON o.channel = c.channel AND o.month = m.month",
+  "alternatives": [
+    "WITH grid AS (\n  -- one row per channel and month of 2024\n  SELECT c.channel, m.month\n  FROM (\n    -- one row per order channel\n    SELECT DISTINCT channel FROM orders\n  ) AS c\n  CROSS JOIN (\n    -- one row per month of 2024\n    SELECT DISTINCT month_start AS month FROM calendar WHERE cal_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n  ) AS m\n)\nSELECT g.channel, g.month,\n  (SELECT COUNT(*) FROM orders o\n   WHERE o.channel = g.channel AND CAST(date_trunc('month', o.order_ts) AS DATE) = g.month) AS orders\nFROM grid g",
+    "WITH months AS (\n  -- one row per month of 2024\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n), channels AS (\n  -- one row per order channel\n  SELECT DISTINCT channel\n  FROM orders\n), monthly AS (\n  -- one row per channel and month with orders\n  SELECT channel, CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2024-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY channel, CAST(date_trunc('month', order_ts) AS DATE)\n)\nSELECT c.channel, m.month, COALESCE(o.orders, 0) AS orders\nFROM months m\nCROSS JOIN channels c\nLEFT JOIN monthly o ON o.month = m.month AND o.channel = c.channel"
+  ],
+  "other_way": {
+    "sql": "WITH grid AS (\n  -- one row per channel and month of 2024\n  SELECT c.channel, m.month\n  FROM (\n    -- one row per order channel\n    SELECT DISTINCT channel FROM orders\n  ) AS c\n  CROSS JOIN (\n    -- one row per month of 2024\n    SELECT DISTINCT month_start AS month FROM calendar WHERE cal_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n  ) AS m\n)\nSELECT g.channel, g.month,\n  (SELECT COUNT(*) FROM orders o\n   WHERE o.channel = g.channel AND CAST(date_trunc('month', o.order_ts) AS DATE) = g.month) AS orders\nFROM grid g",
+    "tradeoff": "A count subquery per cell of the grid needs no outer join, but it counts the orders again for every channel and month."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH months AS (\n  -- one row per month of 2024\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n), channels AS (\n  -- one row per order channel\n  SELECT DISTINCT channel\n  FROM orders\n), monthly AS (\n  -- one row per channel and month with orders\n  SELECT channel, CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2024-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY channel, CAST(date_trunc('month', order_ts) AS DATE)\n) SELECT channel, month, orders FROM monthly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH months AS (\n  -- one row per month of 2024\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n), channels AS (\n  -- one row per order channel\n  SELECT DISTINCT channel\n  FROM orders\n), monthly AS (\n  -- one row per channel and month with orders\n  SELECT channel, CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2024-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY channel, CAST(date_trunc('month', order_ts) AS DATE)\n) SELECT c.channel, m.month, o.orders FROM channels c CROSS JOIN months m LEFT JOIN monthly o ON o.channel = c.channel AND o.month = m.month"
+    }
+  ],
+  "hint3_partial": "WITH months AS (\n  -- one row per month of 2024\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n), channels AS (\n  -- one row per order channel\n  SELECT DISTINCT channel\n  FROM orders\n), monthly AS (\n  -- one row per channel and month with orders\n  SELECT channel, CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2024-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY channel, CAST(date_trunc('month', order_ts) AS DATE)\n)\nSELECT c.channel, m.month, COALESCE(o.orders, 0) AS orders\nFROM channels c\n___ months m\nLEFT JOIN monthly o ON o.channel = c.channel AND o.month = m.month",
+  "solver": {
+    "prompt_hash": "ce0e9b2a4088544a",
+    "schema_version": "31dd60526704",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH months AS (\n  SELECT CAST(d AS DATE) AS month FROM generate_series(DATE '2024-01-01', DATE '2024-12-01', INTERVAL 1 MONTH) t(d)\n), chans AS (\n  SELECT 'store' AS channel UNION ALL SELECT 'web'\n), o AS (\n  SELECT channel, CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2024-01-01 00:00:00' AND order_ts < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY 1, 2\n)\nSELECT c.channel, m.month, COALESCE(o.orders, 0) AS orders\nFROM chans c CROSS JOIN months m\nLEFT JOIN o ON o.channel = c.channel AND o.month = m.month\n",
+    "at": "2026-10-28T14:57:05.032Z"
+  }
+}

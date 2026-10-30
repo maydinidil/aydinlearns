@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-PAT-04-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "grid",
+    "cross_join",
+    "orders"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-month-grid",
+  "template_params": {
+    "table": "orders",
+    "spine": "calendar x channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each order channel (store and web) and each month of 2024, how many orders did Voltmarkt take? order_ts holds UTC time: take the month in UTC. Every channel has a row for every month of 2024, and a month with no orders in a channel shows 0. Return three columns, in this order: channel, month (the first day of the month) and orders. Return one row for each channel and month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel and month of 2024"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build every channel and month pair, then attach the monthly counts to it.",
+    "Pair each channel with each month first; then a pair with no orders still has a row, and its missing count becomes 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 592,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 593,
+      "to": 651,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 652,
+      "to": 667,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 668,
+      "to": 687,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 688,
+      "to": 754,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 593,
+    "stage2": 272
+  },
+  "faded_shape": "WITH months AS (\n  -- one row per month of 2024\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n), channels AS (\n  -- one row per order channel\n  SELECT DISTINCT channel\n  FROM orders\n), monthly AS (\n  -- one row per channel and month with orders\n  SELECT channel, CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2024-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY channel, CAST(date_trunc('month', order_ts) AS DATE)\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "CROSS JOIN pairs every channel with every month, so the grid has all 24 cells; the LEFT JOIN fills them, with 0 where nothing was ordered."
+}

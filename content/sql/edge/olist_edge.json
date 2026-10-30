@@ -1,0 +1,58 @@
+{
+  "schema": "olist_edge",
+  "mirrors": "olist",
+  "family": "real",
+  "contains": [
+    "a customer whose first order is in March 2017 and who orders again in July 2017 and February 2018, each order under its own customer_id and all three under one customer_unique_id",
+    "a customer whose only order is in March 2017",
+    "an order at 23:50 on 31 January 2017, delivered after its estimated delivery date",
+    "an order shipped in May 2017 that was never delivered: its delivery date is missing",
+    "a customer whose first order, in April 2017, was canceled, with no approval, carrier or delivery date, and whose second, in June 2017, was delivered",
+    "a customer with two delivered orders on the same day, 12 September 2017, and none on a later day",
+    "a customer who first orders in November 2017 and comes back on 15 September 2018",
+    "a customer whose first order is in December 2016 and who orders again in February 2017",
+    "an order paid in two payments, a voucher and a credit card",
+    "an order with two items of the same product",
+    "a product with a missing category, name length, description length and photo count, sold in September 2017",
+    "a product whose category has no English name in the translation table, with freight above 30% of its price",
+    "a review ID used on two orders, and reviews with a missing title or comment"
+  ],
+  "tables": {
+    "customers": [
+      "a customer whose first order is in March 2017 and who orders again in July 2017 and February 2018, each order under its own customer_id and all three under one customer_unique_id",
+      "a customer whose only order is in March 2017",
+      "a customer whose first order, in April 2017, was canceled, with no approval, carrier or delivery date, and whose second, in June 2017, was delivered",
+      "a customer with two delivered orders on the same day, 12 September 2017, and none on a later day",
+      "a customer who first orders in November 2017 and comes back on 15 September 2018",
+      "a customer whose first order is in December 2016 and who orders again in February 2017"
+    ],
+    "orders": [
+      "a customer whose first order is in March 2017 and who orders again in July 2017 and February 2018, each order under its own customer_id and all three under one customer_unique_id",
+      "a customer whose only order is in March 2017",
+      "an order at 23:50 on 31 January 2017, delivered after its estimated delivery date",
+      "an order shipped in May 2017 that was never delivered: its delivery date is missing",
+      "a customer whose first order, in April 2017, was canceled, with no approval, carrier or delivery date, and whose second, in June 2017, was delivered",
+      "a customer with two delivered orders on the same day, 12 September 2017, and none on a later day",
+      "a customer who first orders in November 2017 and comes back on 15 September 2018",
+      "a customer whose first order is in December 2016 and who orders again in February 2017"
+    ],
+    "order_payments": [
+      "an order paid in two payments, a voucher and a credit card"
+    ],
+    "order_items": [
+      "an order with two items of the same product",
+      "a product with a missing category, name length, description length and photo count, sold in September 2017",
+      "a product whose category has no English name in the translation table, with freight above 30% of its price"
+    ],
+    "products": [
+      "a product with a missing category, name length, description length and photo count, sold in September 2017",
+      "a product whose category has no English name in the translation table, with freight above 30% of its price"
+    ],
+    "product_category_name_translation": [
+      "a product whose category has no English name in the translation table, with freight above 30% of its price"
+    ],
+    "order_reviews": [
+      "a review ID used on two orders, and reviews with a missing title or comment"
+    ]
+  }
+}

@@ -1,0 +1,197 @@
+{
+  "id": "EX-SQL-PAT-09-E1-21",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-promo-vs-same-length",
+  "template_params": {
+    "table": "order_lines",
+    "baseline": "same_length",
+    "month": "2024-10"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each promotion that started in October 2024 (start_date from 1 to 31 October 2024), give the units sold on promotion and the units of its products in the baseline. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A promotion with no sale in a period still shows, with 0 for it. Return three columns, in this order: promo_id, promo_units and baseline_units. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up both periods per promotion and keep every promotion, sales or not.",
+    "Start from the promotions and LEFT JOIN both totals, then turn a missing total into 0."
+  ],
+  "subgoals": [
+    {
+      "from": 72,
+      "to": 136,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 137,
+      "to": 154,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 155,
+      "to": 221,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 293,
+      "to": 339,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 340,
+      "to": 354,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 355,
+      "to": 404,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 405,
+      "to": 426,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 492,
+      "to": 534,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 535,
+      "to": 549,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 550,
+      "to": 606,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 607,
+      "to": 653,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 654,
+      "to": 710,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 711,
+      "to": 732,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 735,
+      "to": 829,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 830,
+      "to": 842,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 843,
+      "to": 888,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 889,
+      "to": 936,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Starting from the promotions and joining both totals with LEFT JOIN keeps a promotion that sold nothing, shown as 0."
+}

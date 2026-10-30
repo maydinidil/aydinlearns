@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-03-E1-41",
+  "item_version": 1,
+  "correct_oid": "o389c0ea",
+  "explanation": "The LEFT JOIN keeps every 2025 month and looks for the row whose month is exactly a year earlier. NL-13 had no orders in July or August 2024, so no row matches and revenue_prev_year_eur is missing there, not 0; September and October 2024 exist, so they match. An inner join would drop July and August, and the month before is what LAG gives, not this join.",
+  "solver": {
+    "prompt_hash": "6f79af991a2206ad",
+    "grader_version": "choice.3",
+    "chosen": "o389c0ea",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.755Z"
+  }
+}

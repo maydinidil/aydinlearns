@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-PAT-05-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "sessions"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-country-by-device",
+  "template_params": {
+    "table": "sessions",
+    "columns": "device"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each country in Mailvora's sessions (sessions.country_code), how many website sessions in 2025 came from each device? session_start holds UTC time, and 2025 runs from 1 January to 31 December in UTC. Return four columns, in this order: country_code, desktop_sessions, mobile_sessions and tablet_sessions (device 'desktop', 'mobile' and 'tablet'). A device with no sessions in a country shows 0. Return one row for each country with sessions in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "desktop_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "mobile_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "tablet_sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country with sessions in 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "desktop_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "mobile_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "tablet_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the 2025 sessions by country and give each device its own counted column.",
+    "A count that keeps only one device per column turns the device values into columns; a device with no sessions must show 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 20,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 21,
+      "to": 213,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 214,
+      "to": 227,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 228,
+      "to": 346,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 347,
+      "to": 368,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Grouping by country and counting each device in its own filtered count turns the long rows into one wide row per country."
+}

@@ -1,0 +1,88 @@
+{
+  "case_id": "CASE-DAILY-L6-01",
+  "kind": "daily",
+  "level": 6,
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "Each store's 2025 revenue by quarter",
+  "persona": {
+    "name": "Yara",
+    "role": "Retail operations"
+  },
+  "brief": {
+    "decision": "How many staff hours each store gets in each quarter of 2026",
+    "deadline": "The 2026 staffing plan, due in the first week of January 2026"
+  },
+  "data_needed": [
+    "order_lines",
+    "orders",
+    "stores"
+  ],
+  "expected_output": {
+    "columns": [
+      "store_code",
+      "q1_revenue_eur",
+      "q2_revenue_eur",
+      "q3_revenue_eur",
+      "q4_revenue_eur"
+    ],
+    "grain": "one row per store with an order in 2025, the webshop included, with one column per quarter",
+    "sort": [
+      {
+        "column": "store_code",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Yara's question.",
+      "credits_concepts": [
+        "SQL-PAT-05",
+        "SQL-AGG-02"
+      ],
+      "item_id": "EX-CASE-DAILY-L6-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Yara's headline: take the lines of every store's orders, the webshop's included, with an order_ts from 2025-01-01 00:00:00 up to but not including 2026-01-01 00:00:00 (order_ts holds UTC time). A line's net revenue is quantity times unit_price_eur minus line_discount_eur. What percentage of that net revenue came from the orders with an order_ts from 2025-10-01 00:00:00 up to but not including 2026-01-01 00:00:00? Type the percentage rounded to 1 decimal, for example 12.3.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L6-01:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-DAILY-L6-01:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: a store's net revenue in a quarter, the sum of quantity times unit_price_eur minus line_discount_eur over its lines whose order_ts falls in that UTC quarter of 2025, with 0 when there are none.\nOutput grain: one row per store with an order in 2025, the webshop included.\nTables and keys: order_lines joined to orders on order_id and to stores on store_id; one conditional sum per quarter, grouped by store.\nFilters: order_ts from 2025-01-01 up to but not including 2026-01-01, in UTC.\nEdge cases: a store that sold nothing in a quarter shows 0, not missing; a store that closed or opened during 2025 still has one row; a store with no order in 2025 has no row.\nExpected row count: 26",
+  "model_answer_template": "In 2025, {CP4} percent of all net revenue came in the fourth quarter, the biggest quarter for most stores and above all for the webshop, so the holiday weeks need the most staff hours. NL-06 shows 0 after June because it closed, and BE-09 sold only from its opening in March, so their quarters say nothing about demand. Revenue is not footfall, and a quarter can hide one busy month inside it. Next, split the fourth quarter by month and by weekday for the physical stores before setting the 2026 staff hours.",
+  "follow_up_question": "How did each store's fourth quarter of 2025 compare with its fourth quarter of 2024?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-PAT-05"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

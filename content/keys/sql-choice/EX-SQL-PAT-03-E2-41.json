@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-03-E2-41",
+  "item_version": 2,
+  "correct_oid": "odc4fcc4",
+  "explanation": "The LEFT JOIN on the month minus one year finds the same month of 2024 by its date and keeps every 2025 month, with a missing value where 2024 had no orders. LAG 12 counts twelve rows back, which is a year only when no month is missing: one gap in 2024 shifts every later comparison. The inner join drops the months it cannot match, and LAG with no offset gives the month before, not the year before.",
+  "solver": {
+    "prompt_hash": "e6d13b174cc11843",
+    "grader_version": "choice.3",
+    "chosen": "odc4fcc4",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.759Z"
+  }
+}

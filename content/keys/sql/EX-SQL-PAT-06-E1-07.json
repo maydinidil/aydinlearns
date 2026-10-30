@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-06-E1-07",
+  "item_version": 1,
+  "reference_sql": "WITH active AS (  -- one row per September 2025 user and month with an activation event\n  SELECT DISTINCT u.user_id,\n         date_diff('month', DATE '2025-09-01', CAST(date_trunc('month', e.event_ts) AS DATE)) AS month_offset\n  FROM signups u\n  JOIN activation_events e ON e.user_id = u.user_id\n  WHERE u.signup_ts >= TIMESTAMPTZ '2025-09-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n)\nSELECT k.month_offset, COUNT(a.user_id) AS active_users\nFROM range(0, 4) AS k(month_offset)\nLEFT JOIN active a ON a.month_offset = k.month_offset\nGROUP BY k.month_offset",
+  "alternatives": [
+    "WITH active AS (  -- one row per September 2025 user and activation event\n  SELECT u.user_id, date_diff('month', u.signup_ts, e.event_ts) AS month_offset\n  FROM signups u\n  JOIN activation_events e ON e.user_id = u.user_id\n  WHERE date_trunc('month', u.signup_ts) = TIMESTAMPTZ '2025-09-01 00:00:00+00'\n)\nSELECT g.month_offset, COUNT(DISTINCT a.user_id) AS active_users\nFROM generate_series(0, 3) AS g(month_offset)\nLEFT JOIN active a ON a.month_offset = g.month_offset\nGROUP BY g.month_offset",
+    "SELECT g.month_offset,\n       (SELECT COUNT(DISTINCT u.user_id)\n        FROM signups u\n        JOIN activation_events e ON e.user_id = u.user_id\n        WHERE u.signup_ts >= TIMESTAMPTZ '2025-09-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n          AND date_diff('month', DATE '2025-09-01', CAST(e.event_ts AS DATE)) = g.month_offset) AS active_users\nFROM generate_series(0, 3) AS g(month_offset)"
+  ],
+  "other_way": {
+    "sql": "SELECT g.month_offset,\n       (SELECT COUNT(DISTINCT u.user_id)\n        FROM signups u\n        JOIN activation_events e ON e.user_id = u.user_id\n        WHERE u.signup_ts >= TIMESTAMPTZ '2025-09-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n          AND date_diff('month', DATE '2025-09-01', CAST(e.event_ts AS DATE)) = g.month_offset) AS active_users\nFROM generate_series(0, 3) AS g(month_offset)",
+    "tradeoff": "A subquery per offset reads one cell at a time and needs no zero fill, but it runs the join once for every offset."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH active AS (  -- one row per September 2025 user and month with an activation event\n  SELECT u.user_id,\n         date_diff('month', DATE '2025-09-01', CAST(date_trunc('month', e.event_ts) AS DATE)) AS month_offset\n  FROM signups u\n  JOIN activation_events e ON e.user_id = u.user_id\n  WHERE u.signup_ts >= TIMESTAMPTZ '2025-09-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n)\nSELECT k.month_offset, COUNT(a.user_id) AS active_users\nFROM range(0, 4) AS k(month_offset)\nLEFT JOIN active a ON a.month_offset = k.month_offset\nGROUP BY k.month_offset"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-46",
+      "sql": "WITH active AS (  -- one row per September 2025 user and month with an activation event\n  SELECT DISTINCT u.user_id,\n         date_diff('day', u.signup_ts, e.event_ts) // 30 AS month_offset\n  FROM signups u\n  JOIN activation_events e ON e.user_id = u.user_id\n  WHERE u.signup_ts >= TIMESTAMPTZ '2025-09-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n)\nSELECT k.month_offset, COUNT(a.user_id) AS active_users\nFROM range(0, 4) AS k(month_offset)\nLEFT JOIN active a ON a.month_offset = k.month_offset\nGROUP BY k.month_offset"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-46",
+      "sql": "WITH active AS (  -- one row per September 2025 user and month with an activation event\n  SELECT DISTINCT u.user_id,\n         CAST(date_diff('day', u.signup_ts, e.event_ts) / 30 AS INTEGER) AS month_offset\n  FROM signups u\n  JOIN activation_events e ON e.user_id = u.user_id\n  WHERE u.signup_ts >= TIMESTAMPTZ '2025-09-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n)\nSELECT k.month_offset, COUNT(a.user_id) AS active_users\nFROM range(0, 4) AS k(month_offset)\nLEFT JOIN active a ON a.month_offset = k.month_offset\nGROUP BY k.month_offset"
+    }
+  ],
+  "hint3_partial": "WITH active AS (  -- one row per September 2025 user and month with an activation event\n  SELECT DISTINCT u.user_id,\n         date_diff('month', DATE '2025-09-01', ___) AS month_offset\n  FROM signups u\n  JOIN activation_events e ON e.user_id = u.user_id\n  WHERE u.signup_ts >= TIMESTAMPTZ '2025-09-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n)\nSELECT k.month_offset, COUNT(a.user_id) AS active_users\nFROM range(0, 4) AS k(month_offset)\n___ active a ON a.month_offset = k.month_offset\nGROUP BY k.month_offset",
+  "solver": {
+    "prompt_hash": "202506550b898563",
+    "schema_version": "40925758ae44",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH c AS (\n  SELECT user_id FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-09-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n),\na AS (\n  SELECT DISTINCT e.user_id,\n         date_diff('month', DATE '2025-09-01', CAST(date_trunc('month', timezone('UTC', e.event_ts)) AS DATE)) AS mo\n  FROM activation_events e JOIN c ON c.user_id = e.user_id\n)\nSELECT k.month_offset, COUNT(a.user_id) AS active_users\nFROM range(0, 4) AS k(month_offset)\nLEFT JOIN a ON a.mo = k.month_offset\nGROUP BY k.month_offset\n",
+    "at": "2026-10-28T14:57:06.943Z"
+  }
+}

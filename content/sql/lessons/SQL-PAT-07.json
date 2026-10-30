@@ -1,0 +1,140 @@
+{
+  "concept_id": "SQL-PAT-07",
+  "version": 2,
+  "reading_md": "## Funnel conversion\n\nA funnel is a row of steps a user takes one after another: signed up, activated, paid. A funnel query counts the users at each step and the share who move on to the next one.\n\n### Count users, not events\n\nAn event table has a row per event, and a busy user has many. Turn the events into one row per user first, with a 1 or 0 for each step, and count from there:\n\n```sql\nMAX(CASE WHEN event_name = 'upload_statement' THEN 1 ELSE 0 END) AS did_upload\n```\n\nOr count distinct users per step: `COUNT(DISTINCT CASE WHEN event_name = 'export_report' THEN user_id END)`. A plain `COUNT(*)` counts events, and a user with three exports counts three times.\n\n### A step needs the step before\n\nReal data does not follow the funnel. A user can pay without ever being activated, or export a report without uploading a statement. Unless the question says otherwise, a user counts at a step only when the user also reached every step before it. With 1 or 0 flags, multiply them: `SUM(did_upload * did_match)`.\n\n### When order counts\n\nSome questions say the steps must happen in order, or within a number of days. Then keep each step's first moment and compare the moments: the first payment at or after the activation, an export at most 7 days after the match. In an ordered funnel, a user whose first payment came before the activation does not count as paid, even if a later payment came after it. Compare the instants with an interval, such as `a.activated_at <= u.signup_ts + INTERVAL 7 DAY`.\n\nKeep the top of the funnel whole: start from every user who entered and LEFT JOIN the later steps, so a user who stopped early still counts at the top.\n\n### Two kinds of rate\n\nA step rate divides a step by the step right before it: 20 payers out of 80 activated users is 0.25. An overall rate divides a step by the top of the funnel: the same 20 payers out of 200 signups is 0.1. Both are real numbers; the question says which one it wants.\n\nWhen a base can be 0, divide by `NULLIF(base, 0)` so the rate shows missing. In DuckDB, `1.0 * 0 / 0` gives NaN, not missing.",
+  "syntax_md": "```sql\nWITH user_steps AS (  -- one row per user: a 1 or 0 for each step\n  SELECT user_id, MAX(CASE WHEN event_name = 'upload_statement' THEN 1 ELSE 0 END) AS did_upload, ...\n  FROM app_events GROUP BY user_id)\nSELECT SUM(did_upload) AS uploaded,                       -- users at the first step\n       SUM(did_upload * did_match) AS matched,            -- a step needs the step before\n       1.0 * SUM(did_upload * did_match) / NULLIF(SUM(did_upload), 0) AS match_rate  -- step rate\nFROM user_steps\n```\n\n- Ordered funnel: keep each step's first moment and compare, `p.first_paid_at >= a.activated_at`.\n- Step rate over the step before; overall rate over the top of the funnel.",
+  "dialect_note": "In DuckDB, 1.0 * 0 / 0 gives NaN and 1.0 * 1 / 0 gives infinity (checked on DuckDB 1.5.6), so a rate whose base can be 0 needs NULLIF(base, 0) to show missing. With whole numbers on both sides, PostgreSQL and SQLite divide 7 / 2 to 3, while DuckDB's / gives 3.5, so a rate written as 1.0 * x / y keeps its decimals on every engine.",
+  "worked_examples": [
+    {
+      "title": "Users at each step, the step before required",
+      "prompt": "How many users opened a reconciliation in the app, and how many of them also matched a transaction, in any order? Use all app events.",
+      "clauses": [
+        {
+          "text": "WITH user_steps AS (  -- one row per user with app events, 1 or 0 for each step",
+          "subgoal": "source_grain",
+          "why": "The step turns many events into one row per user, so every count after it counts users."
+        },
+        {
+          "text": "SELECT user_id, MAX(CASE WHEN event_name = 'open_reconciliation' THEN 1 ELSE 0 END) AS did_open, MAX(CASE WHEN event_name = 'match_transaction' THEN 1 ELSE 0 END) AS did_match",
+          "subgoal": "metrics",
+          "why": "MAX of a 1 or 0 flag says whether the user did the step at least once, however many events there were."
+        },
+        {
+          "text": "FROM app_events",
+          "subgoal": "source_grain",
+          "why": "One row per event."
+        },
+        {
+          "text": "GROUP BY user_id)",
+          "subgoal": "output_grain",
+          "why": "One row per user."
+        },
+        {
+          "text": "SELECT SUM(did_open) AS opened, SUM(did_open * did_match) AS matched",
+          "subgoal": "metrics",
+          "why": "Multiplying the flags requires the step before: a user who matched without opening adds 0."
+        },
+        {
+          "text": "FROM user_steps",
+          "subgoal": "source_grain",
+          "why": "The outer query reads one row per user."
+        }
+      ]
+    },
+    {
+      "title": "An ordered step and its step rate",
+      "prompt": "Of the users who signed up in December 2025, how many were activated, how many first paid at or after their activation, and what share of the activated users paid?",
+      "clauses": [
+        {
+          "text": "WITH act AS (  -- one row per activated user, with the moment of activation",
+          "subgoal": "source_grain",
+          "why": "Each user's first activation, once."
+        },
+        {
+          "text": "SELECT user_id, MIN(event_ts) AS activated_at FROM activation_events WHERE event_name = 'first_campaign_sent' GROUP BY user_id),",
+          "subgoal": "metrics",
+          "why": "MIN keeps the first moment, the one the order is checked against."
+        },
+        {
+          "text": "pay AS (  -- one row per user who has paid, with the first payment",
+          "subgoal": "source_grain",
+          "why": "Each paying user once, with the first payment."
+        },
+        {
+          "text": "SELECT s.user_id, MIN(p.paid_at) AS first_paid_at FROM subscriptions s JOIN payments p ON p.subscription_id = s.subscription_id GROUP BY s.user_id)",
+          "subgoal": "metrics",
+          "why": "The first payment of the user, over all the user's subscriptions."
+        },
+        {
+          "text": "SELECT COUNT(a.user_id) AS activated, COUNT(CASE WHEN p.first_paid_at >= a.activated_at THEN 1 END) AS paid, 1.0 * COUNT(CASE WHEN p.first_paid_at >= a.activated_at THEN 1 END) / NULLIF(COUNT(a.user_id), 0) AS paid_step_rate",
+          "subgoal": "metrics",
+          "why": "The paid step needs its first payment at or after the activation, and the step rate divides by the step right before it."
+        },
+        {
+          "text": "FROM signups u LEFT JOIN act a ON a.user_id = u.user_id LEFT JOIN pay p ON p.user_id = u.user_id",
+          "subgoal": "source_grain",
+          "why": "LEFT JOINs keep every user who signed up, the top of the funnel."
+        },
+        {
+          "text": "WHERE u.signup_ts >= TIMESTAMPTZ '2025-12-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'",
+          "subgoal": "row_filter",
+          "why": "The users who entered the funnel in December 2025, in UTC."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-PAT-07-E1-01",
+    "EX-SQL-PAT-07-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-PAT-07-E1-03",
+    "EX-SQL-PAT-07-E1-04",
+    "EX-SQL-PAT-07-E2-01",
+    "EX-SQL-PAT-07-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-PAT-07-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-PAT-07-E1-06",
+    "EX-SQL-PAT-07-E1-07",
+    "EX-SQL-PAT-07-E2-03",
+    "EX-SQL-PAT-07-E2-04",
+    "EX-SQL-PAT-07-E2-05",
+    "EX-SQL-PAT-07-E2-06",
+    "EX-SQL-PAT-07-E3-01",
+    "EX-SQL-PAT-07-E3-02",
+    "EX-SQL-PAT-07-E1-31",
+    "EX-SQL-PAT-07-E2-31",
+    "EX-SQL-PAT-07-E2-32",
+    "EX-SQL-PAT-07-E1-42",
+    "EX-SQL-PAT-07-E2-41",
+    "EX-SQL-PAT-07-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "why_clause": {
+    "clause": "SELECT SUM(did_open) AS opened, SUM(did_open * did_match) AS matched",
+    "stem": "Why does the matched count multiply the two flags?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So a user counts as matched only when the user also opened a reconciliation: a 0 in either flag gives 0."
+      },
+      {
+        "id": "b",
+        "text": "So each match event is counted once."
+      },
+      {
+        "id": "c",
+        "text": "Because SUM cannot add up one flag on its own."
+      },
+      {
+        "id": "d",
+        "text": "To turn the count into a conversion rate."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "The product of two 1 or 0 flags is 1 only when both are 1, so the sum counts the users who did both steps, which is what a funnel step needs. The step before already reduced the events to one row per user, SUM adds a single flag just fine, and a rate would need a division."
+  }
+}

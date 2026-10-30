@@ -155,14 +155,19 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
    * CASE-...:CPn prefix of a checkpoint answer; else its form's case. So a form whose case changes after the run (or before a take-home's
    * rebuild) never shows the run another case's checkpoints. Only a run whose records name no case falls back to its form's; one that names a case the content no longer holds gets nothing (S7D-03).
    */
-  const caseOfRun = (block: string, mock: MockCaseKind, formId: string): MockCaseRecord | undefined => {
+  /** The case the run's own records name (the first record that does), or null when they name none (S7D-03). */
+  const namedCase = (block: string): string | null => {
     for (const r of records()) {
       if (r.block_id !== block) continue;
       const own = r.record === 'self_check' ? str(r.case_id) : r.record === 'attempt' ? /^(CASE-[^:]+):CP[1-6]$/.exec(str(r.item_id) ?? '')?.[1] ?? null : null;
-      // S7D-03 (X3-M2): the first record that names a case decides: a case the content no longer holds is nothing, never the form's other case.
-      if (own !== null) return d.content.mockCase?.(own);
+      if (own !== null) return own;
     }
-    return caseOfForm(mock, formId);
+    return null;
+  };
+  const caseOfRun = (block: string, mock: MockCaseKind, formId: string): MockCaseRecord | undefined => {
+    // S7D-03 (X3-M2): the first record that names a case decides: a case the content no longer holds is nothing, never the form's other case.
+    const own = namedCase(block);
+    return own !== null ? d.content.mockCase?.(own) : caseOfForm(mock, formId);
   };
   /** The mock_open of a case mock's run, from the log (a run this process may not hold: it ended, or a restart came between). */
   const openOf = (block: string): Rec | undefined => records().find((r) => r.record === 'mock_open' && r.block_id === block && isMockCaseKind(r.mock));
@@ -293,6 +298,16 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
     for (const t of openTakeHomes(records())) {
       if (runs.get(t.block_id)) continue;
       const record = caseOfRun(t.block_id, 'take_home', t.form_id);
+      if (!record && namedCase(t.block_id) !== null) {
+        // S8-19 (Y1-R2): a take-home whose case left the content closes at this start, with the block_close a 24-hour close writes (no new field):
+        // it would otherwise rebuild with no servings and no case view, and hold the tutor and every timed run until 24 hours.
+        const items = new Map([...t.attempted, ...t.answered]);
+        const orphan = runs.start({ block_id: t.block_id, plan: { kind: 'mock', mock: 'take_home', form_id: t.form_id, minutes: t.minutes ?? file.take_home.minutes, on_unseen: t.on_unseen, started_at: t.started_at },
+          started_at: t.started_at, ends_at: t.started_at + Math.round(file.take_home.close_after_hours * HOUR_MS),
+          servings: [...items].map(([item_id, item_instance_id]) => ({ item_id, item_instance_id })) });
+        runs.finish(orphan, runs.now()).catch((e: unknown) => console.error(`aydinlearns: the take-home ${t.block_id} could not be closed (${e instanceof Error ? e.message : String(e)}).`));
+        continue;
+      }
       const servings = (record?.checkpoints ?? []).filter((cp) => AUTO_GRADED.includes(cp.kind) && typeof cp.item_id === 'string').map((cp) => ({
         item_id: cp.item_id!,
         item_instance_id: t.answered.get(cp.item_id!) ?? t.attempted.get(cp.item_id!)

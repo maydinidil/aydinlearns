@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E2-21",
+  "item_version": 1,
+  "reference_sql": "WITH monthly AS (\n  -- one row per month with sessions, 2024 and 2025\n  SELECT CAST(date_trunc('month', session_start) AS DATE) AS month, COUNT(*) AS sessions\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND session_start < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('month', session_start) AS DATE)\n)\nSELECT m.month, m.sessions, COALESCE(p.sessions, 0) AS sessions_prev_year\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR\nWHERE m.month >= DATE '2025-01-01'",
+  "alternatives": [
+    "WITH monthly AS (\n  -- one row per month with sessions, 2024 and 2025\n  SELECT CAST(date_trunc('month', session_start) AS DATE) AS month, COUNT(*) AS sessions\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND session_start < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('month', session_start) AS DATE)\n)\nSELECT m.month, m.sessions,\n  COALESCE((SELECT p.sessions FROM monthly p WHERE p.month = m.month - INTERVAL 1 YEAR), 0) AS sessions_prev_year\nFROM monthly m\nWHERE m.month >= DATE '2025-01-01'",
+    "WITH monthly AS (\n  -- one row per month with sessions, 2024 and 2025\n  SELECT CAST(date_trunc('month', session_start) AS DATE) AS month, COUNT(*) AS sessions\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND session_start < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('month', session_start) AS DATE)\n)\nSELECT m.month, m.sessions, COALESCE(p.sessions, 0) AS sessions_prev_year\nFROM monthly m\nLEFT JOIN monthly p ON year(p.month) = year(m.month) - 1 AND month(p.month) = month(m.month)\nWHERE m.month >= DATE '2025-01-01'"
+  ],
+  "other_way": {
+    "sql": "WITH monthly AS (\n  -- one row per month with sessions, 2024 and 2025\n  SELECT CAST(date_trunc('month', session_start) AS DATE) AS month, COUNT(*) AS sessions\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND session_start < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('month', session_start) AS DATE)\n)\nSELECT m.month, m.sessions,\n  COALESCE((SELECT p.sessions FROM monthly p WHERE p.month = m.month - INTERVAL 1 YEAR), 0) AS sessions_prev_year\nFROM monthly m\nWHERE m.month >= DATE '2025-01-01'",
+    "tradeoff": "A subquery per month finds last year without a join, but the join reads the monthly counts once."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH monthly AS (\n  -- one row per month with sessions, 2024 and 2025\n  SELECT CAST(date_trunc('month', session_start) AS DATE) AS month, COUNT(*) AS sessions\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND session_start < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('month', session_start) AS DATE)\n), compared AS (SELECT month, sessions, COALESCE(LAG(sessions, 12) OVER (ORDER BY month), 0) AS sessions_prev_year FROM monthly) SELECT month, sessions, sessions_prev_year FROM compared WHERE month >= DATE '2025-01-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH monthly AS (\n  -- one row per month with sessions, 2024 and 2025\n  SELECT CAST(date_trunc('month', session_start) AS DATE) AS month, COUNT(*) AS sessions\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND session_start < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('month', session_start) AS DATE)\n) SELECT m.month, m.sessions, p.sessions AS sessions_prev_year FROM monthly m LEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR WHERE m.month >= DATE '2025-01-01'"
+    }
+  ],
+  "hint3_partial": "WITH monthly AS (\n  -- one row per month with sessions, 2024 and 2025\n  SELECT CAST(date_trunc('month', session_start) AS DATE) AS month, COUNT(*) AS sessions\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2024-01-01 00:00:00+00'\n    AND session_start < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY CAST(date_trunc('month', session_start) AS DATE)\n)\nSELECT m.month, m.sessions, ___ AS sessions_prev_year\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR\nWHERE m.month >= DATE '2025-01-01'",
+  "solver": {
+    "prompt_hash": "4f5c31433976983b",
+    "schema_version": "2b0e8a827ee7",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH m AS (\n  SELECT CAST(date_trunc('month', session_start AT TIME ZONE 'UTC') AS DATE) AS month, COUNT(*) AS sessions\n  FROM sessions\n  WHERE (session_start AT TIME ZONE 'UTC') >= TIMESTAMP '2024-01-01 00:00:00'\n    AND (session_start AT TIME ZONE 'UTC') < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY 1\n)\nSELECT cur.month, cur.sessions, COALESCE(prev.sessions, 0) AS sessions_prev_year\nFROM m cur\nLEFT JOIN m prev ON prev.month = CAST(cur.month - INTERVAL 1 YEAR AS DATE)\nWHERE cur.month >= DATE '2025-01-01'\n",
+    "at": "2026-10-28T14:57:03.722Z"
+  }
+}

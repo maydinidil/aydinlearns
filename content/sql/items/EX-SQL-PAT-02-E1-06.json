@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-PAT-02-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "row_number",
+    "tie_break",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-latest-per-key-counted",
+  "template_params": {
+    "table": "subscription_events",
+    "key": "subscription",
+    "count_by": "event_type"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each event_type, how many subscriptions have it as their latest recorded MRR change? recorded_at is Brussels local time, and every event counts, opening events included. Each subscription counts once, under the type of its change with the latest recorded_at. When two changes of a subscription tie on recorded_at, the lower event_id is kept. Return two columns, in this order: event_type and subscriptions. Return one row for each event_type that is some subscription's latest. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_type",
+        "type_class": "text"
+      },
+      {
+        "name": "subscriptions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "subscriptions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each subscription's changes from the latest recorded_at down, keep number 1, then count those rows by event_type.",
+    "One change per subscription even on a tie needs the stated tie-break as the last sort key."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 44,
+      "to": 181,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 182,
+      "to": 208,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 211,
+      "to": 255,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 256,
+      "to": 267,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 268,
+      "to": 280,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 281,
+      "to": 300,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Keeping each subscription's change numbered 1 leaves one row per subscription, which a GROUP BY then counts by type."
+}

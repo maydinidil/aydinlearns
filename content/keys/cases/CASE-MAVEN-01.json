@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-MAVEN-01",
+  "truths": {
+    "CP2": "SELECT COUNT(o.order_id) AS orders\nFROM website_sessions AS s\nJOIN orders AS o ON o.website_session_id = s.website_session_id\nWHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n  AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'",
+    "CP4": "WITH sessions_2013 AS (\n  -- one row per session started in 2013, with the orders placed in it\n  SELECT s.website_session_id,\n         COUNT(o.order_id) AS orders\n  FROM website_sessions AS s\n  LEFT JOIN orders AS o ON o.website_session_id = s.website_session_id\n  WHERE s.created_at >= TIMESTAMP '2013-01-01 00:00:00'\n    AND s.created_at < TIMESTAMP '2014-01-01 00:00:00'\n  GROUP BY s.website_session_id\n)\nSELECT ROUND(100.0 * COUNT(*) FILTER (WHERE orders > 0) / COUNT(*), 2) AS conversion_pct\nFROM sessions_2013"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o67f9811",
+      "explanation": "A session-to-order rate asks what share of visits ended in an order, so every visit of that source and month goes under the line once; visitors or product-page sessions answer another question."
+    },
+    "CP5": {
+      "correct_oid": "o9071c0f",
+      "explanation": "A conversion rate at today's spend says nothing about the sessions extra spend would buy, and the table holds no cost, so a test with cost per order is needed; bsearch's sessions run to about a thousand or more each month, enough to compare rates."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "af5e3613b0dc6306",
+      "key_hash": "bf34d5d7b74a6e55",
+      "at": "2026-10-29T22:04:28.583Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "b489c1af74e7f19f",
+      "key_hash": "889ba5c68a3b66e3",
+      "at": "2026-10-29T22:04:28.583Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "0b3301bc9e50b49d",
+      "key_hash": "969035b678a6693f",
+      "at": "2026-10-29T22:04:28.583Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "ff36aed5ebb9ab6d",
+      "key_hash": "5dde58c6fda2c709",
+      "at": "2026-10-29T22:04:28.583Z"
+    }
+  }
+}

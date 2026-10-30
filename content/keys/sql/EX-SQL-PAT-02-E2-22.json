@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-02-E2-22",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per lead\n  SELECT email, source, created_at,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at, lead_id) AS rn\n  FROM leads\n)\nSELECT date_trunc('month', created_at) AS first_month,\n       COUNT(*) AS new_contacts,\n       COUNT(*) FILTER (WHERE source IN ('display', 'events', 'paid_search', 'paid_social', 'review_sites')) AS paid_contacts\nFROM ranked\nWHERE rn = 1 AND created_at >= TIMESTAMP '2025-01-01' AND created_at < TIMESTAMP '2026-01-01'\nGROUP BY date_trunc('month', created_at)",
+  "alternatives": [
+    "WITH firsts AS (  -- one row per email\n  SELECT email, MIN(created_at) AS created_at\n  FROM leads\n  GROUP BY email\n),\nfirst_ids AS (  -- one row per email\n  SELECT l.email, MIN(l.lead_id) AS lead_id\n  FROM leads l\n  JOIN firsts f ON f.email = l.email AND f.created_at = l.created_at\n  GROUP BY l.email\n)\nSELECT date_trunc('month', l.created_at) AS first_month,\n       COUNT(*) AS new_contacts,\n       SUM(CASE WHEN l.source IN ('display', 'events', 'paid_search', 'paid_social', 'review_sites') THEN 1 ELSE 0 END) AS paid_contacts\nFROM first_ids fi\nJOIN leads l ON l.lead_id = fi.lead_id\nWHERE l.created_at >= TIMESTAMP '2025-01-01' AND l.created_at < TIMESTAMP '2026-01-01'\nGROUP BY date_trunc('month', l.created_at)",
+    "SELECT date_trunc('month', t.created_at) AS first_month,\n       COUNT(*) AS new_contacts,\n       COUNT(*) FILTER (WHERE t.source IN ('display', 'events', 'paid_search', 'paid_social', 'review_sites')) AS paid_contacts\nFROM (\n  -- one row per lead, numbered within its email from the earliest\n  SELECT email, source, created_at,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at, lead_id) AS rn\n  FROM leads\n) AS t\nWHERE t.rn = 1 AND t.created_at >= TIMESTAMP '2025-01-01' AND t.created_at < TIMESTAMP '2026-01-01'\nGROUP BY date_trunc('month', t.created_at)"
+  ],
+  "other_way": {
+    "sql": "WITH firsts AS (  -- one row per email\n  SELECT email, MIN(created_at) AS created_at\n  FROM leads\n  GROUP BY email\n),\nfirst_ids AS (  -- one row per email\n  SELECT l.email, MIN(l.lead_id) AS lead_id\n  FROM leads l\n  JOIN firsts f ON f.email = l.email AND f.created_at = l.created_at\n  GROUP BY l.email\n)\nSELECT date_trunc('month', l.created_at) AS first_month,\n       COUNT(*) AS new_contacts,\n       SUM(CASE WHEN l.source IN ('display', 'events', 'paid_search', 'paid_social', 'review_sites') THEN 1 ELSE 0 END) AS paid_contacts\nFROM first_ids fi\nJOIN leads l ON l.lead_id = fi.lead_id\nWHERE l.created_at >= TIMESTAMP '2025-01-01' AND l.created_at < TIMESTAMP '2026-01-01'\nGROUP BY date_trunc('month', l.created_at)",
+    "tradeoff": "The earliest time per email, then the lowest lead_id at it, avoids the window; a CASE sum stands in for FILTER on engines without it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per lead\n  SELECT email, source, created_at,\n         RANK() OVER (PARTITION BY email ORDER BY created_at) AS rn\n  FROM leads\n)\nSELECT date_trunc('month', created_at) AS first_month,\n       COUNT(*) AS new_contacts,\n       COUNT(*) FILTER (WHERE source IN ('display', 'events', 'paid_search', 'paid_social', 'review_sites')) AS paid_contacts\nFROM ranked\nWHERE rn = 1 AND created_at >= TIMESTAMP '2025-01-01' AND created_at < TIMESTAMP '2026-01-01'\nGROUP BY date_trunc('month', created_at)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-36",
+      "sql": "WITH firsts AS (SELECT DISTINCT email, source, created_at FROM leads WHERE created_at >= TIMESTAMP '2025-01-01' AND created_at < TIMESTAMP '2026-01-01') SELECT date_trunc('month', created_at) AS first_month, COUNT(*) AS new_contacts, COUNT(*) FILTER (WHERE source IN ('display', 'events', 'paid_search', 'paid_social', 'review_sites')) AS paid_contacts FROM firsts GROUP BY date_trunc('month', created_at)"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (  -- one row per lead\n  SELECT email, source, created_at,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at DESC, lead_id) AS rn\n  FROM leads\n)\nSELECT date_trunc('month', created_at) AS first_month,\n       COUNT(*) AS new_contacts,\n       COUNT(*) FILTER (WHERE source IN ('display', 'events', 'paid_search', 'paid_social', 'review_sites')) AS paid_contacts\nFROM ranked\nWHERE rn = 1 AND created_at >= TIMESTAMP '2025-01-01' AND created_at < TIMESTAMP '2026-01-01'\nGROUP BY date_trunc('month', created_at)"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per lead\n  SELECT email, source, created_at,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY ___) AS rn\n  FROM leads\n)\nSELECT date_trunc('month', created_at) AS first_month,\n       COUNT(*) AS new_contacts,\n       COUNT(*) FILTER (WHERE source IN ('display', 'events', 'paid_search', 'paid_social', 'review_sites')) AS paid_contacts\nFROM ranked\nWHERE ___ AND created_at >= TIMESTAMP '2025-01-01' AND created_at < TIMESTAMP '2026-01-01'\nGROUP BY date_trunc('month', created_at)",
+  "solver": {
+    "prompt_hash": "ed5581f3c389560e",
+    "schema_version": "a1ce675defac",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH r AS (SELECT source, created_at, ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at, lead_id) AS rn FROM leads)\nSELECT CAST(date_trunc('month', created_at) AS DATE) AS first_month, COUNT(*) AS new_contacts, COUNT(*) FILTER (WHERE source IN ('display','events','paid_search','paid_social','review_sites')) AS paid_contacts\nFROM r WHERE rn = 1 AND created_at >= TIMESTAMP '2025-01-01 00:00:00' AND created_at < TIMESTAMP '2026-01-01 00:00:00' GROUP BY 1\n",
+    "at": "2026-10-28T14:57:01.138Z"
+  }
+}

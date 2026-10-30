@@ -1,0 +1,224 @@
+{
+  "id": "EX-SQL-PAT-07-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "ordered_funnel",
+    "time_window",
+    "step_rate"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-ordered-within-days-by-month",
+  "template_params": {
+    "funnel": "signup, activation, payment",
+    "period": "2025",
+    "windows": "7 and 30 days",
+    "by": "signup month"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each signup month of 2025 (signup_ts, in UTC), how many users were activated within 7 days and then paid within 30 days, and what were the step rates? A user is activated in time when the first first_campaign_sent event came at most 7 days (168 hours) after signup_ts, and paid in time when the user was activated in time and the first payment (paid_at, refunded or not) came at or after that activation and at most 30 days after it. All times are UTC instants. Return six columns, in this order: signup_month (the first day of the month), signed_up, activated_in_7_days, paid_in_30_days (each a number of users), activation_rate (activated_in_7_days over signed_up) and paid_step_rate (paid_in_30_days over activated_in_7_days), each rate a fraction between 0 and 1; paid_step_rate is missing for a month with no user activated in time. Return one row for each signup month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "signup_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "signed_up",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activated_in_7_days",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid_in_30_days",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activation_rate",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid_step_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "signup_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "signed_up",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activated_in_7_days",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid_in_30_days",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activation_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "paid_step_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "signup_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, flag each user's steps in time, then count and divide per signup month.",
+    "The payment step needs the activation in time first; its rate divides by the users activated in time, with NULLIF for a month with none."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 75,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 123,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 126,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 151,
+      "to": 191,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 194,
+      "to": 210,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 214,
+      "to": 280,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 283,
+      "to": 332,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 335,
+      "to": 414,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 417,
+      "to": 435,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 439,
+      "to": 530,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 533,
+      "to": 913,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 916,
+      "to": 1016,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1019,
+      "to": 1131,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1134,
+      "to": 1489,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1490,
+      "to": 1500,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1501,
+      "to": 1522,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each step counts only inside its window after the step before, and each step rate divides by the step right before it."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-42",
+  "item_version": 1,
+  "correct_oid": "o53ad353",
+  "explanation": "The LEFT JOIN keeps each calendar day, and a day with no order keeps one row whose order columns are missing. COUNT(*) counts rows, so that lone row counts as 1. COUNT(o.order_id) skips the missing value and gives the 0 a gap-filled count needs; COUNT never returns a missing value.",
+  "solver": {
+    "prompt_hash": "da463ae21f2b80fd",
+    "grader_version": "choice.3",
+    "chosen": "o53ad353",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.768Z"
+  }
+}

@@ -1,0 +1,220 @@
+{
+  "id": "EX-SQL-PAT-07-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "ordered_funnel",
+    "time_window",
+    "step_rate",
+    "app_events",
+    "time_zone"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-ordered-within-days-by-month",
+  "template_params": {
+    "funnel": "upload, match, export",
+    "period": "2025-10 to 2025-12",
+    "windows": "7 days",
+    "by": "month of first upload"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How quickly do users move through the month-end close funnel in the app, by the month in which they first uploaded a statement? A user starts the funnel at the user's first upload_statement event; event_ts is a UTC instant, and the month of that first upload is read in Brussels time. The user counts as matched in time with a match_transaction event at or after that first upload and at most 7 days (168 hours) after it, and as exported in time with an export_report event at or after the first such match and at most 7 days after that match. Return six columns, in this order: upload_month (the first day of the month), uploaded, matched_in_7_days, exported_in_7_days (each a number of users), match_rate (matched_in_7_days over uploaded) and export_rate (exported_in_7_days over matched_in_7_days), each rate a fraction between 0 and 1; export_rate is missing for a month with no user matched in time. Return one row for each month with a first upload. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "upload_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "uploaded",
+        "type_class": "numeric"
+      },
+      {
+        "name": "matched_in_7_days",
+        "type_class": "numeric"
+      },
+      {
+        "name": "exported_in_7_days",
+        "type_class": "numeric"
+      },
+      {
+        "name": "match_rate",
+        "type_class": "numeric"
+      },
+      {
+        "name": "export_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "upload_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "uploaded",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "matched_in_7_days",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "exported_in_7_days",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "match_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "export_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "upload_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each step in its window: the first match within 7 days after the first upload, then an export within 7 days after that match.",
+    "Group by the Brussels month of the first upload; each step rate divides by the step right before it, with NULLIF where that step can be 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 81,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 84,
+      "to": 126,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 129,
+      "to": 144,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 184,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 187,
+      "to": 203,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 207,
+      "to": 317,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 320,
+      "to": 365,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 368,
+      "to": 545,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 548,
+      "to": 566,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 570,
+      "to": 643,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 646,
+      "to": 671,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 674,
+      "to": 845,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 848,
+      "to": 1200,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1201,
+      "to": 1290,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1291,
+      "to": 1312,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each step counts only inside its 7-day window after the step before, and the month comes from the first upload in Brussels time."
+}

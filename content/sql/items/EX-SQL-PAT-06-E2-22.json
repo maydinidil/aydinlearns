@@ -1,0 +1,190 @@
+{
+  "id": "EX-SQL-PAT-06-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "immature_cells",
+    "spine",
+    "activation"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-long-immature",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "activity": "activation event",
+    "cohorts": "2025-09 to 2025-12",
+    "offsets": "0-2"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For the users who signed up from September to December 2025, how many were active in each of their first three months? A user's cohort month is the month of signup_ts, and a user is active in a month with at least one activation event of any kind, by the month of event_ts; both are UTC instants, so read months in UTC. The month offset counts calendar months from the cohort month, from 0 to 2. The as-of date is 5 January 2026: a month that ends after it is not known yet and shows missing, while a month that has ended with no active user shows 0. Return three columns, in this order: cohort_month (the first day of the month), month_offset and active_users. Return one row for each cohort month that has signups and each month offset from 0 to 2. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric"
+      },
+      {
+        "name": "active_users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "active_users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month",
+      "month_offset"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build every cell: each cohort month with each offset from 0 to 2, and its active users joined on.",
+    "Count each user once per month, keep the cells with no activity at 0, and leave a month that starts on or after 1 January 2026 missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 72,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 151,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 154,
+      "to": 166,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 169,
+      "to": 277,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 281,
+      "to": 321,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 324,
+      "to": 352,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 355,
+      "to": 366,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 370,
+      "to": 444,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 447,
+      "to": 489,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 499,
+      "to": 596,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 599,
+      "to": 664,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 667,
+      "to": 856,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 857,
+      "to": 1002,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1003,
+      "to": 1042,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The spine gives every cell, DISTINCT counts a user once per month, and a month after the as-of date stays missing instead of 0."
+}

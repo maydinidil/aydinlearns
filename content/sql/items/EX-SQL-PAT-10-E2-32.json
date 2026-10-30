@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-PAT-10-E2-32",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "annual",
+    "invoices",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-fix-annual-mrr",
+  "template_params": {
+    "table": "invoices",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how much MRR did the annual plans' invoices of each month of 2025 bill, in each currency? An annual subscription bills twelve months of its MRR at once, on its start day and on each anniversary of it (the same month and day in a later year; no annual subscription starts on 29 February); its other invoices bill the rest of a year after it grew, so leave them out. Use those invoices dated from 1 January to 31 December 2025, and count each in the month of its invoice_date. Return three columns, in this order: month_start (the first day of the month), currency and renewal_mrr, the MRR those invoices bill, worked out from each invoice's amount_local. Return one row for each month and currency with such an invoice. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "currency",
+        "type_class": "text"
+      },
+      {
+        "name": "renewal_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "currency",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "renewal_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start",
+      "currency"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what one annual invoice pays for, and how much of it is a single month.",
+    "An annual invoice bills twelve months at once; MRR is the monthly share."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 124,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 125,
+      "to": 140,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 141,
+      "to": 202,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 203,
+      "to": 236,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 237,
+      "to": 305,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 306,
+      "to": 355,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 356,
+      "to": 401,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 402,
+      "to": 472,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT CAST(date_trunc('month', i.invoice_date) AS DATE) AS month_start, s.currency, SUM(i.amount_local) AS renewal_mrr\nFROM invoices i\nJOIN subscriptions s ON s.subscription_id = i.subscription_id\nWHERE s.billing_period = 'annual'\n  AND i.invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND month(i.invoice_date) = month(s.start_date)\n  AND day(i.invoice_date) = day(s.start_date)\nGROUP BY CAST(date_trunc('month', i.invoice_date) AS DATE), s.currency",
+  "time_target_ms": 180000,
+  "why_this_works": "Dividing each annual invoice by 12 turns a year's bill into the monthly revenue it stands for.",
+  "starter_error_id": "ERR-LOG-51"
+}

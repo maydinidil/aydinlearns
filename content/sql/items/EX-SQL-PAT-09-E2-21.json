@@ -1,0 +1,195 @@
+{
+  "id": "EX-SQL-PAT-09-E2-21",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "margin",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-margin-uplift",
+  "template_params": {
+    "table": "sales",
+    "baseline": "same_length",
+    "year": 2025,
+    "promo_type": "percent_off"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each percent_off promotion that started in 2025 (promo_type 'percent_off', start_date from 1 January to 31 December 2025), give margin_uplift: the gross margin on promotion minus the gross margin in the baseline. A line's gross margin is its net_revenue_eur minus units times unit_cost_eur. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0. Return two columns, in this order: promo_id and margin_uplift. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "margin_uplift",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "margin_uplift",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the margin on promotion and in the same-length baseline, then subtract.",
+    "Margin is revenue minus units times unit cost, line by line, before any sum."
+  ],
+  "subgoals": [
+    {
+      "from": 76,
+      "to": 140,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 141,
+      "to": 158,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 159,
+      "to": 256,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 332,
+      "to": 436,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 437,
+      "to": 451,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 452,
+      "to": 501,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 502,
+      "to": 554,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 555,
+      "to": 576,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 642,
+      "to": 746,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 747,
+      "to": 761,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 762,
+      "to": 818,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 819,
+      "to": 865,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 866,
+      "to": 922,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 923,
+      "to": 944,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 947,
+      "to": 1028,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1029,
+      "to": 1041,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1042,
+      "to": 1087,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1088,
+      "to": 1135,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Margin on promotion minus margin in a same-length baseline shows what the discount gained or cost once costs are paid."
+}

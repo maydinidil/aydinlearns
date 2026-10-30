@@ -1,0 +1,170 @@
+{
+  "id": "EX-SQL-PAT-01-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "top_n_per_group",
+    "row_number",
+    "tie_break",
+    "sales"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-PAT-01"
+  ],
+  "template_id": "T-PAT-01-top-n-per-group",
+  "template_params": {
+    "table": "sales",
+    "group": "store",
+    "n": 3,
+    "measure": "units 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Which 3 products sold the most units in each store in 2025? Use the sales rows whose order_date falls in 2025 (order_date is a UTC day). Keep exactly 3 products per store, or every product when a store sold fewer than 3. When products of a store tie on units, the lower product_id comes first. Return three columns, in this order: store_code, product_id and units, the product's 2025 units in that store. Return one row for each store and product kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store and product kept"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code",
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the outer query: it reads the numbered rows and keeps the first 3 of each store.",
+    "The numbers exist only after the CTE has run, so test them in the outer query's WHERE."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 127,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 128,
+      "to": 140,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 141,
+      "to": 215,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 216,
+      "to": 249,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 253,
+      "to": 317,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 318,
+      "to": 448,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 449,
+      "to": 467,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 470,
+      "to": 506,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 507,
+      "to": 518,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 519,
+      "to": 532,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 470,
+    "stage2": 358
+  },
+  "faded_shape": "WITH store_units AS (  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, SUM(units) AS units\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY store_code, product_id\n),\nranked AS (  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, units,\n         ROW_NUMBER() OVER (PARTITION BY store_code ORDER BY units DESC, product_id) AS rn\n  FROM store_units\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "ROW_NUMBER restarts in each store with product_id settling a tie, so rn <= 3 keeps exactly 3 products per store."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E1-05",
+  "item_version": 1,
+  "reference_sql": "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), created AS (\n  -- one row per month with new accounts\n  SELECT CAST(date_trunc('month', created_at) AS DATE) AS month, COUNT(*) AS new_accounts\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'\n    AND created_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', created_at) AS DATE)\n)\nSELECT m.month, COALESCE(c.new_accounts, 0) AS new_accounts\nFROM months m\nLEFT JOIN created c ON c.month = m.month",
+  "alternatives": [
+    "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n)\nSELECT m.month,\n  (SELECT COUNT(*) FROM accounts a WHERE CAST(date_trunc('month', a.created_at) AS DATE) = m.month) AS new_accounts\nFROM months m",
+    "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(generate_series AS DATE) AS month\n  FROM generate_series(DATE '2024-01-01', DATE '2025-12-01', INTERVAL 1 MONTH)\n)\nSELECT m.month, COUNT(a.account_id) AS new_accounts\nFROM months m\nLEFT JOIN accounts a ON CAST(date_trunc('month', a.created_at) AS DATE) = m.month\nGROUP BY m.month"
+  ],
+  "other_way": {
+    "sql": "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n)\nSELECT m.month,\n  (SELECT COUNT(*) FROM accounts a WHERE CAST(date_trunc('month', a.created_at) AS DATE) = m.month) AS new_accounts\nFROM months m",
+    "tradeoff": "A count subquery for each month needs no outer join, but it reads the accounts again for each of the 24 months."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), created AS (\n  -- one row per month with new accounts\n  SELECT CAST(date_trunc('month', created_at) AS DATE) AS month, COUNT(*) AS new_accounts\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'\n    AND created_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', created_at) AS DATE)\n) SELECT month, new_accounts FROM created"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), created AS (\n  -- one row per month with new accounts\n  SELECT CAST(date_trunc('month', created_at) AS DATE) AS month, COUNT(*) AS new_accounts\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'\n    AND created_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', created_at) AS DATE)\n) SELECT m.month, c.new_accounts FROM months m LEFT JOIN created c ON c.month = m.month"
+    }
+  ],
+  "hint3_partial": "WITH months AS (\n  -- one row per month of 2024 and 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2024-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), created AS (\n  -- one row per month with new accounts\n  SELECT CAST(date_trunc('month', created_at) AS DATE) AS month, COUNT(*) AS new_accounts\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'\n    AND created_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', created_at) AS DATE)\n)\nSELECT m.month, COALESCE(c.new_accounts, 0) AS new_accounts\nFROM months m\nLEFT JOIN created c ON ___",
+  "solver": {
+    "prompt_hash": "dcab668bc3874918",
+    "schema_version": "29886570d1a0",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH months AS (\n  SELECT CAST(d AS DATE) AS month FROM generate_series(DATE '2024-01-01', DATE '2025-12-01', INTERVAL 1 MONTH) t(d)\n), a AS (\n  SELECT CAST(date_trunc('month', created_at) AS DATE) AS month, COUNT(*) AS new_accounts\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00' AND created_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY 1\n)\nSELECT m.month, COALESCE(a.new_accounts, 0) AS new_accounts\nFROM months m LEFT JOIN a ON a.month = m.month\n",
+    "at": "2026-10-28T14:57:04.785Z"
+  }
+}

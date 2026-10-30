@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-PAT-04-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "zero_fill",
+    "orders",
+    "calendar"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-day-spine-count",
+  "template_params": {
+    "table": "orders",
+    "spine": "calendar"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each day from 1 to 14 March 2025, how many orders did Voltmarkt take? order_ts holds UTC time: count each order on its UTC day. Every day of the range has a row, and a day with no orders shows 0. Return two columns, in this order: day and orders. Return one row for each day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per day, 1 to 14 March 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, start from a list of every day in the range and attach the daily counts to it.",
+    "A day with no orders has no row to count, so take the days out of the calendar table; keep every day and turn a missing count into 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 424,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 425,
+      "to": 470,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 471,
+      "to": 482,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 483,
+      "to": 517,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The calendar gives every day a row; the LEFT JOIN keeps days with no orders, and COALESCE shows them as 0."
+}

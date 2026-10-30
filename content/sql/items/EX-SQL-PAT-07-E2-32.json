@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-PAT-07-E2-32",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "step_rate",
+    "leads",
+    "opportunities",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-fix-rate-base",
+  "template_params": {
+    "funnel": "lead, opportunity, won",
+    "unit": "contact",
+    "period": "2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how did the 2025 sales funnel convert? Take the leads created in 2025 (created_at, Brussels local time). A contact is one email address, compared exactly as stored. A contact counts as with_opportunity when one of those leads has an opportunity, and as won when one of those opportunities is won. The steps need no date order: an opportunity counts whenever it was created, and a won one whenever it closed, even in a later year. Return four columns, in this order: contacts, with_opportunity, won (each a number of contacts) and win_rate, won over with_opportunity, as a fraction between 0 and 1. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "contacts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "with_opportunity",
+        "type_class": "numeric"
+      },
+      {
+        "name": "won",
+        "type_class": "numeric"
+      },
+      {
+        "name": "win_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "contacts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "with_opportunity",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "won",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "win_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the win rate is divided by: the question names the step before it.",
+    "The win rate is a step rate: the won contacts over the contacts with an opportunity, not over every contact."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 92,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 95,
+      "to": 137,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 140,
+      "to": 205,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 208,
+      "to": 312,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 315,
+      "to": 658,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 659,
+      "to": 674,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH lead_steps AS (  -- one row per lead created in the period, with its opportunity if any\n  SELECT l.email, o.opportunity_id, o.is_won\n  FROM leads l\n  LEFT JOIN opportunities o ON o.lead_id = l.lead_id\n  WHERE l.created_at >= TIMESTAMP '2025-01-01 00:00:00' AND l.created_at < TIMESTAMP '2026-01-01 00:00:00'\n)\nSELECT COUNT(DISTINCT email) AS contacts,\n       COUNT(DISTINCT CASE WHEN opportunity_id IS NOT NULL THEN email END) AS with_opportunity,\n       COUNT(DISTINCT CASE WHEN is_won THEN email END) AS won,\n       1.0 * COUNT(DISTINCT CASE WHEN is_won THEN email END) / COUNT(DISTINCT email) AS win_rate\nFROM lead_steps",
+  "time_target_ms": 180000,
+  "why_this_works": "A step rate divides by the step right before it, so the win rate uses the contacts with an opportunity as its base.",
+  "starter_error_id": "ERR-LOG-45"
+}

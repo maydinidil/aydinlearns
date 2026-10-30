@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-08-E1-41",
+  "item_version": 1,
+  "correct_oid": "obea1c71",
+  "explanation": "The first event has no event before it, so LAG is missing and the gap is missing too. A comparison with a missing value is never true, so the CASE falls to ELSE 0: the first event does not start a session unless the CASE tests for the missing LAG on its own. The other gaps are about 8 and 9 minutes, so they show 0 as well.",
+  "solver": {
+    "prompt_hash": "8a01661e8e0b791d",
+    "grader_version": "choice.3",
+    "chosen": "obea1c71",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.792Z"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-02-E2-32",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT customer_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)\nSELECT channel, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY channel",
+  "alternatives": [
+    "WITH latest AS (  -- one row per known customer\n  SELECT customer_id, MAX(order_ts) AS order_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n),\nlatest_ids AS (  -- one row per known customer\n  SELECT o.customer_id, MIN(o.order_id) AS order_id\n  FROM orders o\n  JOIN latest l ON l.customer_id = o.customer_id AND l.order_ts = o.order_ts\n  GROUP BY o.customer_id\n)\nSELECT o.channel, COUNT(*) AS customers\nFROM latest_ids li\nJOIN orders o ON o.order_id = li.order_id\nGROUP BY o.channel",
+    "SELECT t.channel, COUNT(*) AS customers\nFROM (\n  -- one row per order of a known customer, numbered from the latest\n  SELECT customer_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n) AS t\nWHERE t.rn = 1\nGROUP BY t.channel"
+  ],
+  "other_way": {
+    "sql": "WITH latest AS (  -- one row per known customer\n  SELECT customer_id, MAX(order_ts) AS order_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n),\nlatest_ids AS (  -- one row per known customer\n  SELECT o.customer_id, MIN(o.order_id) AS order_id\n  FROM orders o\n  JOIN latest l ON l.customer_id = o.customer_id AND l.order_ts = o.order_ts\n  GROUP BY o.customer_id\n)\nSELECT o.channel, COUNT(*) AS customers\nFROM latest_ids li\nJOIN orders o ON o.order_id = li.order_id\nGROUP BY o.channel",
+    "tradeoff": "The latest time per customer, then the lowest order_id at it, needs no window but takes two grouping steps and a join back."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT customer_id, channel,\n         RANK() OVER (PARTITION BY customer_id ORDER BY order_ts DESC) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)\nSELECT channel, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (SELECT customer_id, channel, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS rn FROM orders WHERE customer_id IS NOT NULL) SELECT channel, COUNT(*) AS customers FROM ranked WHERE rn = 1 GROUP BY channel"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT customer_id, channel,\n         ___() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, ___) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)\nSELECT channel, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY channel",
+  "solver": {
+    "prompt_hash": "de53c4de1aa18376",
+    "schema_version": "7ed366279088",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH ranked AS (\n  SELECT customer_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)\nSELECT channel, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY channel\n",
+    "at": "2026-10-28T14:57:01.385Z"
+  }
+}

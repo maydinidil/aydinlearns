@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-PAT-06-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "count_distinct",
+    "activation",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-fix-count-users",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "activity": "activation event in month 0"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each signup month of 2025, how many of the users who signed up that month had at least one activation event in that same calendar month? signup_ts and event_ts are UTC instants, so read months in UTC. The as-of date is 5 January 2026, so every month up to December 2025 has ended. Return two columns, in this order: cohort_month (the first day of the month) and active_users. Return one row for each signup month with at least one such user. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "active_users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "active_users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the count counts: the question wants users, and the join gives one row per activation event.",
+    "A user with three events in the signup month is three joined rows; count each user once."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 119,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 120,
+      "to": 184,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 185,
+      "to": 370,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 371,
+      "to": 426,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       COUNT(*) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  AND date_trunc('month', e.event_ts) = date_trunc('month', u.signup_ts)\nGROUP BY CAST(date_trunc('month', u.signup_ts) AS DATE)",
+  "time_target_ms": 150000,
+  "why_this_works": "COUNT(DISTINCT u.user_id) counts each user once, however many activation events the user had in the signup month.",
+  "starter_error_id": "ERR-LOG-04"
+}

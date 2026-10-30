@@ -1,0 +1,101 @@
+{
+  "schema": "voltmarkt_edge_pat",
+  "mirrors": "voltmarkt",
+  "family": "pat",
+  "contains": [
+    "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by revenue in 2025",
+    "two categories, TVs up to 43 inch and Cables, where two products tie for second place by revenue in 2025",
+    "products that tie on units sold in 2025 within a store: a tie for first place in five stores and for second place in three",
+    "two customers whose two latest orders were placed at the same moment, one in a store and one on the web",
+    "two products whose latest competitor price checks, one by each competitor, happened at the same moment",
+    "a week in which both competitors checked a product at the same moment, averaged into one row",
+    "orders in every month of 2024 and 2025 except September 2024, and a calendar that holds every day of both years",
+    "no order in the week of 10 March 2025, and a store with orders on 3, 4, 5 and 7 March 2025 but not on the 6th",
+    "weeks with no order, such as the weeks of September 2024 and the week of 10 March 2025, show 0 units",
+    "customers whose first order is in November or December 2025, so their later months come after the as-of date",
+    "a customer whose two orders are 29 days apart but two calendar months apart",
+    "two promotions that overlap on one product from 18 to 20 April 2025, with a sale on a day of the overlap",
+    "a promotion with no sale, and sales in the 14 days before a promotion",
+    "a store that opened in September 2024, so it was not open for all of 2024",
+    "guest orders with a missing customer ID",
+    "products whose price changed during the two years",
+    "daily closing stock for every day of December 2024 of five store and product pairs in the physical stores, four TVs and a cable (this data holds no console or controller), for a stock cover question over 1 to 28 December with the stock on 29 December",
+    "a store and product that sold on 10 December 2024, sent its last unit back to the supplier on 14 December and was out of stock to 28 December, so a sales rate over every day of the window differs from one over its in-stock days",
+    "a store and product that sold on one day of December 2024 and on no other, so its daily sales need a date spine",
+    "a store and product whose stock on 29 December 2024 covers just under 2 weeks at its sales rate over its in-stock days from 1 to 28 December, and over 2 weeks at the rate over every day",
+    "store and product pairs with no sale from 1 to 28 December 2024, one of which last sold on 26 November, before the window"
+  ],
+  "tables": {
+    "categories": [
+      "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by revenue in 2025",
+      "two categories, TVs up to 43 inch and Cables, where two products tie for second place by revenue in 2025"
+    ],
+    "products": [
+      "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by revenue in 2025",
+      "two categories, TVs up to 43 inch and Cables, where two products tie for second place by revenue in 2025",
+      "products that tie on units sold in 2025 within a store: a tie for first place in five stores and for second place in three"
+    ],
+    "order_lines": [
+      "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by revenue in 2025",
+      "two categories, TVs up to 43 inch and Cables, where two products tie for second place by revenue in 2025",
+      "products that tie on units sold in 2025 within a store: a tie for first place in five stores and for second place in three",
+      "two promotions that overlap on one product from 18 to 20 April 2025, with a sale on a day of the overlap",
+      "a promotion with no sale, and sales in the 14 days before a promotion"
+    ],
+    "sales": [
+      "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by revenue in 2025",
+      "two categories, TVs up to 43 inch and Cables, where two products tie for second place by revenue in 2025",
+      "products that tie on units sold in 2025 within a store: a tie for first place in five stores and for second place in three",
+      "orders in every month of 2024 and 2025 except September 2024, and a calendar that holds every day of both years",
+      "no order in the week of 10 March 2025, and a store with orders on 3, 4, 5 and 7 March 2025 but not on the 6th",
+      "two promotions that overlap on one product from 18 to 20 April 2025, with a sale on a day of the overlap",
+      "a promotion with no sale, and sales in the 14 days before a promotion",
+      "a store that opened in September 2024, so it was not open for all of 2024"
+    ],
+    "orders": [
+      "products that tie on units sold in 2025 within a store: a tie for first place in five stores and for second place in three",
+      "two customers whose two latest orders were placed at the same moment, one in a store and one on the web",
+      "orders in every month of 2024 and 2025 except September 2024, and a calendar that holds every day of both years",
+      "no order in the week of 10 March 2025, and a store with orders on 3, 4, 5 and 7 March 2025 but not on the 6th",
+      "customers whose first order is in November or December 2025, so their later months come after the as-of date",
+      "a customer whose two orders are 29 days apart but two calendar months apart",
+      "a store that opened in September 2024, so it was not open for all of 2024",
+      "guest orders with a missing customer ID"
+    ],
+    "stores": [
+      "products that tie on units sold in 2025 within a store: a tie for first place in five stores and for second place in three",
+      "a store that opened in September 2024, so it was not open for all of 2024"
+    ],
+    "calendar": [
+      "orders in every month of 2024 and 2025 except September 2024, and a calendar that holds every day of both years",
+      "no order in the week of 10 March 2025, and a store with orders on 3, 4, 5 and 7 March 2025 but not on the 6th"
+    ],
+    "weekly_units": [
+      "weeks with no order, such as the weeks of September 2024 and the week of 10 March 2025, show 0 units"
+    ],
+    "competitor_prices": [
+      "two products whose latest competitor price checks, one by each competitor, happened at the same moment"
+    ],
+    "competitor_price_weekly": [
+      "a week in which both competitors checked a product at the same moment, averaged into one row"
+    ],
+    "promotions": [
+      "two promotions that overlap on one product from 18 to 20 April 2025, with a sale on a day of the overlap",
+      "a promotion with no sale, and sales in the 14 days before a promotion"
+    ],
+    "promotion_products": [
+      "two promotions that overlap on one product from 18 to 20 April 2025, with a sale on a day of the overlap",
+      "a promotion with no sale, and sales in the 14 days before a promotion"
+    ],
+    "price_history": [
+      "products whose price changed during the two years"
+    ],
+    "inventory_chain_daily": [
+      "daily closing stock for every day of December 2024 of five store and product pairs in the physical stores, four TVs and a cable (this data holds no console or controller), for a stock cover question over 1 to 28 December with the stock on 29 December",
+      "a store and product that sold on 10 December 2024, sent its last unit back to the supplier on 14 December and was out of stock to 28 December, so a sales rate over every day of the window differs from one over its in-stock days",
+      "a store and product that sold on one day of December 2024 and on no other, so its daily sales need a date spine",
+      "a store and product whose stock on 29 December 2024 covers just under 2 weeks at its sales rate over its in-stock days from 1 to 28 December, and over 2 weeks at the rate over every day",
+      "store and product pairs with no sale from 1 to 28 December 2024, one of which last sold on 26 November, before the window"
+    ]
+  }
+}

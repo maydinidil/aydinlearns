@@ -1,0 +1,211 @@
+{
+  "id": "EX-SQL-PAT-08-E2-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "sessionisation",
+    "running_sum",
+    "app_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-WIN-04",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-predict-session-no",
+  "template_params": {
+    "table": "app_events"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "User 278's app events from 09:00 to 09:40 UTC on 20 November 2025 are at 09:00:00, 09:02:20, 09:06:50, 09:36:51 and 09:38:26 (event_ids 85929, 85940, 85968, 86123 and 86126). Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "WITH flagged AS (\n  SELECT event_id, event_ts,\n    CASE WHEN LAG(event_ts) OVER (ORDER BY event_ts) IS NULL\n      OR event_ts - LAG(event_ts) OVER (ORDER BY event_ts) > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM app_events\n  WHERE user_id = 278\n    AND event_ts >= TIMESTAMPTZ '2025-11-20 09:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-11-20 09:40:00+00'\n)\nSELECT event_id,\n  SUM(new_session) OVER (ORDER BY event_ts ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS session_no\nFROM flagged",
+  "options": [
+    {
+      "oid": "o2fab2fc",
+      "text": "Sessions 1, 1, 1, 2, 2",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "event_id",
+          "session_no"
+        ],
+        "rows": [
+          [
+            85929,
+            1
+          ],
+          [
+            85940,
+            1
+          ],
+          [
+            85968,
+            1
+          ],
+          [
+            86123,
+            2
+          ],
+          [
+            86126,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o7af9261",
+      "text": "Session 1 throughout",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "event_id",
+          "session_no"
+        ],
+        "rows": [
+          [
+            85929,
+            1
+          ],
+          [
+            85940,
+            1
+          ],
+          [
+            85968,
+            1
+          ],
+          [
+            86123,
+            1
+          ],
+          [
+            86126,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o1ab9462",
+      "text": "Sessions 0, 0, 0, 1, 1",
+      "misconception_id": "ERR-LOG-03",
+      "table": {
+        "columns": [
+          "event_id",
+          "session_no"
+        ],
+        "rows": [
+          [
+            85929,
+            0
+          ],
+          [
+            85940,
+            0
+          ],
+          [
+            85968,
+            0
+          ],
+          [
+            86123,
+            1
+          ],
+          [
+            86126,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o589330e",
+      "text": "Sessions 1, 2, 3, 4, 5",
+      "misconception_id": "ERR-LOG-34",
+      "table": {
+        "columns": [
+          "event_id",
+          "session_no"
+        ],
+        "rows": [
+          [
+            85929,
+            1
+          ],
+          [
+            85940,
+            2
+          ],
+          [
+            85968,
+            3
+          ],
+          [
+            86123,
+            4
+          ],
+          [
+            86126,
+            5
+          ]
+        ]
+      }
+    }
+  ]
+}

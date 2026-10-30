@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-02-E2-01",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT o.customer_id, s.store_code,\n         ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.order_ts DESC, o.order_id) AS rn\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE o.customer_id IS NOT NULL\n)\nSELECT store_code, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY store_code",
+  "alternatives": [
+    "WITH latest AS (  -- one row per known customer\n  SELECT customer_id, MAX(order_ts) AS order_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n),\nlatest_ids AS (  -- one row per known customer\n  SELECT o.customer_id, MIN(o.order_id) AS order_id\n  FROM orders o\n  JOIN latest l ON l.customer_id = o.customer_id AND l.order_ts = o.order_ts\n  GROUP BY o.customer_id\n)\nSELECT s.store_code, COUNT(*) AS customers\nFROM latest_ids li\nJOIN orders o ON o.order_id = li.order_id\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.store_code",
+    "SELECT t.store_code, COUNT(*) AS customers\nFROM (\n  -- one row per order of a known customer, numbered from the latest\n  SELECT o.customer_id, s.store_code,\n         ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.order_ts DESC, o.order_id) AS rn\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE o.customer_id IS NOT NULL\n) AS t\nWHERE t.rn = 1\nGROUP BY t.store_code"
+  ],
+  "other_way": {
+    "sql": "WITH latest AS (  -- one row per known customer\n  SELECT customer_id, MAX(order_ts) AS order_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n),\nlatest_ids AS (  -- one row per known customer\n  SELECT o.customer_id, MIN(o.order_id) AS order_id\n  FROM orders o\n  JOIN latest l ON l.customer_id = o.customer_id AND l.order_ts = o.order_ts\n  GROUP BY o.customer_id\n)\nSELECT s.store_code, COUNT(*) AS customers\nFROM latest_ids li\nJOIN orders o ON o.order_id = li.order_id\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.store_code",
+    "tradeoff": "The latest time per customer, then the lowest order_id at it, needs no window but takes two grouping steps and a join back."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT o.customer_id, s.store_code,\n         RANK() OVER (PARTITION BY o.customer_id ORDER BY o.order_ts DESC) AS rn\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE o.customer_id IS NOT NULL\n)\nSELECT store_code, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT o.customer_id, s.store_code,\n         ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.order_ts, o.order_id) AS rn\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE o.customer_id IS NOT NULL\n)\nSELECT store_code, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY store_code"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per order of a known customer\n  SELECT o.customer_id, s.store_code,\n         ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.order_ts DESC, o.order_id) AS rn\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE o.customer_id IS NOT NULL\n)\nSELECT store_code, COUNT(*) AS customers\nFROM ranked\nWHERE ___\nGROUP BY store_code",
+  "solver": {
+    "prompt_hash": "1688efcd77687946",
+    "schema_version": "b1c1a5d57d7d",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH r AS (SELECT o.store_id, ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.order_ts DESC, o.order_id) AS rn FROM orders o WHERE o.customer_id IS NOT NULL)\nSELECT s.store_code, COUNT(*) AS customers FROM r JOIN stores s ON s.store_id = r.store_id WHERE r.rn = 1 GROUP BY s.store_code\n",
+    "at": "2026-10-28T14:57:00.802Z"
+  }
+}

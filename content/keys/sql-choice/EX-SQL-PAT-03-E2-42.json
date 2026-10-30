@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-03-E2-42",
+  "item_version": 2,
+  "correct_oid": "ob12e27b",
+  "explanation": "Pairing by year and month finds the end of the same month a year earlier for every month end. Subtracting a year from 28 February 2025 gives 28 February 2024, which is not a month end in a leap year, so the date join loses February. LAG with no offset reads the month before, and LAG 12 over month ends that start in December 2024 has no row a year back.",
+  "solver": {
+    "prompt_hash": "6112f7898634604d",
+    "grader_version": "choice.3",
+    "chosen": "ob12e27b",
+    "typed": null,
+    "at": "2026-10-28T16:44:16.495Z"
+  }
+}

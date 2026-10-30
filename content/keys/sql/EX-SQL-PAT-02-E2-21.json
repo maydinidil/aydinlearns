@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-02-E2-21",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per competitor check\n  SELECT product_id, competitor,\n         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor) AS rn\n  FROM competitor_prices\n)\nSELECT competitor, COUNT(*) AS products\nFROM ranked\nWHERE rn = 1\nGROUP BY competitor",
+  "alternatives": [
+    "WITH latest AS (  -- one row per product with a check\n  SELECT product_id, MAX(observed_ts) AS observed_ts\n  FROM competitor_prices\n  GROUP BY product_id\n),\npicks AS (  -- one row per product with a check\n  SELECT cp.product_id, MIN(cp.competitor) AS competitor\n  FROM competitor_prices cp\n  JOIN latest l ON l.product_id = cp.product_id AND l.observed_ts = cp.observed_ts\n  GROUP BY cp.product_id\n)\nSELECT competitor, COUNT(*) AS products\nFROM picks\nGROUP BY competitor",
+    "SELECT t.competitor, COUNT(*) AS products\nFROM (\n  -- one row per competitor check, numbered within its product from the latest\n  SELECT product_id, competitor,\n         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor) AS rn\n  FROM competitor_prices\n) AS t\nWHERE t.rn = 1\nGROUP BY t.competitor"
+  ],
+  "other_way": {
+    "sql": "WITH latest AS (  -- one row per product with a check\n  SELECT product_id, MAX(observed_ts) AS observed_ts\n  FROM competitor_prices\n  GROUP BY product_id\n),\npicks AS (  -- one row per product with a check\n  SELECT cp.product_id, MIN(cp.competitor) AS competitor\n  FROM competitor_prices cp\n  JOIN latest l ON l.product_id = cp.product_id AND l.observed_ts = cp.observed_ts\n  GROUP BY cp.product_id\n)\nSELECT competitor, COUNT(*) AS products\nFROM picks\nGROUP BY competitor",
+    "tradeoff": "The latest time per product, then the first competitor name at it, needs no window but takes two grouping steps."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per competitor check\n  SELECT product_id, competitor,\n         RANK() OVER (PARTITION BY product_id ORDER BY observed_ts DESC) AS rn\n  FROM competitor_prices\n)\nSELECT competitor, COUNT(*) AS products\nFROM ranked\nWHERE rn = 1\nGROUP BY competitor"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH ranked AS (  -- one row per competitor check\n  SELECT product_id, competitor,\n         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price_eur DESC, competitor) AS rn\n  FROM competitor_prices\n)\nSELECT competitor, COUNT(*) AS products\nFROM ranked\nWHERE rn = 1\nGROUP BY competitor"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (  -- one row per competitor check\n  SELECT product_id, competitor,\n         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts, competitor) AS rn\n  FROM competitor_prices\n)\nSELECT competitor, COUNT(*) AS products\nFROM ranked\nWHERE rn = 1\nGROUP BY competitor"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per competitor check\n  SELECT product_id, competitor,\n         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY ___) AS rn\n  FROM competitor_prices\n)\nSELECT competitor, COUNT(*) AS products\nFROM ranked\nWHERE ___\nGROUP BY competitor",
+  "solver": {
+    "prompt_hash": "5dd6856e87133a06",
+    "schema_version": "ffc6be9b2fbc",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH r AS (SELECT product_id, competitor, ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor) AS rn FROM competitor_prices)\nSELECT competitor, COUNT(*) AS products FROM r WHERE rn = 1 GROUP BY competitor\n",
+    "at": "2026-10-28T14:57:01.104Z"
+  }
+}

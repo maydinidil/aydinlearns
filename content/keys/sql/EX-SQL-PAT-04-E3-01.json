@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-04-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH days AS (\n  -- one row per day, 23 February to 31 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n), daily AS (\n  -- one row per day with sales\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.units, 0) AS units\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n), moving AS (\n  -- one row per day, with the 7 days ending that day\n  SELECT day, AVG(units) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d_units\n  FROM filled\n)\nSELECT day, ROUND(avg_7d_units, 2) AS avg_7d_units\nFROM moving\nWHERE day >= DATE '2025-03-01'",
+  "alternatives": [
+    "WITH days AS (\n  -- one row per day, 23 February to 31 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n), daily AS (\n  -- one row per day with sales\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.units, 0) AS units\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n)\nSELECT f.day, ROUND(SUM(p.units) / 7.0, 2) AS avg_7d_units\nFROM filled f\nJOIN filled p ON p.day BETWEEN f.day - 6 AND f.day\nWHERE f.day >= DATE '2025-03-01'\nGROUP BY f.day",
+    "WITH days AS (\n  -- one row per day, 23 February to 31 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n), daily AS (\n  -- one row per day with sales\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.units, 0) AS units\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n), moving AS (\n  -- one row per day, with the 7 days ending that day\n  SELECT day, SUM(units) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) / 7.0 AS avg_7d_units\n  FROM filled\n)\nSELECT day, ROUND(avg_7d_units, 2) AS avg_7d_units\nFROM moving\nWHERE day >= DATE '2025-03-01'"
+  ],
+  "other_way": {
+    "sql": "WITH days AS (\n  -- one row per day, 23 February to 31 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n), daily AS (\n  -- one row per day with sales\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.units, 0) AS units\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n)\nSELECT f.day, ROUND(SUM(p.units) / 7.0, 2) AS avg_7d_units\nFROM filled f\nJOIN filled p ON p.day BETWEEN f.day - 6 AND f.day\nWHERE f.day >= DATE '2025-03-01'\nGROUP BY f.day",
+    "tradeoff": "A self-join on each day's six days before adds the window up by date, but a ROWS frame over a full spine is shorter and faster."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH daily AS (SELECT order_date AS day, SUM(units) AS units FROM sales WHERE order_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31' GROUP BY order_date), moving AS (SELECT day, AVG(units) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d_units FROM daily) SELECT day, ROUND(avg_7d_units, 2) AS avg_7d_units FROM moving WHERE day >= DATE '2025-03-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-43",
+      "sql": "WITH days AS (\n  -- one row per day, 23 February to 31 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n), daily AS (\n  -- one row per day with sales\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.units, 0) AS units\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n), moving AS (\n  -- one row per day, with the 7 days ending that day\n  SELECT day, AVG(units) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d_units\n  FROM filled\n) SELECT day, ROUND(avg_7d_units, 2) AS avg_7d_units FROM moving WHERE day >= DATE '2025-03-01'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH days AS (\n  -- one row per day, 23 February to 31 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n), daily AS (\n  -- one row per day with sales\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, s.units\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n), moving AS (\n  -- one row per day, with the 7 days ending that day\n  SELECT day, AVG(units) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d_units\n  FROM filled\n) SELECT day, ROUND(avg_7d_units, 2) AS avg_7d_units FROM moving WHERE day >= DATE '2025-03-01'"
+    }
+  ],
+  "hint3_partial": "WITH days AS (\n  -- one row per day, 23 February to 31 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n), daily AS (\n  -- one row per day with sales\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-02-23' AND DATE '2025-03-31'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.units, 0) AS units\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n), moving AS (\n  -- one row per day, with the 7 days ending that day\n  SELECT day, AVG(units) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d_units\n  FROM filled\n)\nSELECT day, ROUND(avg_7d_units, 2) AS avg_7d_units\nFROM moving\nWHERE ___",
+  "solver": {
+    "prompt_hash": "202b958b9db12a98",
+    "schema_version": "bfa72b600579",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH days AS (\n  SELECT CAST(d AS DATE) AS day FROM generate_series(DATE '2025-02-22', DATE '2025-03-31', INTERVAL 1 DAY) t(d)\n), u AS (\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-02-22' AND DATE '2025-03-31'\n  GROUP BY order_date\n), w AS (\n  SELECT d.day, AVG(COALESCE(u.units, 0)) OVER (ORDER BY d.day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS a\n  FROM days d LEFT JOIN u ON u.day = d.day\n)\nSELECT day, ROUND(a, 2) AS avg_7d_units\nFROM w\nWHERE day >= DATE '2025-03-01'\n",
+    "at": "2026-10-28T14:57:05.338Z"
+  }
+}

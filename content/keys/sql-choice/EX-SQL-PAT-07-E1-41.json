@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-07-E1-41",
+  "item_version": 1,
+  "correct_oid": "od7cdebd",
+  "explanation": "COUNT(DISTINCT ...) counts each user once per step: users 1, 2 and 3 signed up, and users 1, 2 and 4 sent a campaign, so both are 3. Counting events would give 4 campaign rows, because user 1 has two. The query does not check the step before, so user 4 counts as sending a campaign without a signup; a funnel that needs the step before has to ask for it.",
+  "solver": {
+    "prompt_hash": "fe47bdd615a8e11b",
+    "grader_version": "choice.3",
+    "chosen": "od7cdebd",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.784Z"
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "id": "EX-SQL-PAT-03-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "year_over_year",
+    "self_join",
+    "percent_change",
+    "ad_spend_daily"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-yoy-growth",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each month of 2025 in which Mailvora had ad spend, compare the month's total spend with the same month of 2024. Spend days are UTC days. Return four columns, in this order: month (the first day of the 2025 month), spend_eur, spend_prev_year_eur and growth_pct, the change as a percentage of the 2024 spend (12.5 for 12.5%), rounded to 1 decimal. When the same month of 2024 had no spend, show spend_prev_year_eur and growth_pct as missing. Return one row for each such month of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_prev_year_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "growth_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025 with spend"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "spend_prev_year_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "growth_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each 2025 month to the same month of 2024 and work out the growth over the 2024 spend.",
+    "Find last year by date, not by counting rows back, and divide by the 2024 spend so the earlier year is the base."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 303,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 304,
+      "to": 368,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 369,
+      "to": 444,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 445,
+      "to": 459,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 460,
+      "to": 518,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 519,
+      "to": 553,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 304,
+    "stage2": 304
+  },
+  "faded_shape": "WITH monthly AS (\n  -- one row per month with spend, 2024 and 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n)\n",
+  "faded_suffix": "\nWHERE m.month >= DATE '2025-01-01'",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The join finds the same month of 2024 by date, so a 2024 month with no spend stays missing, and the 2024 spend is the base of the growth."
+}

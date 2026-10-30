@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E3-02",
+  "item_version": 1,
+  "reference_sql": "WITH by_quarter AS (\n  -- one row per signup country in 2025\n  SELECT country_code,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 1) AS q1,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 2) AS q2,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 3) AS q3,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 4) AS q4,\n    COUNT(*) AS total\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code\n)\nSELECT country_code, q1, q2, q3, q4, total,\n  ROUND(100.0 * q4 / total, 1) AS q4_share_pct\nFROM by_quarter",
+  "alternatives": [
+    "SELECT country_code,\n  SUM(CASE WHEN quarter(signup_ts) = 1 THEN 1 ELSE 0 END) AS q1,\n  SUM(CASE WHEN quarter(signup_ts) = 2 THEN 1 ELSE 0 END) AS q2,\n  SUM(CASE WHEN quarter(signup_ts) = 3 THEN 1 ELSE 0 END) AS q3,\n  SUM(CASE WHEN quarter(signup_ts) = 4 THEN 1 ELSE 0 END) AS q4,\n  COUNT(*) AS total,\n  ROUND(100.0 * SUM(CASE WHEN quarter(signup_ts) = 4 THEN 1 ELSE 0 END) / COUNT(*), 1) AS q4_share_pct\nFROM signups\nWHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n  AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY country_code",
+    "WITH by_quarter AS (\n  -- one row per signup country in 2025\n  SELECT country_code,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 1) AS q1,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 2) AS q2,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 3) AS q3,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 4) AS q4,\n    COUNT(*) AS total\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code\n)\nSELECT country_code, q1, q2, q3, q4, q1 + q2 + q3 + q4 AS total,\n  ROUND(q4 * 100.0 / (q1 + q2 + q3 + q4), 1) AS q4_share_pct\nFROM by_quarter"
+  ],
+  "other_way": {
+    "sql": "SELECT country_code,\n  SUM(CASE WHEN quarter(signup_ts) = 1 THEN 1 ELSE 0 END) AS q1,\n  SUM(CASE WHEN quarter(signup_ts) = 2 THEN 1 ELSE 0 END) AS q2,\n  SUM(CASE WHEN quarter(signup_ts) = 3 THEN 1 ELSE 0 END) AS q3,\n  SUM(CASE WHEN quarter(signup_ts) = 4 THEN 1 ELSE 0 END) AS q4,\n  COUNT(*) AS total,\n  ROUND(100.0 * SUM(CASE WHEN quarter(signup_ts) = 4 THEN 1 ELSE 0 END) / COUNT(*), 1) AS q4_share_pct\nFROM signups\nWHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n  AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY country_code",
+    "tradeoff": "One query with CASE sums needs no CTE, but repeats the fourth-quarter count inside the share."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH by_quarter AS (\n  -- one row per signup country in 2025\n  SELECT country_code,\n    SUM(CASE WHEN quarter(signup_ts) = 1 THEN 1 END) AS q1,\n    SUM(CASE WHEN quarter(signup_ts) = 2 THEN 1 END) AS q2,\n    SUM(CASE WHEN quarter(signup_ts) = 3 THEN 1 END) AS q3,\n    SUM(CASE WHEN quarter(signup_ts) = 4 THEN 1 END) AS q4,\n    COUNT(*) AS total\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code\n) SELECT country_code, q1, q2, q3, q4, total, ROUND(100.0 * q4 / total, 1) AS q4_share_pct FROM by_quarter"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH by_quarter AS (\n  -- one row per signup country in 2025\n  SELECT country_code,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 1) AS q1,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 2) AS q2,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 3) AS q3,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 4) AS q4,\n    COUNT(*) AS total\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code\n) SELECT country_code, q1, q2, q3, q4, total, ROUND(1.0 * q4 / total, 1) AS q4_share_pct FROM by_quarter"
+    }
+  ],
+  "hint3_partial": "WITH by_quarter AS (\n  -- one row per signup country in 2025\n  SELECT country_code,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 1) AS q1,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 2) AS q2,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 3) AS q3,\n    COUNT(*) FILTER (WHERE quarter(signup_ts) = 4) AS q4,\n    COUNT(*) AS total\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code\n)\nSELECT country_code, q1, q2, q3, q4, total,\n  ROUND(___, 1) AS q4_share_pct\nFROM by_quarter",
+  "solver": {
+    "prompt_hash": "30adabf6ad11923a",
+    "schema_version": "bbce96780a2f",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH t AS (\n  SELECT country_code,\n    COUNT(*) FILTER (WHERE quarter(signup_ts AT TIME ZONE 'UTC') = 1) AS q1,\n    COUNT(*) FILTER (WHERE quarter(signup_ts AT TIME ZONE 'UTC') = 2) AS q2,\n    COUNT(*) FILTER (WHERE quarter(signup_ts AT TIME ZONE 'UTC') = 3) AS q3,\n    COUNT(*) FILTER (WHERE quarter(signup_ts AT TIME ZONE 'UTC') = 4) AS q4,\n    COUNT(*) AS total\n  FROM signups\n  WHERE (signup_ts AT TIME ZONE 'UTC') >= TIMESTAMP '2025-01-01 00:00:00'\n    AND (signup_ts AT TIME ZONE 'UTC') < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY country_code\n)\nSELECT country_code, q1, q2, q3, q4, total, ROUND(100.0 * q4 / total, 1) AS q4_share_pct\nFROM t\n",
+    "at": "2026-10-28T14:57:06.490Z"
+  }
+}

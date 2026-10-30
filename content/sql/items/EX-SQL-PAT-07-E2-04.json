@@ -1,0 +1,222 @@
+{
+  "id": "EX-SQL-PAT-07-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "ordered_funnel",
+    "overall_rate",
+    "app_events",
+    "segment"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-ordered-by-segment",
+  "template_params": {
+    "funnel": "upload, match, export",
+    "period": "2025-10 to 2025-12",
+    "by": "segment",
+    "order": "each step at or after the step before"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How does the month-end close funnel in the app convert in each account segment, over all the app events (October to December 2025)? A user starts the funnel at the user's first upload_statement event. The user counts as matched with a match_transaction event at or after that first upload, and as exported with an export_report event at or after the first such match; an event before the step before does not count. A user belongs to the segment of the account of the user's app events. Return five columns, in this order: segment, uploaded, matched, exported (each a number of users) and overall_rate, exported over uploaded, as a fraction between 0 and 1. Return one row for each segment with a user who uploaded a statement. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "uploaded",
+        "type_class": "numeric"
+      },
+      {
+        "name": "matched",
+        "type_class": "numeric"
+      },
+      {
+        "name": "exported",
+        "type_class": "numeric"
+      },
+      {
+        "name": "overall_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "uploaded",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "matched",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "exported",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "overall_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find the users who did each step in order: the first upload, a match at or after it, then an export at or after that match.",
+    "Join the three lists to the uploaders with outer joins and to their segment; the overall rate divides the last step by the top of the funnel."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 81,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 84,
+      "to": 126,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 129,
+      "to": 144,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 184,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 187,
+      "to": 203,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 207,
+      "to": 317,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 320,
+      "to": 365,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 368,
+      "to": 498,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 501,
+      "to": 519,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 523,
+      "to": 596,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 599,
+      "to": 624,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 627,
+      "to": 752,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 756,
+      "to": 829,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 832,
+      "to": 868,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 871,
+      "to": 937,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 940,
+      "to": 1116,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1117,
+      "to": 1242,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1243,
+      "to": 1261,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Each step keeps only users who did it at or after the step before, and the overall rate divides the exporters by everyone who uploaded."
+}

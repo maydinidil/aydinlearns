@@ -15,6 +15,9 @@ import duckdb
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from datasets import REAL_DIR  # noqa: E402
 from datasets import notes as real_notes  # noqa: E402
+from ledgerloop import generate as ll  # noqa: E402
+from ledgerloop import notes as ll_notes  # noqa: E402
+from ledgerloop import raw as ll_raw  # noqa: E402
 from mailvora import generate as mv  # noqa: E402
 from mailvora import notes as mv_notes  # noqa: E402
 from mailvora import raw as mv_raw  # noqa: E402
@@ -37,17 +40,22 @@ RAW_SCHEMA = "voltmarkt_raw"                             # sprint 6 (S6-02): ddl
 MAILVORA_DDL = ROOT / "pipeline" / "mailvora" / "ddl.sql"
 MAILVORA_SCHEMA = "mailvora"
 MAILVORA_RAW_SCHEMA = "mailvora_raw"
-# The schemas the manifest covers, in this order: Voltmarkt's (its edge schemas included), then Mailvora's, then every other schema
-# the build makes from its own rows (P38: the real datasets' edge schemas). A prepared real dataset goes in the manifest's `real`
-# section instead, outside dataset_version (S6-23).
-MANIFEST_PREFIXES = ("voltmarkt", "mailvora")
+# Sprint 8 (S8-01): LedgerLoop's clean schema and its raw schema (pipeline/ledgerloop/ddl.sql's {schema}_raw).
+LEDGERLOOP_DDL = ROOT / "pipeline" / "ledgerloop" / "ddl.sql"
+LEDGERLOOP_SCHEMA = "ledgerloop"
+LEDGERLOOP_RAW_SCHEMA = "ledgerloop_raw"
+# The schemas the manifest covers, in this order: Voltmarkt's (its edge schemas included), then Mailvora's, then LedgerLoop's, then
+# every other schema the build makes from its own rows (P38: the registry datasets' edge schemas, S8-16's olist_edge and
+# maven_toy_store_edge included). A prepared dataset goes in the manifest's `real` section instead, outside dataset_version (S6-23).
+MANIFEST_PREFIXES = ("voltmarkt", "mailvora", "ledgerloop")
 # Sprint 6 Part 2 (S6-21, S6-23): the dataset registry, and where the prep wrote each prepared dataset (data/real/<schema>/).
 REGISTRY = ROOT / "content" / "datasets" / "registry.json"
 # S6-04: an edge schema mirrors its company's clean schema unless named here. Each one here mirrors a raw schema, which has no
 # view, so it gets none of the clean schema's views: voltmarkt_edge_clean mirrors voltmarkt_raw, and mailvora_edge_clean (sprint 7
-# Part 2, Task G1, S7-15: the take-home on raw Mailvora data) mirrors mailvora_raw. Mailvora has no view, so for
-# mailvora_edge_clean the entry only records what it mirrors.
-RAW_EDGE_SCHEMAS = ("voltmarkt_edge_clean", "mailvora_edge_clean")
+# Part 2, Task G1, S7-15: the take-home on raw Mailvora data) mirrors mailvora_raw, and ledgerloop_edge_clean (sprint 8, S8-C14: the
+# raw-data items on ledgerloop_raw) mirrors ledgerloop_raw. Mailvora's and LedgerLoop's raw schemas have no view, so for their
+# entries this only records what they mirror (LedgerLoop's one view, mrr_monthly, is built by its own step below, S8-C28).
+RAW_EDGE_SCHEMAS = ("voltmarkt_edge_clean", "mailvora_edge_clean", "ledgerloop_edge_clean")
 # Ruling R17: DuckDB must never download an extension. TimeZone is SET after opening, because a
 # TimeZone given at creation is rejected once autoloading is off.
 NO_NETWORK = {"autoinstall_known_extensions": False, "autoload_known_extensions": False}
@@ -119,8 +127,12 @@ GROUP BY product_id, isoyear(observed_ts), week(observed_ts)"""
 # Built here, like competitor_price_weekly, because ddl.sql's views go to every edge schema that mirrors voltmarkt, the level 1
 # to 3 ones included. A week is the Monday of the order's UTC date, as the sales view's order_week; the ISO year and week come from
 # the calendar. The one number in the body is the 0 of the zero-fill, which holds no data. Sprint 7 (S7-25): the level 5 window edge
-# schema mirrors voltmarkt too, and the panel shows its items weekly_units, so it has the view as well.
-WEEKLY_UNITS_SCHEMAS = ("voltmarkt", "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo", "voltmarkt_edge_win")
+# schema mirrors voltmarkt too, and the panel shows its items weekly_units, so it has the view as well; so does the level 6 one
+# (sprint 8, S8-07). Sprint 8's other three level 6 edge schemas, mailvora_edge_pat, ledgerloop_edge_saas and ledgerloop_edge_clean
+# (S8-C14, in RAW_EDGE_SCHEMAS), mirror schemas with no view: the manifest covers them through MANIFEST_PREFIXES, and like every edge
+# schema they get no table notes.
+WEEKLY_UNITS_SCHEMAS = ("voltmarkt", "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo", "voltmarkt_edge_win",
+                        "voltmarkt_edge_pat")
 WEEKLY_UNITS_SQL = """CREATE VIEW {schema}.weekly_units AS
 SELECT
     p.product_id,
@@ -138,6 +150,32 @@ LEFT JOIN (
     JOIN {schema}.orders AS o ON o.order_id = ol.order_id
     GROUP BY ol.product_id, CAST(date_trunc('week', o.order_ts) AS DATE)
 ) AS s ON s.product_id = p.product_id AND s.week_start = w.week_start"""
+
+# Sprint 8 Part 2 (S8-C28, E-215): LedgerLoop's mrr_monthly, one row per account and calendar month in which the account's MRR in force
+# on the month's last day (E-208: the sum of its subscription events' mrr_delta_local up to that day, opening events included) is above
+# 0, in euros, each currency at its last fx_rates rate (E-210, E-211: one fixed date's rate, so a bridge adds up), rounded to the cent.
+# Built here like the Voltmarkt views, in ledgerloop and in ledgerloop_edge_saas over that schema's own tables; not in ledgerloop_raw,
+# as the cases read the clean schema. No date or currency literal is allowed in a view body (design §10), so the months are fx_rates'
+# months and the rate its last row per currency: fx_rates holds every day of the data window, 2024-01-01 to 2025-12-31, so they are
+# E-215's 24 months and its 2025-12-31 rate (pipeline/tests/test_ledgerloop.py and test_edge_pat.py check them against E-215's dates),
+# and EUR's rate is 1. Its numbers are mrr_eur's type, DECIMAL(12,2), and the 0 the MRR must exceed; none holds data. Task E1 (S8-C39):
+# ledgerloop_edge_cases, the edge schema of the six LedgerLoop inbox cases, gets it too, over its own tables.
+MRR_MONTHLY_SCHEMAS = (LEDGERLOOP_SCHEMA, "ledgerloop_edge_saas", "ledgerloop_edge_cases")
+MRR_MONTHLY_SQL = """CREATE VIEW {schema}.mrr_monthly AS
+SELECT
+    e.account_id,
+    m.month,
+    CAST(sum(e.mrr_delta_local * r.eur_per_unit) AS DECIMAL(12,2)) AS mrr_eur
+FROM (SELECT DISTINCT CAST(date_trunc('month', rate_date) AS DATE) AS month FROM {schema}.fx_rates) AS m
+JOIN {schema}.subscription_events AS e ON e.event_date <= last_day(m.month)
+JOIN {schema}.subscriptions AS s ON s.subscription_id = e.subscription_id
+JOIN (
+    SELECT f.currency, f.eur_per_unit
+    FROM {schema}.fx_rates AS f
+    WHERE f.rate_date = (SELECT max(g.rate_date) FROM {schema}.fx_rates AS g WHERE g.currency = f.currency)
+) AS r ON r.currency = s.currency
+GROUP BY e.account_id, m.month
+HAVING sum(e.mrr_delta_local * r.eur_per_unit) > 0"""
 
 
 # S4B-02: the checkpoints whose value the build computes, in the order the truth file lists them.
@@ -342,6 +380,10 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
     # Sprint 6 Part 2 (S6-20): Mailvora from its own seed and streams; its validation fails the build (GEN-01).
     mv_tables, mv_truth = mv.generate()
     mv_truth["findings"] = mv.validate(mv_tables, mv_truth)
+    # Sprint 8 (S8-01): LedgerLoop from its own seed and streams; its validation (FIND-02-01 to -15, Q-02-01 to -07, S8-02 to
+    # S8-06's rules) fails the build (GEN-01).
+    ll_tables, ll_truth = ll.generate()
+    ll_truth["findings"] = ll.validate(ll_tables, ll_truth)
 
     con = duckdb.connect(str(tmp), config=NO_NETWORK)
     con.execute("SET TimeZone = 'UTC'")
@@ -360,6 +402,11 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
         con.register("src", tables["clean"][name])
         con.execute(f"INSERT INTO voltmarkt.{name} SELECT * FROM src")
         con.unregister("src")
+    # Sprint 8 Part 2 (S8-15, E-212): chain-wide daily stock after cost_history, before the edge file that copies its columns.
+    for name in vm.INVENTORY_TABLES:
+        con.register("src", tables["clean"][name])
+        con.execute(f"INSERT INTO voltmarkt.{name} SELECT * FROM src")
+        con.unregister("src")
     for name in vm_raw.RAW_TABLES:
         con.register("src", tables["raw"][name])
         con.execute(f"INSERT INTO {RAW_SCHEMA}.{name} SELECT * FROM src")
@@ -369,6 +416,13 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
     for schema, source, names in ((MAILVORA_SCHEMA, mv_tables["clean"], mv.CLEAN_TABLES),
                                   (MAILVORA_RAW_SCHEMA, mv_tables["raw"], mv_raw.RAW_TABLES)):
         for name in names:
+            con.register("src", source[name])
+            con.execute(f"INSERT INTO {schema}.{name} SELECT * FROM src")
+            con.unregister("src")
+    # Sprint 8 (S8-01): ledgerloop and ledgerloop_raw, before the edge files, as the level 6 edge schema copies their columns.
+    con.execute(LEDGERLOOP_DDL.read_text(encoding="utf-8").replace("{schema}", LEDGERLOOP_SCHEMA))
+    for schema, source in ((LEDGERLOOP_SCHEMA, ll_tables["clean"]), (LEDGERLOOP_RAW_SCHEMA, ll_tables["raw"])):
+        for name in ll.CLEAN_TABLES:
             con.register("src", source[name])
             con.execute(f"INSERT INTO {schema}.{name} SELECT * FROM src")
             con.unregister("src")
@@ -391,6 +445,9 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
         con.execute(COMPETITOR_WEEKLY_SQL.replace("{schema}", schema))
     for schema in WEEKLY_UNITS_SCHEMAS:
         apply_view(con, schema, WEEKLY_UNITS_SQL.replace("{schema}", schema))
+    # Sprint 8 Part 2 (S8-C28, E-215; S8-C39): LedgerLoop's mrr_monthly, in ledgerloop and its two edge schemas, each over its own tables.
+    for schema in MRR_MONTHLY_SCHEMAS:
+        con.execute(MRR_MONTHLY_SQL.replace("{schema}", schema))
     # S6-23: each prepared dataset in its own schema, before the case truths, so a real-data case's truths run once it is prepared.
     import_prepared(con, prepared)
 
@@ -402,7 +459,7 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
     meta = {}
     schemas = [s for prefix in MANIFEST_PREFIXES for (s,) in con.execute(
         "SELECT schema_name FROM information_schema.schemata WHERE starts_with(schema_name, ?) ORDER BY 1", [prefix]).fetchall()]
-    # P38: every other schema made from the build's own rows (the real datasets' edge schemas); never a prepared dataset.
+    # P38: every other schema made from the build's own rows (the registry datasets' edge schemas); never a prepared dataset.
     prepared_names = {p.schema for p in prepared}
     schemas += [s for s in built_schemas(con) if s not in schemas and s not in prepared_names]
     for s in schemas:
@@ -422,7 +479,9 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
               for s in WEEKLY_UNITS_SCHEMAS if s != "voltmarkt"]
     notes += vm_notes.raw_notes(con, RAW_SCHEMA, vm_raw.RAW_TABLES)
     notes += mv_notes.schema_notes(con, MAILVORA_SCHEMA) + mv_notes.raw_notes(con, MAILVORA_RAW_SCHEMA, mv_raw.RAW_TABLES)
-    # S6-23: the real datasets' edge schemas (always built), then each prepared dataset with its registry label.
+    notes += (ll_notes.schema_notes(con, LEDGERLOOP_SCHEMA) + ll_notes.view_notes(con, LEDGERLOOP_SCHEMA)          # S8-01, S8-C28
+              + ll_notes.raw_notes(con, LEDGERLOOP_RAW_SCHEMA, ll_raw.RAW_TABLES))
+    # S6-23: the registry datasets' edge schemas (always built, S8-16), then each prepared dataset with its registry label.
     notes += real_notes.edge_notes(con, registry, set(built_schemas(con)))
     notes += [n for p in prepared for n in real_notes.dataset_notes(con, p.record, p.schema, list(p.tables))]
     real = real_section(con, prepared)
@@ -443,6 +502,7 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
     (data_dir / "schema-notes.json").write_text(json.dumps(notes, indent=2, ensure_ascii=False), encoding="utf-8")
     (data_dir / "truth" / "voltmarkt.json").write_text(json.dumps(truth, indent=2), encoding="utf-8")
     (data_dir / "truth" / "mailvora.json").write_text(json.dumps(mv_truth, indent=2), encoding="utf-8")   # OD-GEN-01, E-091
+    (data_dir / "truth" / "ledgerloop.json").write_text(json.dumps(ll_truth, indent=2), encoding="utf-8")   # S8-01, OD-GEN-01
     (data_dir / "truth" / "checkpoints.json").write_text(json.dumps(checkpoints, indent=2), encoding="utf-8")
     return manifest
 

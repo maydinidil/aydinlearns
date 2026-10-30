@@ -1,0 +1,163 @@
+{
+  "id": "EX-SQL-PAT-05-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "ad_spend_daily",
+    "quarter"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-channel-by-quarter",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "columns": "quarter"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each Mailvora channel (channel_name) with ad spend in 2025, how much did it spend in each quarter of 2025? Spend days are UTC days. Return five columns, in this order: channel_name, q1_eur, q2_eur, q3_eur and q4_eur. A quarter with no spend shows 0. Return one row for each channel with spend in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text"
+      },
+      {
+        "name": "q1_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q2_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q3_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q4_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "q1_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "q2_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "q3_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "q4_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the spend to its channel and add it up per channel in one column per quarter.",
+    "Group by the channel only, so each channel is one row; a quarter without spend needs ELSE 0 to show 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 23,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 24,
+      "to": 334,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 335,
+      "to": 356,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 357,
+      "to": 406,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 407,
+      "to": 455,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 456,
+      "to": 522,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 523,
+      "to": 547,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "One conditional sum per quarter turns the quarters into columns on one row per channel, with 0 in a quarter that had no spend."
+}

@@ -1,0 +1,184 @@
+{
+  "id": "EX-SQL-PAT-10-E3-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "nrr",
+    "grr",
+    "fx"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-nrr-grr",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025,
+    "fx_date": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The board asks for 2025's net and gross revenue retention. Take the accounts with MRR above 0 on 31 December 2024. MRR comes from subscription_events: a subscription's MRR on a date is the sum of its mrr_delta_local with event_date on or before that date, in its subscriptions.currency. An account's MRR is the sum over its subscriptions, opening events included. Net revenue retention (NRR) is their total MRR on 31 December 2025 as a percentage of their total MRR on 31 December 2024; gross revenue retention (GRR) is the same but counts each account's 2025 MRR at most up to its 2024 MRR, so expansion cannot lift it. An account that churned counts 0 in 2025. Convert both dates' MRR at one fixed rate, that of 31 December 2025 (fx_rates.eur_per_unit for the subscription's currency on 2025-12-31). Give both as percentages rounded to 1 decimal with ROUND (101.5 for 101.5%). Return two columns, in this order: nrr_pct and grr_pct. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "nrr_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "grr_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "nrr_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "grr_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, work out each account's MRR on both dates at the fixed rate, then keep the accounts above 0 at the end of 2024.",
+    "GRR caps each account's 2025 MRR at its 2024 MRR before summing; a churned account's missing 2025 balance is 0."
+  ],
+  "subgoals": [
+    {
+      "from": 78,
+      "to": 147,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 148,
+      "to": 176,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 177,
+      "to": 240,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 241,
+      "to": 321,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 322,
+      "to": 363,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 364,
+      "to": 387,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 462,
+      "to": 531,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 532,
+      "to": 560,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 561,
+      "to": 624,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 625,
+      "to": 705,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 706,
+      "to": 747,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 748,
+      "to": 771,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 774,
+      "to": 847,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 848,
+      "to": 929,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 930,
+      "to": 946,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 998,
+      "to": 1013,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Following one cohort from a year-end balance, at one fixed rate, shows how much of its MRR stayed and grew without new accounts."
+}

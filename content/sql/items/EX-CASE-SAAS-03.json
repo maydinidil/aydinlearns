@@ -1,0 +1,266 @@
+{
+  "id": "EX-CASE-SAAS-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "case",
+    "inbox",
+    "saas",
+    "mrr_bridge",
+    "mrr_movements",
+    "reactivation",
+    "mrr_monthly",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "04:CASE-SAAS-03",
+    "ERRATA:E-215",
+    "ERRATA:E-216"
+  ],
+  "verified": true,
+  "as_of": "2026-10-29",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-04",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-CASE-SAAS-03-mrr-bridge",
+  "template_params": {
+    "quarter": "2025-Q3",
+    "grain": "month",
+    "new_from": "subscription_events new",
+    "source": "mrr_monthly"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_cases",
+  "prompt": "Griet, the revenue operations lead, needs the MRR bridge for July, August and September 2025 for the board deck: the sales team booked more new and expansion MRR than LedgerLoop's MRR grew, and the board asks where the difference went. Use mrr_monthly: one row per account and month, with the account's MRR in euros on the month's last day, all at one fixed rate; an account with no row in a month had 0 MRR then. For each month, compare each account's MRR at the end of the month with its MRR at the end of the month before. An account with 0 before and MRR now brings all of its MRR now as new_mrr when its first subscription started that month, which is when it has a subscription event with event_type new dated in that month, and as reactivation_mrr otherwise, as an account coming back. An account with MRR in both months brings the rise as expansion_mrr, or the fall as contraction_mrr. An account with MRR before and 0 now brings all of its MRR before as churn_mrr. contraction_mrr and churn_mrr carry a minus sign, so starting_mrr plus the five movements equals ending_mrr to the cent. Return one row for each month from July to September 2025, with eight columns in this order: month, the first day of the month; starting_mrr, the total MRR at the end of the month before; new_mrr; expansion_mrr; reactivation_mrr; contraction_mrr; churn_mrr; and ending_mrr, the total MRR at the end of the month. All amounts are in euros, not rounded, and a movement no account made shows 0. Sort by month from oldest to newest.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "starting_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churn_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ending_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "starting_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "churn_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "ending_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give every account a row for each month from June to September 2025, with 0 where it had no MRR, and put each month's MRR beside the month before's.",
+    "Sort each account and month into one movement with conditions on the two MRR values, and look for a new event in that month to tell a first subscription from a comeback."
+  ],
+  "subgoals": [
+    {
+      "from": 104,
+      "to": 125,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 128,
+      "to": 144,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 214,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 326,
+      "to": 352,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 355,
+      "to": 371,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 374,
+      "to": 441,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 526,
+      "to": 603,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 606,
+      "to": 748,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 848,
+      "to": 974,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 977,
+      "to": 988,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1087,
+      "to": 1178,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1181,
+      "to": 1205,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1208,
+      "to": 1232,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1235,
+      "to": 1912,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1913,
+      "to": 2015,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2016,
+      "to": 2050,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 2051,
+      "to": 2067,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 2068,
+      "to": 2084,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "A row for every account and month shows a churned account as 0 instead of losing it, and the new event tells a first subscription from a comeback, so the bridge adds up."
+}

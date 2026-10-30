@@ -84,7 +84,22 @@ class Edge7d(unittest.TestCase):
     def test_only_the_planted_tables_move(self):
         self.assertEqual(len(BEFORE_SPRINT7D), 253)
         built = self.manifest["tables"]
-        self.assertEqual(sorted(set(built) ^ set(BEFORE_SPRINT7D)), [], "K2 adds and drops no table or view")
+        # Sprint 8 (Task L1, S8-01): since K2 the build also holds LedgerLoop's clean and raw schemas, and (Task A2, S8-07, S8-C14) the
+        # four level 6 edge schemas, whose objects pipeline/tests/test_edge_pat.py holds; K2 itself adds and drops nothing.
+        # Sprint 8 Part 2 (Task V1, S8-C31) adds voltmarkt's inventory_chain_daily and ledgerloop's mrr_monthly, each with its level 6
+        # edge copy; pipeline/tests/test_edge_pat.py holds them.
+        ledgerloop = sorted(f"{s}.{t}" for s in ("ledgerloop", "ledgerloop_raw") for t in build_course_db.ll.CLEAN_TABLES)
+        part2 = ["voltmarkt.inventory_chain_daily", "ledgerloop.mrr_monthly"]
+        level6 = sorted(n for n in built if n.split(".")[0] in ("voltmarkt_edge_pat", "mailvora_edge_pat", "ledgerloop_edge_saas",
+                                                                   "ledgerloop_edge_clean"))
+        self.assertEqual(len(level6), 17 + 11 + 17 + 16, "voltmarkt's 14 tables and 3 views, Mailvora's 11, LedgerLoop's 16 tables and "
+                                                         "1 view, and ledgerloop_raw's 16")
+        # Task D1 (S8-16): the two dataset edge schemas, olist_edge and maven_toy_store_edge, are held by pipeline/tests/test_datasets.py.
+        # Task E1 (S8-C39): ledgerloop_edge_cases, the six LedgerLoop inbox cases' edge schema, is held by pipeline/tests/test_edge_cases.py.
+        datasets = {"olist_edge", "maven_toy_store_edge"}
+        cases = {"ledgerloop_edge_cases"}
+        changed = sorted(n for n in set(built) ^ set(BEFORE_SPRINT7D) if n.split(".")[0] not in datasets | cases)
+        self.assertEqual(changed, sorted(ledgerloop + part2 + level6), "K2 adds and drops no table or view")
         moved = sorted(name for name, entry in BEFORE_SPRINT7D.items() if built[name] != entry)
         self.assertEqual(moved, sorted([*PLANTED, *FOLLOWS]), "objects whose rows or hash changed")
         for name, rows in PLANTED.items():

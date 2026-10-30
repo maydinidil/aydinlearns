@@ -1,0 +1,84 @@
+{
+  "schema": "ledgerloop_edge_saas",
+  "mirrors": "ledgerloop",
+  "family": "saas",
+  "contains": [
+    "accounts created before 2024 that start with an opening event on 1 January 2024",
+    "a contraction on a renewal day in three accounts: a dropped add-on, and seat cuts on a GBP plan and on an annual plan",
+    "an account that churns in August 2024 and comes back in January 2025 on a new subscription, as a reactivation",
+    "annual plans that renew in March and in June, each billing twelve months of its MRR",
+    "subscriptions that bill in GBP and in CHF beside EUR",
+    "a tie for first place on MRR on 31 December 2025 within two segments, for second place within a third, and for third place within one",
+    "two events of one subscription recorded at the same moment, a price rise and a contraction",
+    "two leads with the same email created at the same moment",
+    "new accounts in only 9 of the 24 months",
+    "accounts created in November and December 2025, so their later months come after the as-of date",
+    "a user who exports a report without ever uploading a statement, and one who matches a transaction before uploading one",
+    "a user with app events 35 minutes apart across the clock change of 26 October 2025, which look 25 minutes backwards in Brussels time",
+    "two app events of one user exactly 30 minutes apart on 4 November 2025",
+    "two app events of another user exactly 30 minutes apart on 26 October 2025",
+    "two app events of a third user exactly 30 minutes apart on 5 December 2025",
+    "a user with app events at 21:50 and 22:10 UTC on 19 October 2025, one session across midnight in Brussels time into 20 October",
+    "a user whose session starts at 22:30 UTC on 24 October 2025, which is already 25 October in Brussels time",
+    "a user whose first statement upload is at 23:30 UTC on 31 October 2025, which is already 1 November in Brussels time",
+    "a user with app events at 23:50 UTC on 30 November 2025 and 00:10 UTC on 1 December, one session across midnight that starts on 1 December in Brussels time",
+    "a user with app events on 1, 2 and 4 December 2025 but not the 3rd"
+  ],
+  "tables": {
+    "accounts": [
+      "accounts created before 2024 that start with an opening event on 1 January 2024",
+      "an account that churns in August 2024 and comes back in January 2025 on a new subscription, as a reactivation",
+      "a tie for first place on MRR on 31 December 2025 within two segments, for second place within a third, and for third place within one",
+      "new accounts in only 9 of the 24 months",
+      "accounts created in November and December 2025, so their later months come after the as-of date"
+    ],
+    "subscriptions": [
+      "accounts created before 2024 that start with an opening event on 1 January 2024",
+      "an account that churns in August 2024 and comes back in January 2025 on a new subscription, as a reactivation",
+      "annual plans that renew in March and in June, each billing twelve months of its MRR",
+      "subscriptions that bill in GBP and in CHF beside EUR",
+      "a tie for first place on MRR on 31 December 2025 within two segments, for second place within a third, and for third place within one"
+    ],
+    "subscription_events": [
+      "accounts created before 2024 that start with an opening event on 1 January 2024",
+      "a contraction on a renewal day in three accounts: a dropped add-on, and seat cuts on a GBP plan and on an annual plan",
+      "an account that churns in August 2024 and comes back in January 2025 on a new subscription, as a reactivation",
+      "annual plans that renew in March and in June, each billing twelve months of its MRR",
+      "a tie for first place on MRR on 31 December 2025 within two segments, for second place within a third, and for third place within one",
+      "two events of one subscription recorded at the same moment, a price rise and a contraction",
+      "new accounts in only 9 of the 24 months",
+      "accounts created in November and December 2025, so their later months come after the as-of date"
+    ],
+    "invoices": [
+      "an account that churns in August 2024 and comes back in January 2025 on a new subscription, as a reactivation",
+      "annual plans that renew in March and in June, each billing twelve months of its MRR",
+      "subscriptions that bill in GBP and in CHF beside EUR"
+    ],
+    "usage_weekly": [
+      "an account that churns in August 2024 and comes back in January 2025 on a new subscription, as a reactivation"
+    ],
+    "fx_rates": [
+      "subscriptions that bill in GBP and in CHF beside EUR",
+      "a tie for first place on MRR on 31 December 2025 within two segments, for second place within a third, and for third place within one"
+    ],
+    "leads": [
+      "two leads with the same email created at the same moment"
+    ],
+    "users": [
+      "a user who exports a report without ever uploading a statement, and one who matches a transaction before uploading one",
+      "a user with app events on 1, 2 and 4 December 2025 but not the 3rd"
+    ],
+    "app_events": [
+      "a user who exports a report without ever uploading a statement, and one who matches a transaction before uploading one",
+      "a user with app events 35 minutes apart across the clock change of 26 October 2025, which look 25 minutes backwards in Brussels time",
+      "two app events of one user exactly 30 minutes apart on 4 November 2025",
+      "two app events of another user exactly 30 minutes apart on 26 October 2025",
+      "two app events of a third user exactly 30 minutes apart on 5 December 2025",
+      "a user with app events at 21:50 and 22:10 UTC on 19 October 2025, one session across midnight in Brussels time into 20 October",
+      "a user whose session starts at 22:30 UTC on 24 October 2025, which is already 25 October in Brussels time",
+      "a user whose first statement upload is at 23:30 UTC on 31 October 2025, which is already 1 November in Brussels time",
+      "a user with app events at 23:50 UTC on 30 November 2025 and 00:10 UTC on 1 December, one session across midnight that starts on 1 December in Brussels time",
+      "a user with app events on 1, 2 and 4 December 2025 but not the 3rd"
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E2-02",
+  "item_version": 1,
+  "reference_sql": "WITH monthly AS (\n  -- one row per month with spend, 2024 and 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n)\nSELECT m.month, m.spend_eur, p.spend_eur AS spend_prev_year_eur,\n  ROUND(100.0 * (m.spend_eur - p.spend_eur) / p.spend_eur, 1) AS growth_pct\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR\nWHERE m.month >= DATE '2025-01-01'",
+  "alternatives": [
+    "WITH monthly AS (\n  -- one row per month with spend, 2024 and 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n), compared AS (\n  -- one row per month with spend, with the same month a year before\n  SELECT m.month, m.spend_eur, p.spend_eur AS spend_prev_year_eur\n  FROM monthly m\n  LEFT JOIN monthly p ON year(p.month) = year(m.month) - 1 AND month(p.month) = month(m.month)\n)\nSELECT month, spend_eur, spend_prev_year_eur,\n  ROUND(100.0 * (spend_eur - spend_prev_year_eur) / spend_prev_year_eur, 1) AS growth_pct\nFROM compared\nWHERE month >= DATE '2025-01-01'",
+    "WITH monthly AS (\n  -- one row per month with spend, 2024 and 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n)\nSELECT m.month, m.spend_eur, p.spend_eur AS spend_prev_year_eur,\n  ROUND(100.0 * m.spend_eur / p.spend_eur - 100, 1) AS growth_pct\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR\nWHERE m.month >= DATE '2025-01-01'"
+  ],
+  "other_way": {
+    "sql": "WITH monthly AS (\n  -- one row per month with spend, 2024 and 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n), compared AS (\n  -- one row per month with spend, with the same month a year before\n  SELECT m.month, m.spend_eur, p.spend_eur AS spend_prev_year_eur\n  FROM monthly m\n  LEFT JOIN monthly p ON year(p.month) = year(m.month) - 1 AND month(p.month) = month(m.month)\n)\nSELECT month, spend_eur, spend_prev_year_eur,\n  ROUND(100.0 * (spend_eur - spend_prev_year_eur) / spend_prev_year_eur, 1) AS growth_pct\nFROM compared\nWHERE month >= DATE '2025-01-01'",
+    "tradeoff": "Matching on year and month number works on engines with weaker date maths, but the INTERVAL join reads as one date step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH monthly AS (\n  -- one row per month with spend, 2024 and 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n), compared AS (SELECT month, spend_eur, LAG(spend_eur, 12) OVER (ORDER BY month) AS spend_prev_year_eur FROM monthly) SELECT month, spend_eur, spend_prev_year_eur, ROUND(100.0 * (spend_eur - spend_prev_year_eur) / spend_prev_year_eur, 1) AS growth_pct FROM compared WHERE month >= DATE '2025-01-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH monthly AS (\n  -- one row per month with spend, 2024 and 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n) SELECT m.month, m.spend_eur, p.spend_eur AS spend_prev_year_eur, ROUND(100.0 * (m.spend_eur - p.spend_eur) / m.spend_eur, 1) AS growth_pct FROM monthly m LEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR WHERE m.month >= DATE '2025-01-01'"
+    }
+  ],
+  "hint3_partial": "WITH monthly AS (\n  -- one row per month with spend, 2024 and 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n)\nSELECT m.month, m.spend_eur, p.spend_eur AS spend_prev_year_eur,\n  ROUND(100.0 * (m.spend_eur - p.spend_eur) / ___, 1) AS growth_pct\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR\nWHERE m.month >= DATE '2025-01-01'",
+  "solver": {
+    "prompt_hash": "2e143ca95c89a390",
+    "schema_version": "9292abbb642a",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH m AS (\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY 1\n)\nSELECT cur.month, cur.spend_eur, prev.spend_eur AS spend_prev_year_eur,\n  ROUND(100.0 * (cur.spend_eur - prev.spend_eur) / prev.spend_eur, 1) AS growth_pct\nFROM m cur\nLEFT JOIN m prev ON prev.month = CAST(cur.month - INTERVAL 1 YEAR AS DATE)\nWHERE cur.month >= DATE '2025-01-01'\n",
+    "at": "2026-10-28T14:57:02.482Z"
+  }
+}

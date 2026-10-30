@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-PAT-07-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "funnel",
+    "count_distinct"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-predict-users-per-step",
+  "template_params": {
+    "rows": 7
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Which result does this query return? Each row is one event: a user and the step the event belongs to.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT COUNT(DISTINCT CASE WHEN step = 'signup' THEN user_id END) AS signed_up,\n       COUNT(DISTINCT CASE WHEN step = 'campaign' THEN user_id END) AS sent_campaign\nFROM (VALUES (1, 'signup'), (1, 'campaign'), (1, 'campaign'),\n             (2, 'signup'), (2, 'campaign'),\n             (3, 'signup'),\n             (4, 'campaign')) AS t(user_id, step)",
+  "options": [
+    {
+      "oid": "od7cdebd",
+      "text": "3 signed up and 3 sent a campaign",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "signed_up",
+          "sent_campaign"
+        ],
+        "rows": [
+          [
+            3,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oa26e991",
+      "text": "3 signed up and 4 sent a campaign",
+      "misconception_id": "ERR-LOG-04",
+      "table": {
+        "columns": [
+          "signed_up",
+          "sent_campaign"
+        ],
+        "rows": [
+          [
+            3,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ofa7da2c",
+      "text": "3 signed up and 2 sent a campaign",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "signed_up",
+          "sent_campaign"
+        ],
+        "rows": [
+          [
+            3,
+            2
+          ]
+        ]
+      }
+    }
+  ]
+}

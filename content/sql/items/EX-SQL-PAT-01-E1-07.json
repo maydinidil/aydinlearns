@@ -1,0 +1,167 @@
+{
+  "id": "EX-SQL-PAT-01-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "top_n_per_group",
+    "row_number",
+    "tie_break",
+    "ad_spend_daily"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-PAT-01"
+  ],
+  "template_id": "T-PAT-01-top-n-per-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "n": 3,
+    "measure": "clicks 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Which 3 campaigns of each channel got the most clicks in 2025? Use the ad_spend_daily rows whose spend_date, a UTC day, falls in 2025. Keep exactly 3 campaigns per channel, or every campaign when a channel has fewer than 3 with spend. When campaigns of a channel tie on clicks, the lower campaign_id comes first. Return three columns, in this order: channel_name, campaign_id and clicks, the campaign's 2025 clicks. Return one row for each campaign kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each campaign's 2025 clicks with its channel, then number the campaigns of each channel from the most clicks down.",
+    "Exactly 3 per channel needs a number that splits ties with the stated tie-break; filter it in an outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 69,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 70,
+      "to": 134,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 135,
+      "to": 261,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 262,
+      "to": 340,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 341,
+      "to": 382,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 386,
+      "to": 441,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 442,
+      "to": 580,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 581,
+      "to": 603,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 606,
+      "to": 646,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 647,
+      "to": 658,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 659,
+      "to": 672,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "ROW_NUMBER with campaign_id after the clicks gives each campaign its own place in its channel, so rn <= 3 keeps exactly 3."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "o9f1a196",
+  "explanation": "The right query adds up each product's 2025 revenue first, then ranks the products of each category with RANK, so every product tied for the top keeps place 1. ROW_NUMBER keeps only one of two tied products, ranking single sales rows picks the biggest order line instead of the best-selling product, and a ranking with no PARTITION BY keeps only the top product of all categories together.",
+  "solver": {
+    "prompt_hash": "9116511819c5b969",
+    "grader_version": "choice.3",
+    "chosen": "o9f1a196",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.745Z"
+  }
+}

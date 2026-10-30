@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-PAT-08-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "lag",
+    "app_events",
+    "landing"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-landing-event",
+  "template_params": {
+    "table": "app_events"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Which app events do LedgerLoop users land on? For each event_name, count the sessions whose first event has that name. Use every app event in the data. A user's first app event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant, never between clock times. Return two columns, in this order: landing_event and sessions. Return one row for each event_name that starts at least one session. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "landing_event",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "landing_event",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "landing_event"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep only the events that start a session, then count them by event name.",
+    "An event starts a session when its user has no event before it or the gap passes 30 minutes; count those rows per name."
+  ],
+  "subgoals": [
+    {
+      "from": 42,
+      "to": 81,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 82,
+      "to": 166,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 167,
+      "to": 184,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 187,
+      "to": 243,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 244,
+      "to": 253,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 254,
+      "to": 321,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 322,
+      "to": 341,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Only a session's first event passes the start test, so counting those by name counts each session once under its landing event."
+}

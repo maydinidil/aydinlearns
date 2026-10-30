@@ -1,0 +1,89 @@
+{
+  "case_id": "CASE-DAILY-L6-02",
+  "kind": "daily",
+  "level": 6,
+  "world": "MKT",
+  "company_id": "mailvora",
+  "schema": "mailvora",
+  "title": "Month 3 retention of new paying users",
+  "persona": {
+    "name": "Siobhán",
+    "role": "Lifecycle marketing manager"
+  },
+  "brief": {
+    "decision": "When in a new paying user's first months to send the email that asks the user to stay",
+    "deadline": "Siobhán's lifecycle email review on Thursday"
+  },
+  "data_needed": [
+    "payments",
+    "subscriptions"
+  ],
+  "expected_output": {
+    "columns": [
+      "cohort_month",
+      "cohort_users",
+      "retained_m3_users",
+      "retention_m3_pct"
+    ],
+    "grain": "one row per cohort month from January to June 2025, the month of the users' first payment",
+    "sort": [
+      {
+        "column": "cohort_month",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Siobhán's question.",
+      "credits_concepts": [
+        "SQL-PAT-06",
+        "SQL-AGG-02"
+      ],
+      "item_id": "EX-CASE-DAILY-L6-02"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Siobhán's headline: use only the payments that were not refunded, with each paid_at read in UTC. A user's first payment is the earliest such payment over all of the user's subscriptions. Take the users whose first payment has a paid_at from 2025-01-01 00:00:00 up to but not including 2025-07-01 00:00:00, UTC. What percentage of them made at least one such payment in the third calendar month after the month of their first payment (for a first payment in January 2025, in April 2025)? Type the percentage rounded to 1 decimal, for example 12.3.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L6-02:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-DAILY-L6-02:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: cohort_users, the users whose first payment that was not refunded falls in the cohort month; retained_m3_users, those of them with such a payment in the third calendar month after it; retention_m3_pct, 100 times retained_m3_users divided by cohort_users, rounded to 1 decimal.\nOutput grain: one row per cohort month from January to June 2025.\nTables and keys: payments joined to subscriptions on subscription_id for the user; a step at one row per user with the month of the first payment; the user's payments joined back on user_id and on the month three calendar months later.\nFilters: refunded payments left out; months in UTC; cohort months from 2025-01-01 up to but not including 2025-07-01.\nEdge cases: a user with two subscriptions counts once, in the month of the first payment; month 3 comes from month starts, not from days divided by 30; the cohort is the first payment's month, not the signup's; a user with two payments in month 3 counts once.\nExpected row count: 6",
+  "model_answer_template": "Of the users who first paid from January to June 2025, {CP4} percent paid again in the third month after their first payment, and the share barely moved from one cohort to the next. The others made no payment in month 3, so an email sent in month 1 or 2 reaches them while they still pay. The result does not say why those users stopped or whether a retained user moved to a cheaper plan. Next, split month 3 retention by plan and by signup channel to find the users who drop out fastest.",
+  "follow_up_question": "Which plan's new paying users from January to June 2025 kept paying into month 3 least often?",
+  "data_source": {
+    "label": "Fictional, generated data: Mailvora",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

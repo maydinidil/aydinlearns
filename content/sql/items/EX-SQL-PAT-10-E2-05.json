@@ -1,0 +1,206 @@
+{
+  "id": "EX-SQL-PAT-10-E2-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "segment",
+    "fx"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-segment-mrr-change",
+  "template_params": {
+    "table": "subscription_events",
+    "fx_date": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How did each segment's MRR change over 2025? MRR comes from subscription_events: a subscription's MRR on a date is the sum of its mrr_delta_local with event_date on or before that date, in its subscriptions.currency. Give each segment's MRR on 31 December 2024 and on 31 December 2025, and change_mrr, the 2025 figure minus the 2024 one. Convert both balances at the same fixed rate, that of 31 December 2025 (fx_rates.eur_per_unit for the subscription's currency on 2025-12-31), so the change shows no currency effect. Round all three to 2 decimals with ROUND. Return four columns, in this order: segment, mrr_2024, mrr_2025 and change_mrr. Return one row for each segment. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "mrr_2024",
+        "type_class": "numeric"
+      },
+      {
+        "name": "mrr_2025",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_2024",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "mrr_2025",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "change_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, work out each segment's balance on both dates, both converted at the 2025-12-31 rate, then subtract.",
+    "Change is the later balance minus the earlier one; converting the 2024 balance at a 2024 rate would mix in a currency effect."
+  ],
+  "subgoals": [
+    {
+      "from": 44,
+      "to": 110,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 111,
+      "to": 139,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 140,
+      "to": 203,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 204,
+      "to": 284,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 285,
+      "to": 333,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 334,
+      "to": 375,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 376,
+      "to": 396,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 439,
+      "to": 505,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 506,
+      "to": 534,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 535,
+      "to": 598,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 599,
+      "to": 679,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 680,
+      "to": 728,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 729,
+      "to": 770,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 771,
+      "to": 791,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 794,
+      "to": 907,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 908,
+      "to": 923,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 924,
+      "to": 964,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Both balances use one fixed rate, so the change is the business's own movement, not a swing in exchange rates."
+}

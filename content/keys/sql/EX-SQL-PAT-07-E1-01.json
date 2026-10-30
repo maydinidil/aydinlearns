@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-07-E1-01",
+  "item_version": 1,
+  "reference_sql": "WITH act AS (  -- one row per activated user\n  SELECT DISTINCT user_id\n  FROM activation_events\n  WHERE event_name = 'first_campaign_sent'\n),\npay AS (  -- one row per user who has paid\n  SELECT DISTINCT s.user_id\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n)\nSELECT\n       COUNT(*) AS signed_up,\n       COUNT(a.user_id) AS activated,\n       COUNT(CASE WHEN a.user_id IS NOT NULL THEN p.user_id END) AS paid\nFROM signups u\nLEFT JOIN act a ON a.user_id = u.user_id\nLEFT JOIN pay p ON p.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'",
+  "alternatives": [
+    "SELECT COUNT(DISTINCT u.user_id) AS signed_up,\n       COUNT(DISTINCT a.user_id) AS activated,\n       COUNT(DISTINCT CASE WHEN a.user_id IS NOT NULL THEN s.user_id END) AS paid\nFROM signups u\nLEFT JOIN activation_events a ON a.user_id = u.user_id AND a.event_name = 'first_campaign_sent'\nLEFT JOIN subscriptions s ON s.user_id = u.user_id\n AND EXISTS (SELECT 1 FROM payments p WHERE p.subscription_id = s.subscription_id)\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'",
+    "WITH flags AS (  -- one row per user who signed up in the period, 1 or 0 for each step\n  SELECT u.user_id,\n         CASE WHEN EXISTS (SELECT 1 FROM activation_events e WHERE e.user_id = u.user_id AND e.event_name = 'first_campaign_sent') THEN 1 ELSE 0 END AS is_activated,\n         CASE WHEN EXISTS (SELECT 1 FROM subscriptions s JOIN payments p ON p.subscription_id = s.subscription_id WHERE s.user_id = u.user_id) THEN 1 ELSE 0 END AS has_paid\n  FROM signups u\n  WHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n)\nSELECT COUNT(*) AS signed_up,\n       SUM(is_activated) AS activated,\n       SUM(is_activated * has_paid) AS paid\nFROM flags"
+  ],
+  "other_way": {
+    "sql": "WITH flags AS (  -- one row per user who signed up in the period, 1 or 0 for each step\n  SELECT u.user_id,\n         CASE WHEN EXISTS (SELECT 1 FROM activation_events e WHERE e.user_id = u.user_id AND e.event_name = 'first_campaign_sent') THEN 1 ELSE 0 END AS is_activated,\n         CASE WHEN EXISTS (SELECT 1 FROM subscriptions s JOIN payments p ON p.subscription_id = s.subscription_id WHERE s.user_id = u.user_id) THEN 1 ELSE 0 END AS has_paid\n  FROM signups u\n  WHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n)\nSELECT COUNT(*) AS signed_up,\n       SUM(is_activated) AS activated,\n       SUM(is_activated * has_paid) AS paid\nFROM flags",
+    "tradeoff": "A 0 or 1 flag per user and step turns each step into a sum, which makes the step before easy to require."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-44",
+      "sql": "WITH act AS (  -- one row per activated user\n  SELECT DISTINCT user_id\n  FROM activation_events\n  WHERE event_name = 'first_campaign_sent'\n),\npay AS (  -- one row per user who has paid\n  SELECT DISTINCT s.user_id\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n)\nSELECT\n       COUNT(*) AS signed_up,\n       COUNT(a.user_id) AS activated,\n       COUNT(p.user_id) AS paid\nFROM signups u\nLEFT JOIN act a ON a.user_id = u.user_id\nLEFT JOIN pay p ON p.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH pay AS (SELECT DISTINCT s.user_id FROM subscriptions s JOIN payments p ON p.subscription_id = s.subscription_id) SELECT COUNT(DISTINCT u.user_id) AS signed_up, COUNT(e.user_id) AS activated, COUNT(DISTINCT CASE WHEN e.user_id IS NOT NULL THEN p.user_id END) AS paid FROM signups u LEFT JOIN activation_events e ON e.user_id = u.user_id LEFT JOIN pay p ON p.user_id = u.user_id WHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'"
+    }
+  ],
+  "hint3_partial": "WITH act AS (  -- one row per activated user\n  SELECT DISTINCT user_id\n  FROM activation_events\n  WHERE event_name = 'first_campaign_sent'\n),\npay AS (  -- one row per user who has paid\n  SELECT DISTINCT s.user_id\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n)\nSELECT\n       COUNT(*) AS signed_up,\n       COUNT(a.user_id) AS activated,\n       ___ AS paid\nFROM signups u\nLEFT JOIN act a ON a.user_id = u.user_id\nLEFT JOIN pay p ON p.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'",
+  "solver": {
+    "prompt_hash": "d31a1a9367ef64b4",
+    "schema_version": "2acc9284ddd3",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH u AS (\n  SELECT user_id FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n),\na AS (SELECT DISTINCT user_id FROM activation_events WHERE event_name = 'first_campaign_sent'),\np AS (\n  SELECT DISTINCT s.user_id FROM subscriptions s JOIN payments pay ON pay.subscription_id = s.subscription_id\n)\nSELECT COUNT(*) AS signed_up,\n       COUNT(a.user_id) AS activated,\n       COUNT(p.user_id) FILTER (WHERE a.user_id IS NOT NULL) AS paid\nFROM u LEFT JOIN a ON a.user_id = u.user_id LEFT JOIN p ON p.user_id = u.user_id\n",
+    "at": "2026-10-28T14:57:07.906Z"
+  }
+}

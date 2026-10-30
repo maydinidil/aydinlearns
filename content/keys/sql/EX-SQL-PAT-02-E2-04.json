@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-02-E2-04",
+  "item_version": 1,
+  "reference_sql": "WITH latest AS (  -- one row per product with a price version\n  SELECT product_id, MAX(valid_from) AS valid_from\n  FROM price_history\n  GROUP BY product_id\n)\nSELECT ph.product_id, ph.valid_from, ph.list_price_eur\nFROM price_history ph\nJOIN latest l ON l.product_id = ph.product_id AND l.valid_from = ph.valid_from\nJOIN products p ON p.product_id = ph.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.category_name = 'Headphones'",
+  "alternatives": [
+    "SELECT ph.product_id, ph.valid_from, ph.list_price_eur\nFROM price_history ph\nJOIN products p ON p.product_id = ph.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.category_name = 'Headphones'\n  AND NOT EXISTS (SELECT 1 FROM price_history ph2\n                  WHERE ph2.product_id = ph.product_id AND ph2.valid_from > ph.valid_from)",
+    "SELECT ph.product_id, ph.valid_from, ph.list_price_eur\nFROM price_history ph\nJOIN products p ON p.product_id = ph.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.category_name = 'Headphones'\n  AND ph.valid_from = (SELECT MAX(ph2.valid_from) FROM price_history ph2 WHERE ph2.product_id = ph.product_id)"
+  ],
+  "other_way": {
+    "sql": "SELECT ph.product_id, ph.valid_from, ph.list_price_eur\nFROM price_history ph\nJOIN products p ON p.product_id = ph.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.category_name = 'Headphones'\n  AND NOT EXISTS (SELECT 1 FROM price_history ph2\n                  WHERE ph2.product_id = ph.product_id AND ph2.valid_from > ph.valid_from)",
+    "tradeoff": "NOT EXISTS keeps the version with no later one, which reads well on every engine, but checks every pair of versions."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH ranked AS (SELECT ph.product_id, ph.valid_from, ph.list_price_eur, ROW_NUMBER() OVER (PARTITION BY ph.product_id ORDER BY ph.list_price_eur DESC, ph.valid_from) AS rn FROM price_history ph JOIN products p ON p.product_id = ph.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.category_name = 'Headphones') SELECT product_id, valid_from, list_price_eur FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (SELECT ph.product_id, ph.valid_from, ph.list_price_eur, ROW_NUMBER() OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from) AS rn FROM price_history ph JOIN products p ON p.product_id = ph.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.category_name = 'Headphones') SELECT product_id, valid_from, list_price_eur FROM ranked WHERE rn = 1"
+    }
+  ],
+  "hint3_partial": "WITH latest AS (  -- one row per product with a price version\n  SELECT product_id, MAX(valid_from) AS valid_from\n  FROM price_history\n  GROUP BY product_id\n)\nSELECT ph.product_id, ph.valid_from, ph.list_price_eur\nFROM price_history ph\nJOIN latest l ON ___\nJOIN products p ON p.product_id = ph.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.category_name = 'Headphones'",
+  "solver": {
+    "prompt_hash": "8682537f91051d84",
+    "schema_version": "0072f9d3b7cc",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH r AS (SELECT ph.product_id, ph.valid_from, ph.list_price_eur, ROW_NUMBER() OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from DESC) AS rn FROM price_history ph JOIN products p ON p.product_id = ph.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.category_name = 'Headphones')\nSELECT product_id, valid_from, list_price_eur FROM r WHERE rn = 1\n",
+    "at": "2026-10-28T14:57:01.004Z"
+  }
+}

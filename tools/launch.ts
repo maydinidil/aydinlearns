@@ -46,9 +46,10 @@ export function pinnedVersions(requirements: string): Record<string, string> {
  * The build:data outputs the app reads. The truth files are included: since slice 2a the server reads the case values for every
  * CP2 and CP4, and without them each answers 503 (aydinlearns F9, correcting the F6 reasoning). Since sprint 6 (S6-13) they are in
  * data/truth/checkpoints.json, which also names the schemas built, so a build from before it is run again. Since sprint 6 Part 2
- * (S6-20) Mailvora's truth is data/truth/mailvora.json, so a build from before Mailvora is run again too.
+ * (S6-20) Mailvora's truth is data/truth/mailvora.json, so a build from before Mailvora is run again too; since sprint 8 (S8-01)
+ * LedgerLoop's is data/truth/ledgerloop.json, so a build from before LedgerLoop is run again as well.
  */
-export const DATA_OUTPUTS = ['data/course.duckdb', 'data/manifest.json', 'data/schema-notes.json', 'data/truth/voltmarkt.json', 'data/truth/mailvora.json', 'data/truth/checkpoints.json'] as const;
+export const DATA_OUTPUTS = ['data/course.duckdb', 'data/manifest.json', 'data/schema-notes.json', 'data/truth/voltmarkt.json', 'data/truth/mailvora.json', 'data/truth/ledgerloop.json', 'data/truth/checkpoints.json'] as const;
 
 /**
  * The inputs of build:data's case truths besides pipeline/: the CP2 and CP4 truth queries (content/keys/cases/), and the case records

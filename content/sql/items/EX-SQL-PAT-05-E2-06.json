@@ -1,0 +1,177 @@
+{
+  "id": "EX-SQL-PAT-05-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "mrr",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-month-by-movement",
+  "template_params": {
+    "table": "subscription_events",
+    "columns": "event_type"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each month of 2025, by event_date, show LedgerLoop's MRR movements from subscriptions billed in euros (currency EUR), one column per movement: the sum of mrr_delta_local for event_type 'new', 'expansion', 'contraction', 'churn' and 'reactivation', then net_change_eur, the sum of every movement of the month. Opening events are not movements. Contraction and churn amounts stay negative, as stored. Return seven columns, in this order: month (the first day of the month), new_eur, expansion_eur, contraction_eur, churn_eur, reactivation_eur and net_change_eur. A movement with no events in a month shows 0. Return one row for each month of 2025 with a movement. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "new_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "expansion_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "contraction_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churn_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "reactivation_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "net_change_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "new_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "expansion_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "contraction_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "churn_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "reactivation_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "net_change_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the 2025 EUR events by month and add up the amount once per movement type, plus once for all of them.",
+    "A total that names the types by hand can miss one, such as reactivation; summing every movement row needs no list."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 64,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 65,
+      "to": 577,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 578,
+      "to": 604,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 605,
+      "to": 666,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 667,
+      "to": 790,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 791,
+      "to": 847,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "One conditional sum per type spreads the movements over columns with 0 where none happened, and the net is the sum of every movement row."
+}

@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-PAT-10-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "churn",
+    "segment",
+    "fx"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-churn-by-segment",
+  "template_params": {
+    "table": "subscription_events",
+    "from": "2024-01",
+    "to": "2025-12",
+    "fx_date": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How much MRR did each segment lose to churn in 2024 and 2025 (event_date from 1 January 2024 to 31 December 2025)? Add up the churn events' mrr_delta_local and report the loss as a positive amount in euros, rounded to 2 decimals with ROUND. Convert every amount to euros at one fixed rate, that of 31 December 2025: multiply by fx_rates.eur_per_unit for the subscription's currency on 2025-12-31. Return two columns, in this order: segment and churned_mrr. Return one row for each segment with churn in that time. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "churned_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "churned_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, convert each churn event at the fixed rate and add them up by segment.",
+    "A churn event's change is negative; the question wants the loss as a positive amount."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 83,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 84,
+      "to": 110,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 111,
+      "to": 172,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 173,
+      "to": 251,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 252,
+      "to": 298,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 299,
+      "to": 327,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 328,
+      "to": 394,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 395,
+      "to": 413,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Every churn event is converted at the same fixed rate, so the segments' losses can be compared in euros."
+}

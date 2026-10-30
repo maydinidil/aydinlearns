@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-41",
+  "item_version": 1,
+  "correct_oid": "ob932fca",
+  "explanation": "The right query starts from the twelve generated months, keeps each one with a LEFT JOIN, and turns a missing count into 0. Reading the counts alone leaves out a month with no new subscription; without COALESCE that month shows a missing value instead of 0; and a spine of days gives 365 rows, one per day, at the wrong grain.",
+  "solver": {
+    "prompt_hash": "d4f1686e7f5ea19e",
+    "grader_version": "choice.3",
+    "chosen": "ob932fca",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.766Z"
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "id": "EX-SQL-PAT-10-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "movements",
+    "spine",
+    "lag",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-04",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-net-expansion-contraction",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025,
+    "fx_date": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Finance measures expansion and contraction from month-end balances, not from single events, so changes within a month net out. MRR comes from subscription_events: a subscription's MRR on a date is the sum of its mrr_delta_local with event_date on or before that date, in its subscriptions.currency. An account's MRR is the sum over its subscriptions, opening events included, converted to euros at one fixed rate, that of 31 December 2025 (fx_rates.eur_per_unit for the subscription's currency on 2025-12-31), and it is 0 at a month end with no subscription. For each month of 2025, compare every account's MRR at the month end with the month end before: expansion_mrr adds the rises of accounts that were above 0 both times, and contraction_mrr adds the falls of accounts still above 0, as negative amounts. Round both to 2 decimals with ROUND. Return three columns, in this order: month_start (the first day of the month), expansion_mrr and contraction_mrr. Return one row for each month of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give every account a row at every month end with its MRR in euros, then compare each with the month end before.",
+    "LAG must stay within one account; a rise counts only if the account was above 0 before, a fall only if it stays above 0."
+  ],
+  "subgoals": [
+    {
+      "from": 84,
+      "to": 198,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 268,
+      "to": 363,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 364,
+      "to": 381,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 382,
+      "to": 407,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 408,
+      "to": 504,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 505,
+      "to": 573,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 574,
+      "to": 659,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 660,
+      "to": 696,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 753,
+      "to": 789,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 790,
+      "to": 864,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 865,
+      "to": 883,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 886,
+      "to": 953,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 954,
+      "to": 1165,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1166,
+      "to": 1179,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1180,
+      "to": 1216,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1217,
+      "to": 1270,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Comparing month-end balances nets out changes within a month, and one fixed rate keeps currency swings out of the movements."
+}

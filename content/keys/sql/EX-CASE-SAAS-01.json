@@ -1,0 +1,45 @@
+{
+  "item_id": "EX-CASE-SAAS-01",
+  "item_version": 1,
+  "reference_sql": "WITH monthly AS (\n  -- one row per month from December 2024 to December 2025: total MRR and accounts with MRR on its last day\n  SELECT month,\n         SUM(mrr_eur) AS mrr_eur,\n         COUNT(*) AS active_accounts\n  FROM mrr_monthly\n  WHERE month >= DATE '2024-12-01'\n    AND month <= DATE '2025-12-01'\n  GROUP BY month\n),\ncompared AS (\n  -- one row per month, with the month before's total MRR beside it\n  SELECT month,\n         mrr_eur,\n         active_accounts,\n         LAG(mrr_eur) OVER (ORDER BY month) AS mrr_month_before\n  FROM monthly\n)\nSELECT month,\n       mrr_eur,\n       active_accounts,\n       ROUND(mrr_eur / active_accounts, 2) AS arpa_eur,\n       ROUND(100.0 * (mrr_eur - mrr_month_before) / mrr_month_before, 1) AS mrr_growth_pct\nFROM compared\nWHERE month >= DATE '2025-01-01'\nORDER BY month",
+  "alternatives": [
+    "WITH monthly AS (\n  -- one row per month: total MRR and accounts with MRR on its last day\n  SELECT month,\n         SUM(mrr_eur) AS mrr_eur,\n         COUNT(*) AS active_accounts\n  FROM mrr_monthly\n  GROUP BY month\n)\nSELECT m.month,\n       m.mrr_eur,\n       m.active_accounts,\n       ROUND(m.mrr_eur / m.active_accounts, 2) AS arpa_eur,\n       ROUND(100.0 * (m.mrr_eur - p.mrr_eur) / p.mrr_eur, 1) AS mrr_growth_pct\nFROM monthly AS m\nLEFT JOIN monthly AS p\n  ON p.month = CAST(m.month - INTERVAL 1 MONTH AS DATE)\nWHERE m.month >= DATE '2025-01-01'\n  AND m.month <= DATE '2025-12-01'\nORDER BY m.month",
+    "SELECT month, mrr_eur, active_accounts, arpa_eur, mrr_growth_pct\nFROM (\n  -- one row per month from December 2024 to December 2025, with the growth on the month before\n  SELECT month,\n         SUM(mrr_eur) AS mrr_eur,\n         COUNT(DISTINCT account_id) AS active_accounts,\n         ROUND(SUM(mrr_eur) / COUNT(DISTINCT account_id), 2) AS arpa_eur,\n         ROUND(100.0 * (SUM(mrr_eur) - LAG(SUM(mrr_eur)) OVER (ORDER BY month))\n               / LAG(SUM(mrr_eur)) OVER (ORDER BY month), 1) AS mrr_growth_pct\n  FROM mrr_monthly\n  WHERE month BETWEEN DATE '2024-12-01' AND DATE '2025-12-01'\n  GROUP BY month\n) AS t\nWHERE month >= DATE '2025-01-01'\nORDER BY month",
+    "WITH monthly AS (\n  -- one row per month: total MRR and accounts with MRR on its last day\n  SELECT month,\n         SUM(mrr_eur) AS mrr_eur,\n         COUNT(*) AS active_accounts\n  FROM mrr_monthly\n  GROUP BY month\n)\nSELECT month,\n       mrr_eur,\n       active_accounts,\n       ROUND(mrr_eur / active_accounts, 2) AS arpa_eur,\n       ROUND(100.0 * (mrr_eur - (SELECT p.mrr_eur FROM monthly AS p WHERE p.month = CAST(m.month - INTERVAL 1 MONTH AS DATE)))\n             / (SELECT p.mrr_eur FROM monthly AS p WHERE p.month = CAST(m.month - INTERVAL 1 MONTH AS DATE)), 1) AS mrr_growth_pct\nFROM monthly AS m\nWHERE month >= DATE '2025-01-01'\n  AND month < DATE '2026-01-01'\nORDER BY month"
+  ],
+  "other_way": {
+    "sql": "WITH monthly AS (\n  -- one row per month: total MRR and accounts with MRR on its last day\n  SELECT month,\n         SUM(mrr_eur) AS mrr_eur,\n         COUNT(*) AS active_accounts\n  FROM mrr_monthly\n  GROUP BY month\n)\nSELECT m.month,\n       m.mrr_eur,\n       m.active_accounts,\n       ROUND(m.mrr_eur / m.active_accounts, 2) AS arpa_eur,\n       ROUND(100.0 * (m.mrr_eur - p.mrr_eur) / p.mrr_eur, 1) AS mrr_growth_pct\nFROM monthly AS m\nLEFT JOIN monthly AS p\n  ON p.month = CAST(m.month - INTERVAL 1 MONTH AS DATE)\nWHERE m.month >= DATE '2025-01-01'\n  AND m.month <= DATE '2025-12-01'\nORDER BY m.month",
+    "tradeoff": "A self-join on the month before names the base month outright, but it needs date arithmetic and a second copy of the totals."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH monthly AS (\n  SELECT month, SUM(mrr_eur) AS mrr_eur, COUNT(*) AS active_accounts\n  FROM mrr_monthly\n  WHERE month >= DATE '2024-12-01' AND month <= DATE '2025-12-01'\n  GROUP BY month\n),\ncompared AS (\n  SELECT month, mrr_eur, active_accounts, LAG(mrr_eur) OVER (ORDER BY month) AS mrr_month_before\n  FROM monthly\n)\nSELECT month, mrr_eur, active_accounts,\n       ROUND(mrr_eur / active_accounts, 2) AS arpa_eur,\n       ROUND(100.0 * (mrr_eur - mrr_month_before) / mrr_eur, 1) AS mrr_growth_pct\nFROM compared\nWHERE month >= DATE '2025-01-01'\nORDER BY month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH monthly AS (\n  SELECT month, SUM(mrr_eur) AS mrr_eur, COUNT(*) AS active_accounts\n  FROM mrr_monthly\n  WHERE month >= DATE '2024-12-01' AND month <= DATE '2025-12-01'\n  GROUP BY month\n),\ncompared AS (\n  SELECT month, mrr_eur, active_accounts, LAG(mrr_eur) OVER (ORDER BY month) AS mrr_month_before\n  FROM monthly\n)\nSELECT month, mrr_eur, active_accounts,\n       ROUND(mrr_eur / active_accounts, 2) AS arpa_eur,\n       ROUND((mrr_eur - mrr_month_before) / mrr_month_before, 1) AS mrr_growth_pct\nFROM compared\nWHERE month >= DATE '2025-01-01'\nORDER BY month"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH monthly AS (\n  SELECT month, SUM(mrr_eur) AS mrr_eur, COUNT(*) AS active_accounts\n  FROM mrr_monthly\n  WHERE month >= DATE '2024-12-01' AND month <= DATE '2025-12-01'\n  GROUP BY month\n),\ncompared AS (\n  SELECT month, mrr_eur, active_accounts, LAG(mrr_eur) OVER (ORDER BY month) AS mrr_month_before\n  FROM monthly\n)\nSELECT month, mrr_eur, active_accounts,\n       ROUND(mrr_eur / (SELECT COUNT(DISTINCT account_id) FROM mrr_monthly WHERE month >= DATE '2025-01-01' AND month <= DATE '2025-12-01'), 2) AS arpa_eur,\n       ROUND(100.0 * (mrr_eur - mrr_month_before) / mrr_month_before, 1) AS mrr_growth_pct\nFROM compared\nWHERE month >= DATE '2025-01-01'\nORDER BY month"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH monthly AS (\n  SELECT month, SUM(mrr_eur) AS mrr_eur, COUNT(*) AS active_accounts\n  FROM mrr_monthly\n  WHERE month >= DATE '2024-12-01' AND month < DATE '2025-12-01'\n  GROUP BY month\n),\ncompared AS (\n  SELECT month, mrr_eur, active_accounts, LAG(mrr_eur) OVER (ORDER BY month) AS mrr_month_before\n  FROM monthly\n)\nSELECT month, mrr_eur, active_accounts,\n       ROUND(mrr_eur / active_accounts, 2) AS arpa_eur,\n       ROUND(100.0 * (mrr_eur - mrr_month_before) / mrr_month_before, 1) AS mrr_growth_pct\nFROM compared\nWHERE month >= DATE '2025-01-01'\nORDER BY month"
+    }
+  ],
+  "hint3_partial": "WITH monthly AS (\n  -- one row per month from December 2024 to December 2025: total MRR and accounts with MRR on its last day\n  SELECT month,\n         SUM(mrr_eur) AS mrr_eur,\n         COUNT(*) AS active_accounts\n  FROM mrr_monthly\n  WHERE month >= DATE '2024-12-01'\n    AND month <= DATE '2025-12-01'\n  GROUP BY month\n),\ncompared AS (\n  -- one row per month, with the month before's total MRR beside it\n  SELECT month,\n         mrr_eur,\n         active_accounts,\n         ___ AS mrr_month_before\n  FROM monthly\n)\nSELECT month,\n       mrr_eur,\n       active_accounts,\n       ROUND(mrr_eur / active_accounts, 2) AS arpa_eur,\n       ROUND(___, 1) AS mrr_growth_pct\nFROM compared\nWHERE month >= DATE '2025-01-01'\nORDER BY month",
+  "solver": {
+    "prompt_hash": "971c86accdce416d",
+    "schema_version": "299c09096be7",
+    "dataset_version": "59aa492c652892ff",
+    "grader_version": "8a.1",
+    "query": "WITH m AS (\n  SELECT month, SUM(mrr_eur) AS mrr, COUNT(*) AS n\n  FROM mrr_monthly\n  WHERE month BETWEEN DATE '2024-12-01' AND DATE '2025-12-01'\n  GROUP BY month\n), x AS (\n  SELECT month, mrr, n, LAG(mrr) OVER (ORDER BY month) AS prev FROM m\n)\nSELECT month, mrr AS mrr_eur, n AS active_accounts,\n       ROUND(mrr / n, 2) AS arpa_eur,\n       ROUND(100.0 * (mrr - prev) / prev, 1) AS mrr_growth_pct\nFROM x\nWHERE month >= DATE '2025-01-01'\nORDER BY month\n",
+    "at": "2026-10-29T22:26:55.989Z"
+  }
+}

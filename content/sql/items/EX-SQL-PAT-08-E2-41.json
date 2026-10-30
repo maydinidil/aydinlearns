@@ -1,0 +1,101 @@
+{
+  "id": "EX-SQL-PAT-08-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "sessionisation",
+    "app_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-choose-sessions",
+  "template_params": {
+    "table": "app_events"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Which query counts each account's app sessions, where a user's first event starts a session and an event more than 30 minutes after the same user's previous event starts a new one?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o207fd97",
+      "text": "WITH g AS (\n  SELECT account_id, event_ts,\n    LAG(event_ts) OVER (ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT account_id, COUNT(*) FILTER (WHERE prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes') AS sessions\nFROM g\nGROUP BY account_id",
+      "misconception_id": "ERR-LOG-37"
+    },
+    {
+      "oid": "o86939fb",
+      "text": "WITH g AS (\n  SELECT account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT account_id, COUNT(*) FILTER (WHERE event_ts - prev_ts > INTERVAL '30 minutes') AS sessions\nFROM g\nGROUP BY account_id",
+      "misconception_id": "ERR-LOG-03"
+    },
+    {
+      "oid": "od037be0",
+      "text": "WITH g AS (\n  SELECT account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT account_id, COUNT(*) FILTER (WHERE prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes') AS sessions\nFROM g\nGROUP BY account_id",
+      "misconception_id": null
+    },
+    {
+      "oid": "oa33c356",
+      "text": "WITH g AS (\n  SELECT account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY account_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT account_id, COUNT(*) FILTER (WHERE prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes') AS sessions\nFROM g\nGROUP BY account_id",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "o7c38da0",
+      "text": "WITH g AS (\n  SELECT account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT account_id, COUNT(*) FILTER (WHERE prev_ts IS NULL OR epoch(event_ts) - epoch(prev_ts) > 30) AS sessions\nFROM g\nGROUP BY account_id",
+      "misconception_id": "ERR-LOG-34"
+    }
+  ]
+}

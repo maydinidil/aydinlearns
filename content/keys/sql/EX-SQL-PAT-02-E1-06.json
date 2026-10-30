@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-02-E1-06",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per MRR change\n  SELECT subscription_id, event_type,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id ORDER BY recorded_at DESC, event_id) AS rn\n  FROM subscription_events\n)\nSELECT event_type, COUNT(*) AS subscriptions\nFROM ranked\nWHERE rn = 1\nGROUP BY event_type",
+  "alternatives": [
+    "WITH latest AS (  -- one row per subscription\n  SELECT e.subscription_id, e.event_type\n  FROM subscription_events e\n  WHERE NOT EXISTS (SELECT 1 FROM subscription_events e2\n                    WHERE e2.subscription_id = e.subscription_id\n                      AND (e2.recorded_at > e.recorded_at OR (e2.recorded_at = e.recorded_at AND e2.event_id < e.event_id)))\n)\nSELECT event_type, COUNT(*) AS subscriptions\nFROM latest\nGROUP BY event_type",
+    "SELECT t.event_type, COUNT(*) AS subscriptions\nFROM (\n  -- one row per MRR change, numbered within its subscription from the latest\n  SELECT subscription_id, event_type,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id ORDER BY recorded_at DESC, event_id) AS rn\n  FROM subscription_events\n) AS t\nWHERE t.rn = 1\nGROUP BY t.event_type"
+  ],
+  "other_way": {
+    "sql": "WITH latest AS (  -- one row per subscription\n  SELECT e.subscription_id, e.event_type\n  FROM subscription_events e\n  WHERE NOT EXISTS (SELECT 1 FROM subscription_events e2\n                    WHERE e2.subscription_id = e.subscription_id\n                      AND (e2.recorded_at > e.recorded_at OR (e2.recorded_at = e.recorded_at AND e2.event_id < e.event_id)))\n)\nSELECT event_type, COUNT(*) AS subscriptions\nFROM latest\nGROUP BY event_type",
+    "tradeoff": "NOT EXISTS finds each subscription's latest change without a window, at the cost of comparing every change with the others."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per MRR change\n  SELECT subscription_id, event_type,\n         RANK() OVER (PARTITION BY subscription_id ORDER BY recorded_at DESC) AS rn\n  FROM subscription_events\n)\nSELECT event_type, COUNT(*) AS subscriptions\nFROM ranked\nWHERE rn = 1\nGROUP BY event_type"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (  -- one row per MRR change\n  SELECT subscription_id, event_type,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id ORDER BY recorded_at, event_id) AS rn\n  FROM subscription_events\n)\nSELECT event_type, COUNT(*) AS subscriptions\nFROM ranked\nWHERE rn = 1\nGROUP BY event_type"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH ranked AS (  -- one row per MRR change\n  SELECT subscription_id, event_type,\n         ROW_NUMBER() OVER (ORDER BY recorded_at DESC, event_id) AS rn\n  FROM subscription_events\n)\nSELECT event_type, COUNT(*) AS subscriptions\nFROM ranked\nWHERE rn = 1\nGROUP BY event_type"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per MRR change\n  SELECT subscription_id, event_type,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id ORDER BY ___) AS rn\n  FROM subscription_events\n)\nSELECT event_type, COUNT(*) AS subscriptions\nFROM ranked\nWHERE ___\nGROUP BY event_type",
+  "solver": {
+    "prompt_hash": "c48a04ff6c0abeae",
+    "schema_version": "3cbf032d825b",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH r AS (SELECT subscription_id, event_type, ROW_NUMBER() OVER (PARTITION BY subscription_id ORDER BY recorded_at DESC, event_id) AS rn FROM subscription_events)\nSELECT event_type, COUNT(*) AS subscriptions FROM r WHERE rn = 1 GROUP BY event_type\n",
+    "at": "2026-10-28T14:57:00.539Z"
+  }
+}

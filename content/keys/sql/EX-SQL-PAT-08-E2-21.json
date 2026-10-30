@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-08-E2-21",
+  "item_version": 1,
+  "reference_sql": "WITH gaps AS (\n  -- one row per app event\n  SELECT event_id, user_id, account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n), flagged AS (\n  -- one row per app event\n  SELECT event_id, user_id, account_id, event_ts,\n    CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM gaps\n), numbered AS (\n  -- one row per app event\n  SELECT user_id, account_id, event_ts,\n    SUM(new_session) OVER (PARTITION BY user_id ORDER BY event_ts, event_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS session_no\n  FROM flagged\n), sessions AS (\n  -- one row per session\n  SELECT account_id, user_id, session_no, COUNT(*) AS events\n  FROM numbered\n  GROUP BY account_id, user_id, session_no\n)\nSELECT account_id, ROUND(AVG(events), 2) AS avg_events_per_session\nFROM sessions\nGROUP BY account_id",
+  "alternatives": [
+    "WITH gaps AS (\n  -- one row per app event\n  SELECT user_id, account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT account_id,\n  ROUND(1.0 * COUNT(*) / COUNT(*) FILTER (WHERE prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes'), 2) AS avg_events_per_session\nFROM gaps\nGROUP BY account_id",
+    "WITH gaps AS (\n  -- one row per app event\n  SELECT event_id, user_id, account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n), flagged AS (\n  -- one row per app event\n  SELECT event_id, user_id, account_id, event_ts,\n    CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM gaps\n), numbered AS (\n  -- one row per app event\n  SELECT user_id, account_id, event_ts,\n    SUM(new_session) OVER (PARTITION BY user_id ORDER BY event_ts, event_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS session_no\n  FROM flagged\n), sessions AS (\n  -- one row per session\n  SELECT account_id, user_id, session_no, COUNT(*) AS events\n  FROM numbered\n  GROUP BY account_id, user_id, session_no\n)\nSELECT account_id, ROUND(1.0 * SUM(events) / COUNT(*), 2) AS avg_events_per_session\nFROM sessions\nGROUP BY account_id"
+  ],
+  "other_way": {
+    "sql": "WITH gaps AS (\n  -- one row per app event\n  SELECT user_id, account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT account_id,\n  ROUND(1.0 * COUNT(*) / COUNT(*) FILTER (WHERE prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes'), 2) AS avg_events_per_session\nFROM gaps\nGROUP BY account_id",
+    "tradeoff": "Dividing all events by the session starts gives the same average in one step, but it hides the session table you may need next."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH gaps AS ( SELECT event_id, user_id, account_id, event_ts, LAG(event_ts) OVER (ORDER BY event_ts, event_id) AS prev_ts FROM app_events ), flagged AS ( SELECT event_id, user_id, account_id, event_ts, CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session FROM gaps ), numbered AS ( SELECT user_id, account_id, event_ts, SUM(new_session) OVER (PARTITION BY user_id ORDER BY event_ts, event_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS session_no FROM flagged ), sessions AS ( SELECT account_id, user_id, session_no, COUNT(*) AS events FROM numbered GROUP BY account_id, user_id, session_no ) SELECT account_id, ROUND(AVG(events), 2) AS avg_events_per_session FROM sessions GROUP BY account_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-34",
+      "sql": "WITH gaps AS ( SELECT event_id, user_id, account_id, event_ts, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts FROM app_events ), flagged AS ( SELECT event_id, user_id, account_id, event_ts, CASE WHEN prev_ts IS NULL OR epoch(event_ts) - epoch(prev_ts) > 30 THEN 1 ELSE 0 END AS new_session FROM gaps ), numbered AS ( SELECT user_id, account_id, event_ts, SUM(new_session) OVER (PARTITION BY user_id ORDER BY event_ts, event_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS session_no FROM flagged ), sessions AS ( SELECT account_id, user_id, session_no, COUNT(*) AS events FROM numbered GROUP BY account_id, user_id, session_no ) SELECT account_id, ROUND(AVG(events), 2) AS avg_events_per_session FROM sessions GROUP BY account_id"
+    }
+  ],
+  "hint3_partial": "WITH gaps AS (\n  -- one row per app event\n  SELECT event_id, user_id, account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n), flagged AS (\n  -- one row per app event\n  SELECT event_id, user_id, account_id, event_ts,\n    CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM gaps\n), numbered AS (\n  -- one row per app event\n  SELECT user_id, account_id, event_ts,\n    SUM(new_session) OVER (PARTITION BY user_id ORDER BY event_ts, event_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS session_no\n  FROM flagged\n), sessions AS (\n  -- one row per session\n  SELECT account_id, user_id, session_no, ___ AS events\n  FROM numbered\n  GROUP BY account_id, user_id, session_no\n)\nSELECT account_id, ROUND(___, 2) AS avg_events_per_session\nFROM sessions\nGROUP BY account_id",
+  "solver": {
+    "prompt_hash": "783e2c091c378bdf",
+    "schema_version": "c66411aea2e3",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH f AS (SELECT event_id, user_id, account_id, event_ts, event_name, CASE WHEN LAG(event_ts) OVER w IS NULL OR event_ts - LAG(event_ts) OVER w > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS ns FROM app_events WINDOW w AS (PARTITION BY user_id ORDER BY event_ts, event_id)),\ns AS (SELECT *, SUM(ns) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS sn FROM f),\nss AS (SELECT user_id, account_id, sn, MIN(event_ts) AS st, MAX(event_ts) AS en, COUNT(*) AS n FROM s GROUP BY user_id, account_id, sn) SELECT account_id, ROUND(AVG(n), 2) AS avg_events_per_session FROM ss GROUP BY account_id\n",
+    "at": "2026-10-28T14:57:12.570Z"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(date_trunc('month', paid_at) AS DATE) AS month,\n  COUNT(*) FILTER (WHERE NOT refunded) AS kept_payments,\n  COUNT(*) FILTER (WHERE refunded) AS refunded_payments\nFROM payments\nWHERE paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n  AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY CAST(date_trunc('month', paid_at) AS DATE)",
+  "alternatives": [
+    "SELECT month, \"false\" AS kept_payments, \"true\" AS refunded_payments\nFROM (\n  -- one row per payment of 2025\n  SELECT CAST(date_trunc('month', paid_at) AS DATE) AS month, refunded\n  FROM payments\n  WHERE paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n) AS p\nPIVOT (COUNT(*) FOR refunded IN (false, true) GROUP BY month)",
+    "SELECT CAST(date_trunc('month', paid_at) AS DATE) AS month,\n  SUM(CASE WHEN refunded THEN 0 ELSE 1 END) AS kept_payments,\n  SUM(CASE WHEN refunded THEN 1 ELSE 0 END) AS refunded_payments\nFROM payments\nWHERE paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n  AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY CAST(date_trunc('month', paid_at) AS DATE)"
+  ],
+  "other_way": {
+    "sql": "SELECT month, \"false\" AS kept_payments, \"true\" AS refunded_payments\nFROM (\n  -- one row per payment of 2025\n  SELECT CAST(date_trunc('month', paid_at) AS DATE) AS month, refunded\n  FROM payments\n  WHERE paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n) AS p\nPIVOT (COUNT(*) FOR refunded IN (false, true) GROUP BY month)",
+    "tradeoff": "PIVOT with an IN list of false and true gives both counts in one clause, but it is DuckDB only and names its columns oddly."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT CAST(date_trunc('month', paid_at) AS DATE) AS month, SUM(CASE WHEN NOT refunded THEN 1 END) AS kept_payments, SUM(CASE WHEN refunded THEN 1 END) AS refunded_payments FROM payments WHERE paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00'   AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00' GROUP BY CAST(date_trunc('month', paid_at) AS DATE)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT CAST(date_trunc('month', paid_at) AS DATE) AS month, COUNT(*) FILTER (WHERE NOT refunded) AS kept_payments, COUNT(refunded) AS refunded_payments FROM payments WHERE paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00'   AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00' GROUP BY CAST(date_trunc('month', paid_at) AS DATE)"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(date_trunc('month', paid_at) AS DATE) AS month,\n  COUNT(*) FILTER (WHERE NOT refunded) AS kept_payments,\n  ___ AS refunded_payments\nFROM payments\nWHERE paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n  AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY CAST(date_trunc('month', paid_at) AS DATE)",
+  "solver": {
+    "prompt_hash": "e379932b21c68305",
+    "schema_version": "168fc0a711d4",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT CAST(date_trunc('month', paid_at AT TIME ZONE 'UTC') AS DATE) AS month,\n  COUNT(*) FILTER (WHERE NOT refunded) AS kept_payments,\n  COUNT(*) FILTER (WHERE refunded) AS refunded_payments\nFROM payments\nWHERE (paid_at AT TIME ZONE 'UTC') >= TIMESTAMP '2025-01-01 00:00:00'\n  AND (paid_at AT TIME ZONE 'UTC') < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY 1\n",
+    "at": "2026-10-28T14:57:05.824Z"
+  }
+}

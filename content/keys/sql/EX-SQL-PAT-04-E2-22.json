@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-22",
+  "item_version": 1,
+  "reference_sql": "WITH weeks AS (\n  -- one row per week, the weeks of 3 to 24 March 2025\n  SELECT DISTINCT week_start\n  FROM calendar\n  WHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n), parents AS (\n  -- one row per parent category\n  SELECT DISTINCT parent_category\n  FROM categories\n), weekly AS (\n  -- one row per parent category and week with sales\n  SELECT parent_category, order_week AS week_start, SUM(units) AS units\n  FROM sales\n  WHERE order_week BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n  GROUP BY parent_category, order_week\n)\nSELECT p.parent_category, w.week_start, COALESCE(s.units, 0) AS units\nFROM parents p\nCROSS JOIN weeks w\nLEFT JOIN weekly s ON s.parent_category = p.parent_category AND s.week_start = w.week_start",
+  "alternatives": [
+    "WITH weeks AS (\n  -- one row per week, the weeks of 3 to 24 March 2025\n  SELECT DISTINCT week_start\n  FROM calendar\n  WHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n), parents AS (\n  -- one row per parent category\n  SELECT DISTINCT parent_category\n  FROM categories\n)\nSELECT p.parent_category, w.week_start,\n  (SELECT COALESCE(SUM(s.units), 0) FROM sales s\n   WHERE s.parent_category = p.parent_category AND s.order_week = w.week_start) AS units\nFROM parents p\nCROSS JOIN weeks w",
+    "WITH weeks AS (\n  -- one row per week, the weeks of 3 to 24 March 2025\n  SELECT DISTINCT week_start\n  FROM calendar\n  WHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n), parents AS (\n  -- one row per parent category\n  SELECT DISTINCT parent_category\n  FROM categories\n), weekly AS (\n  -- one row per parent category and week with sales\n  SELECT parent_category, order_week AS week_start, SUM(units) AS units\n  FROM sales\n  WHERE order_week BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n  GROUP BY parent_category, order_week\n)\nSELECT p.parent_category, w.week_start, COALESCE(s.units, 0) AS units\nFROM weeks w\nCROSS JOIN parents p\nLEFT JOIN weekly s ON s.week_start = w.week_start AND s.parent_category = p.parent_category"
+  ],
+  "other_way": {
+    "sql": "WITH weeks AS (\n  -- one row per week, the weeks of 3 to 24 March 2025\n  SELECT DISTINCT week_start\n  FROM calendar\n  WHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n), parents AS (\n  -- one row per parent category\n  SELECT DISTINCT parent_category\n  FROM categories\n)\nSELECT p.parent_category, w.week_start,\n  (SELECT COALESCE(SUM(s.units), 0) FROM sales s\n   WHERE s.parent_category = p.parent_category AND s.order_week = w.week_start) AS units\nFROM parents p\nCROSS JOIN weeks w",
+    "tradeoff": "A subquery per parent category and week fills each cell directly, but it sums the sales again for every cell."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH weeks AS (\n  -- one row per week, the weeks of 3 to 24 March 2025\n  SELECT DISTINCT week_start\n  FROM calendar\n  WHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n), parents AS (\n  -- one row per parent category\n  SELECT DISTINCT parent_category\n  FROM categories\n), weekly AS (\n  -- one row per parent category and week with sales\n  SELECT parent_category, order_week AS week_start, SUM(units) AS units\n  FROM sales\n  WHERE order_week BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n  GROUP BY parent_category, order_week\n) SELECT parent_category, week_start, units FROM weekly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "WITH days AS (SELECT cal_date, week_start FROM calendar WHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'), parents AS (SELECT DISTINCT parent_category FROM categories), weekly AS (SELECT parent_category, order_week AS week_start, SUM(units) AS units FROM sales WHERE order_week BETWEEN DATE '2025-03-03' AND DATE '2025-03-24' GROUP BY parent_category, order_week) SELECT p.parent_category, d.week_start, COALESCE(SUM(s.units), 0) AS units FROM parents p CROSS JOIN days d LEFT JOIN weekly s ON s.parent_category = p.parent_category AND s.week_start = d.week_start GROUP BY p.parent_category, d.week_start"
+    }
+  ],
+  "hint3_partial": "WITH weeks AS (\n  -- one row per week, the weeks of 3 to 24 March 2025\n  SELECT DISTINCT week_start\n  FROM calendar\n  WHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n), parents AS (\n  -- one row per parent category\n  SELECT DISTINCT parent_category\n  FROM categories\n), weekly AS (\n  -- one row per parent category and week with sales\n  SELECT parent_category, order_week AS week_start, SUM(units) AS units\n  FROM sales\n  WHERE order_week BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n  GROUP BY parent_category, order_week\n)\nSELECT p.parent_category, w.week_start, COALESCE(s.units, 0) AS units\nFROM parents p\nCROSS JOIN weeks w\nLEFT JOIN weekly s ON ___",
+  "solver": {
+    "prompt_hash": "58e8b2a037a2fd68",
+    "schema_version": "6c11104c0696",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH weeks AS (\n  SELECT CAST(d AS DATE) AS week_start FROM generate_series(DATE '2025-03-03', DATE '2025-03-24', INTERVAL 7 DAY) t(d)\n), cats AS (\n  SELECT DISTINCT parent_category FROM categories\n), u AS (\n  SELECT parent_category, order_week AS week_start, SUM(units) AS units\n  FROM sales\n  WHERE order_week BETWEEN DATE '2025-03-03' AND DATE '2025-03-24'\n  GROUP BY 1, 2\n)\nSELECT c.parent_category, w.week_start, COALESCE(u.units, 0) AS units\nFROM cats c CROSS JOIN weeks w\nLEFT JOIN u ON u.parent_category = c.parent_category AND u.week_start = w.week_start\n",
+    "at": "2026-10-28T14:57:05.280Z"
+  }
+}

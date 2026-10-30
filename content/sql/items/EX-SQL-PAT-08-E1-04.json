@@ -1,0 +1,178 @@
+{
+  "id": "EX-SQL-PAT-08-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "running_sum",
+    "app_events",
+    "clock_change"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-WIN-04",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-session-no",
+  "template_params": {
+    "table": "app_events",
+    "day": "2025-10-26"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Number each user's sessions on 26 October 2025, the day the clocks went back (the UTC day of event_ts). Use only that day's app events, so each user's first event of the day starts session 1. A user's first app event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant, never between clock times. Return four columns, in this order: event_id, user_id, event_ts and session_no, the number of the session the event belongs to, counting from 1 for each user. Return one row for each event. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "user_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "event_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "session_no",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per app event on 26 October 2025 (UTC)"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "user_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "event_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "session_no",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, flag each event that starts a session, then add the flags up in each user's time order.",
+    "The session number is a running SUM of the 1s and 0s, per user, from the first row up to the current one."
+  ],
+  "subgoals": [
+    {
+      "from": 67,
+      "to": 104,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 105,
+      "to": 189,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 190,
+      "to": 207,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 208,
+      "to": 320,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 389,
+      "to": 426,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 427,
+      "to": 535,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 536,
+      "to": 547,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 550,
+      "to": 585,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 586,
+      "to": 723,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 724,
+      "to": 736,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 427,
+    "stage2": 427
+  },
+  "faded_shape": "WITH gaps AS (\n  -- one row per app event on 26 October 2025 (UTC)\n  SELECT event_id, user_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-26 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-10-27 00:00:00+00'\n), flagged AS (\n  -- one row per app event on 26 October 2025 (UTC)\n  SELECT event_id, user_id, event_ts,\n",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each 1 marks a session start, so the running sum of the flags in time order is the session's number for every event in it.",
+  "faded_suffix": "\nFROM flagged"
+}

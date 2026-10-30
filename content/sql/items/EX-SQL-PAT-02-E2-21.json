@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-PAT-02-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "row_number",
+    "tie_break",
+    "competitor_prices"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-latest-per-key-counted",
+  "template_params": {
+    "table": "competitor_prices",
+    "key": "product",
+    "count_by": "competitor"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Which competitor checked each product most recently, and how many products is that per competitor? observed_ts holds UTC time. Each product with a competitor check counts once, under the competitor of its check with the latest observed_ts. When two checks of a product tie on observed_ts, the one whose competitor comes first alphabetically is kept. Return two columns, in this order: competitor and products. Return one row for each competitor with some product's latest check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "competitor"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each product's checks from the latest observed_ts down, keep number 1, then count the kept checks by competitor.",
+    "The latest check is chosen by its time, and the stated tie-break is the last sort key."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 49,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 50,
+      "to": 179,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 180,
+      "to": 204,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 207,
+      "to": 246,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 247,
+      "to": 258,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 259,
+      "to": 271,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 272,
+      "to": 291,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Keeping each product's check numbered 1, latest first with the competitor's name splitting a tie, counts every product once."
+}

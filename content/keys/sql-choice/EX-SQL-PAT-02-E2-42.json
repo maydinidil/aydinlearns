@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-02-E2-42",
+  "item_version": 1,
+  "correct_oid": "o3a8447f",
+  "explanation": "Numbering the rows of each event, where an event is the four columns that match on its copies, and counting the rows numbered 1 counts every event once. COUNT(DISTINCT event_id) counts the copies too, since each copy has its own event_id. DISTINCT with recorded_at keeps the copies apart, because a copy was recorded later. Numbering by subscription and type alone merges different expansions of one subscription into one.",
+  "solver": {
+    "prompt_hash": "c92a954147af13e2",
+    "grader_version": "choice.3",
+    "chosen": "o3a8447f",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.753Z"
+  }
+}

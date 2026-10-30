@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-PAT-03-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "week_over_week",
+    "lag",
+    "weekly_units"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-wow-change",
+  "template_params": {
+    "table": "weekly_units",
+    "period": "week"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each week from the week of 6 January 2025 to the week of 24 March 2025 (weeks start on Monday; order dates are UTC days), show the total units Voltmarkt sold and the change from the previous week: this week's units minus last week's. A week with no orders counts as 0 units. Only these weeks count, so the first week shows change_units as missing. Return three columns, in this order: week_start, units and change_units. Return one row for each week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "change_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total the units per week from a source that has a row for every week, then compare each week with the one before.",
+    "A week with no orders must still have a row with 0, or the row before is two weeks back."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 203,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 204,
+      "to": 229,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 230,
+      "to": 293,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 294,
+      "to": 305,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "weekly_units has a row for every week, 0 when nothing sold, so the row before is always the week before."
+}

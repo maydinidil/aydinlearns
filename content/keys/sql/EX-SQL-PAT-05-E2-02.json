@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT s.store_code,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 1) AS mon,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 2) AS tue,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 3) AS wed,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 4) AS thu,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 5) AS fri,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 6) AS sat,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 7) AS sun\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY s.store_code",
+  "alternatives": [
+    "SELECT store_code, \"1\" AS mon, \"2\" AS tue, \"3\" AS wed, \"4\" AS thu, \"5\" AS fri, \"6\" AS sat, \"7\" AS sun\nFROM (\n  -- one row per order of 2025\n  SELECT s.store_code, isodow(o.order_ts) AS wd\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n) AS w\nPIVOT (COUNT(*) FOR wd IN (1, 2, 3, 4, 5, 6, 7) GROUP BY store_code)",
+    "SELECT s.store_code,\n  SUM(CASE WHEN isodow(o.order_ts) = 1 THEN 1 ELSE 0 END) AS mon,\n  SUM(CASE WHEN isodow(o.order_ts) = 2 THEN 1 ELSE 0 END) AS tue,\n  SUM(CASE WHEN isodow(o.order_ts) = 3 THEN 1 ELSE 0 END) AS wed,\n  SUM(CASE WHEN isodow(o.order_ts) = 4 THEN 1 ELSE 0 END) AS thu,\n  SUM(CASE WHEN isodow(o.order_ts) = 5 THEN 1 ELSE 0 END) AS fri,\n  SUM(CASE WHEN isodow(o.order_ts) = 6 THEN 1 ELSE 0 END) AS sat,\n  SUM(CASE WHEN isodow(o.order_ts) = 7 THEN 1 ELSE 0 END) AS sun\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY s.store_code"
+  ],
+  "other_way": {
+    "sql": "SELECT store_code, \"1\" AS mon, \"2\" AS tue, \"3\" AS wed, \"4\" AS thu, \"5\" AS fri, \"6\" AS sat, \"7\" AS sun\nFROM (\n  -- one row per order of 2025\n  SELECT s.store_code, isodow(o.order_ts) AS wd\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n) AS w\nPIVOT (COUNT(*) FOR wd IN (1, 2, 3, 4, 5, 6, 7) GROUP BY store_code)",
+    "tradeoff": "PIVOT with an IN list of the seven weekday numbers saves typing, but it only runs on DuckDB."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT s.store_code, SUM(CASE WHEN isodow(o.order_ts) = 1 THEN 1 END) AS mon, SUM(CASE WHEN isodow(o.order_ts) = 2 THEN 1 END) AS tue, SUM(CASE WHEN isodow(o.order_ts) = 3 THEN 1 END) AS wed, SUM(CASE WHEN isodow(o.order_ts) = 4 THEN 1 END) AS thu, SUM(CASE WHEN isodow(o.order_ts) = 5 THEN 1 END) AS fri, SUM(CASE WHEN isodow(o.order_ts) = 6 THEN 1 END) AS sat, SUM(CASE WHEN isodow(o.order_ts) = 7 THEN 1 END) AS sun FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'   AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00' GROUP BY s.store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT s.store_code, COUNT(*) FILTER (WHERE isodow(o.order_ts) = 1) AS mon, COUNT(*) FILTER (WHERE isodow(o.order_ts) = 2) AS tue, COUNT(*) FILTER (WHERE isodow(o.order_ts) = 3) AS wed, COUNT(*) FILTER (WHERE isodow(o.order_ts) = 4) AS thu, COUNT(*) FILTER (WHERE isodow(o.order_ts) = 5) AS fri, COUNT(*) FILTER (WHERE isodow(o.order_ts) = 6) AS sat, COUNT(*) FILTER (WHERE isodow(o.order_ts) = 7) AS sun FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'   AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00' GROUP BY s.store_code, o.channel, o.ship_to_country"
+    }
+  ],
+  "hint3_partial": "SELECT s.store_code,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = ___) AS mon,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 2) AS tue,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 3) AS wed,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 4) AS thu,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 5) AS fri,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 6) AS sat,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = ___) AS sun\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY s.store_code",
+  "solver": {
+    "prompt_hash": "dcd72ef8be645368",
+    "schema_version": "b1c1a5d57d7d",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT s.store_code,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 1) AS mon,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 2) AS tue,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 3) AS wed,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 4) AS thu,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 5) AS fri,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 6) AS sat,\n  COUNT(*) FILTER (WHERE isodow(o.order_ts) = 7) AS sun\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY s.store_code\n",
+    "at": "2026-10-28T14:57:05.968Z"
+  }
+}

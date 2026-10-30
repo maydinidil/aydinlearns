@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-05-E2-41",
+  "item_version": 1,
+  "correct_oid": "oda058ea",
+  "explanation": "COUNT(*) with a FILTER counts only the rows of its billing period and gives 0 when there are none, all on one row per segment. A CASE with no ELSE inside SUM gives a missing value for a segment with no annual plan. Grouping by the billing period as well splits each segment into two rows. COUNT of a comparison counts every row, true or false, so both columns show the segment's total.",
+  "solver": {
+    "prompt_hash": "d4d4ad080ccedf86",
+    "grader_version": "choice.3",
+    "chosen": "oda058ea",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.773Z"
+  }
+}

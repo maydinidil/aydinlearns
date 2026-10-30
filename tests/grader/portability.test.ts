@@ -7,8 +7,8 @@ import { startRunner, type RunnerClient, type RunnerReq, type RunnerResult } fro
 import type { ParseTreeOk } from '../../server/runner/protocol.ts';
 import { grade } from '../../server/grader/grade.ts';
 import {
-  CAST_NOTE, COUNT_NOTE, EXCLUDE_NOTE, FROM_FIRST_NOTE, GROUP_BY_ALL_NOTE, ILIKE_NOTE, QUALIFY_NOTE, SUBQUERY_ALIAS_NOTE, TRAILING_COMMA_NOTE, integerDivisionCheck,
-  portabilityNotes,
+  CAST_NOTE, COUNT_NOTE, EXCLUDE_NOTE, FROM_FIRST_NOTE, GROUP_BY_ALL_NOTE, ILIKE_NOTE, PIVOT_NOTE, QUALIFY_NOTE, SUBQUERY_ALIAS_NOTE, TRAILING_COMMA_NOTE, UNPIVOT_NOTE,
+  integerDivisionCheck, portabilityNotes,
 } from '../../server/grader/portability.ts';
 import type { DisplayOk, RunnerError } from '../../server/runner/protocol.ts';
 import { DEFAULT_RULES, type SqlItem } from '../../schemas/item.ts';
@@ -462,4 +462,71 @@ test('S7-20: a graded query that uses QUALIFY carries the QUALIFY note, on a pas
     assert.deepEqual([r.outcome, r.portabilityNotes], ['pass', []], sql);
   }
   assert.ok(!/—/.test(QUALIFY_NOTE));
+});
+
+// ---- Sprint 8 Task A1, S8-09: PIVOT. A note only, logged in portability_notes ------------------------------------------------
+// DuckDB 1.5.6 reads a PIVOT with an IN list as one SELECT, so the gate passes it (tests/runner/gate.test.ts) and it carries S8-09's
+// note. A PIVOT with no IN list is two statements there, so the gate refuses it and it gets no note: it never ran.
+
+// S8-C07 (the controller's ruling on Task A1's concern 3): SQL Server and Oracle have a PIVOT of their own, so the note says this form is
+// DuckDB's, not that PIVOT runs nowhere else.
+const PIVOT_HERE = 'This PIVOT form is DuckDB\'s own: other databases write it differently or have none. Conditional aggregation runs everywhere.';
+test('S8-09: a PIVOT the gate passes gets the PIVOT note, once, in each of its forms and at any depth', async () => {
+  assert.equal(PIVOT_NOTE, PIVOT_HERE);
+  for (const sql of [
+    "PIVOT stores ON country_code IN ('NL', 'BE') USING count(*) GROUP BY city",
+    "PIVOT_WIDER stores ON country_code IN ('NL', 'BE') USING count(*) GROUP BY city",
+    "PIVOT stores ON country_code IN ('NL', 'BE') USING count(*), max(store_id) GROUP BY city",
+    "SELECT * FROM stores PIVOT (count(*) FOR country_code IN ('NL', 'BE') GROUP BY city)",
+    "WITH s AS (SELECT city, country_code FROM stores) PIVOT s ON country_code IN ('NL', 'BE') USING count(*)",
+    "SELECT * FROM (PIVOT stores ON country_code IN ('NL', 'BE') USING count(*) GROUP BY city) AS p",
+    "SELECT city FROM stores WHERE city IN (SELECT city FROM (PIVOT stores ON country_code IN ('NL') USING count(*) GROUP BY city) AS p)",
+    "SELECT p.city FROM (PIVOT stores ON country_code IN ('NL') USING count(*) GROUP BY city) AS p JOIN (PIVOT stores ON country_code IN ('BE') USING count(*) GROUP BY city) AS q ON p.city = q.city",
+  ]) assert.deepEqual(await lint(sql), [PIVOT_HERE], sql);
+  // Notes keep their order: the friendly-SQL notes first, the PIVOT note last.
+  assert.deepEqual(await lint("FROM stores PIVOT (count(*) FOR country_code IN ('NL', 'BE') GROUP BY city)"), [FROM_FIRST_NOTE, PIVOT_HERE]);
+  assert.deepEqual(await lint("SELECT * FROM (SELECT city, country_code FROM stores) PIVOT (count(*) FOR country_code IN ('NL') GROUP BY city)"), [SUBQUERY_ALIAS_NOTE, PIVOT_HERE]);
+  assert.ok(!/—/.test(PIVOT_NOTE));
+});
+// A1-M1 (sprint 8): UNPIVOT is one SELECT to the gate, so it runs and is graded; it carries the UNPIVOT note, once, and never the PIVOT note.
+const UNPIVOT_HERE = 'This UNPIVOT form is DuckDB\'s own: other databases write it differently or have none. UNION ALL runs everywhere.';
+test('A1-M1: an UNPIVOT the gate passes gets the UNPIVOT note, once, in each of its forms, and no PIVOT note', async () => {
+  assert.equal(UNPIVOT_NOTE, UNPIVOT_HERE);
+  for (const sql of [
+    'UNPIVOT stores ON city, store_code INTO NAME field VALUE val',
+    'SELECT * FROM stores UNPIVOT (val FOR field IN (city, store_code))',
+    'SELECT field, val FROM (UNPIVOT stores ON city, store_code INTO NAME field VALUE val) AS u',
+    'WITH s AS (SELECT city, store_code FROM stores) UNPIVOT s ON city, store_code INTO NAME field VALUE val',
+  ]) {
+    const t = await runner.request<ParseTreeOk>({ op: 'parse_tree', schema: 'vis', allowedSchemas: [], sql });
+    assert.ok(t.ok && t.data.tree !== null, `the gate accepts it: ${sql}`);
+    assert.deepEqual(await lint(sql), [UNPIVOT_HERE], sql);
+  }
+  assert.ok(!/—/.test(UNPIVOT_NOTE));
+  // Both in one query: the PIVOT note first, the UNPIVOT note last.
+  assert.deepEqual(await lint("SELECT * FROM (PIVOT stores ON country_code IN ('NL') USING count(*) GROUP BY city) AS p, (UNPIVOT stores ON city INTO NAME f VALUE v) AS u"), [PIVOT_HERE, UNPIVOT_HERE]);
+  // Words inside a string, a comment or a quoted name are not a construct.
+  await noNotes("SELECT city FROM stores WHERE city <> 'UNPIVOT stores' -- UNPIVOT stores ON city INTO NAME f VALUE v");
+});
+test('S8-09: a PIVOT the gate refuses, conditional aggregation and the word inside a string, a comment or a quoted name get no PIVOT note', async () => {
+  for (const sql of [
+    "SELECT city, count(CASE WHEN country_code = 'NL' THEN 1 END) AS nl, count(*) FILTER (WHERE country_code = 'BE') AS be FROM stores GROUP BY city",
+    "SELECT city FROM stores WHERE city <> 'PIVOT stores' -- PIVOT stores ON city IN ('x') USING count(*)",
+    'SELECT city AS "pivot", store_code AS pivot_point FROM stores',
+  ]) await noNotes(sql);
+  // No IN list: DuckDB 1.5.6 makes two statements of it, so the gate refuses it and there is no tree to read.
+  assert.deepEqual(await lint('PIVOT stores ON country_code USING count(*) GROUP BY city'), []);
+});
+test('S8-09: a PIVOT passes against a key written with conditional aggregation, with the note; one with no IN list is refused, with none', async () => {
+  const wide = { ...item, id: 'EX-PIVOT', rules: { ...DEFAULT_RULES, columns: [
+    { name: 'city', type_class: 'text', precision: 'exact' }, { name: 'nl', type_class: 'numeric', precision: 'count' }, { name: 'be', type_class: 'numeric', precision: 'count' },
+  ] } } as unknown as SqlItem;
+  const wideKey: SqlKey = { ...key, item_id: 'EX-PIVOT',
+    reference_sql: "SELECT city, count(CASE WHEN country_code = 'NL' THEN 1 END) AS nl, count(CASE WHEN country_code = 'BE' THEN 1 END) AS be FROM stores GROUP BY city" };
+  const pass = await grade({ item: wide, key: wideKey, sql: "PIVOT stores ON country_code IN ('NL', 'BE') USING count(*) GROUP BY city" }, deps);
+  assert.deepEqual([pass.outcome, pass.graded, pass.portabilityNotes, pass.notes], ['pass', true, [PIVOT_HERE], ['It keeps the stores with a city.']]);
+  const portable = await grade({ item: wide, key: wideKey, sql: wideKey.reference_sql }, deps);
+  assert.deepEqual([portable.outcome, portable.portabilityNotes], ['pass', []]);
+  const refused = await grade({ item: wide, key: wideKey, sql: 'PIVOT stores ON country_code USING count(*) GROUP BY city' }, deps);
+  assert.deepEqual([refused.outcome, refused.graded, refused.rejectMessage, refused.portabilityNotes], ['rejected', false, 'Submit one statement only.', []]);
 });

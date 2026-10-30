@@ -1,0 +1,89 @@
+{
+  "id": "EX-SQL-PAT-07-E1-42",
+  "version": 1,
+  "kind": "which_table",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "which_table",
+    "funnel",
+    "activation"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-which-table-activation",
+  "template_params": {
+    "step": "activation"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "A funnel needs the moment each Mailvora user was activated, which is the user's first_campaign_sent. Which table holds it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oe343283",
+      "text": "activation_events",
+      "misconception_id": null
+    },
+    {
+      "oid": "oc07ab82",
+      "text": "signups",
+      "misconception_id": null
+    },
+    {
+      "oid": "o704392f",
+      "text": "subscriptions",
+      "misconception_id": null
+    },
+    {
+      "oid": "o7579612",
+      "text": "payments",
+      "misconception_id": null
+    },
+    {
+      "oid": "o01d79fa",
+      "text": "sessions",
+      "misconception_id": null
+    }
+  ]
+}

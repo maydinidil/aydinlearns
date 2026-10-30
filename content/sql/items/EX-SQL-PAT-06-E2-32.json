@@ -1,0 +1,174 @@
+{
+  "id": "EX-SQL-PAT-06-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "cohort_date",
+    "legacy_accounts",
+    "mrr",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-fix-cohort-date",
+  "template_params": {
+    "cohort_date": "created_at",
+    "cohorts": "2024",
+    "activity": "MRR above 0 on 2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each monthly cohort of accounts created in 2024, how many accounts does the cohort hold, and how many of them were still paying at the end of 2025? An account's cohort month is the month of its created_at (Brussels local time); an account created before 2024 is in none of these cohorts. An account is paying on 31 December 2025 when the sum of its subscription events' mrr_delta_local with event_date on or before that day is above 0. The as-of date is 1 January 2026, so every month up to December 2025 has ended. Return three columns, in this order: cohort_month (the first day of the month), cohort_accounts and paying_at_end. Return one row for each cohort month of 2024 that has accounts. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "cohort_accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paying_at_end",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "cohort_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paying_at_end",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check which date puts an account in its cohort: the question names created_at.",
+    "Every account that was already a customer has an opening event on 1 January 2024, so a cohort taken from the first event puts all of them in January 2024."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 56,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 59,
+      "to": 139,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 142,
+      "to": 155,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 158,
+      "to": 258,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 262,
+      "to": 339,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 342,
+      "to": 408,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 411,
+      "to": 484,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 487,
+      "to": 526,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 529,
+      "to": 566,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 569,
+      "to": 681,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 682,
+      "to": 694,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 695,
+      "to": 716,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH cohort AS (  -- one row per account created in 2024\n  SELECT account_id, CAST(date_trunc('month', MIN(event_date)) AS DATE) AS cohort_month\n  FROM subscription_events\n  GROUP BY account_id\n  HAVING MIN(event_date) < DATE '2025-01-01'\n),\nmrr_end AS (  -- one row per cohort account, with its MRR on 31 December 2025\n  SELECT c.account_id, c.cohort_month, SUM(e.mrr_delta_local) AS mrr\n  FROM cohort c\n  JOIN subscription_events e ON e.account_id = c.account_id\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY c.account_id, c.cohort_month\n)\nSELECT cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(*) FILTER (WHERE mrr > 0) AS paying_at_end\nFROM mrr_end\nGROUP BY cohort_month",
+  "time_target_ms": 210000,
+  "why_this_works": "The cohort comes from created_at, so the accounts that were customers before 2024 stay out of January 2024.",
+  "starter_error_id": "ERR-LOG-50"
+}

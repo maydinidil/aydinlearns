@@ -1,0 +1,158 @@
+{
+  "id": "EX-SQL-PAT-06-E1-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "month_offset",
+    "long_table",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-long-counts",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "activity": "payment",
+    "cohorts": "2025-01 to 2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For the users who signed up from January to March 2025, how many paid in each month after their signup? A user's cohort month is the month of signup_ts, and a payment counts in the month of its paid_at; both are UTC instants, so read months in UTC. Leave refunded payments out. The month offset counts calendar months from the cohort month: 0 for the cohort month itself, 1 for the next month, and so on. The as-of date is 5 January 2026, so every month up to December 2025 has ended, and no payment comes before its user's signup or after that date. Return three columns, in this order: cohort_month (the first day of the month), month_offset and paying_users, the number of the cohort's users with a payment in that month. Return one row for each cohort month and month offset with at least one paying user. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paying_users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per cohort month and month offset with a paying user"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "paying_users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month",
+      "month_offset"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the month offset: the calendar months from the cohort month to the month of the payment.",
+    "Move both instants to the first day of their month first, then count the months between the two days."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 63,
+      "to": 153,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 163,
+      "to": 263,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 266,
+      "to": 387,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 390,
+      "to": 525,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 528,
+      "to": 602,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 603,
+      "to": 612,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 613,
+      "to": 648,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 163,
+    "stage2": 163
+  },
+  "faded_shape": "WITH paid AS (  -- one row per payment that was not refunded\n  SELECT u.user_id,\n         CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n         ",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "date_diff on the two month starts counts calendar months, so each payment lands at its offset from the signup month.",
+  "faded_suffix": "\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  JOIN signups u ON u.user_id = s.user_id\n  WHERE NOT p.refunded\n    AND u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n)\nSELECT cohort_month, month_offset, COUNT(DISTINCT user_id) AS paying_users\nFROM paid\nGROUP BY cohort_month, month_offset"
+}

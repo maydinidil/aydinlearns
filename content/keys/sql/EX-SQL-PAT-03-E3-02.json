@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-03-E3-02",
+  "item_version": 1,
+  "reference_sql": "WITH like_for_like AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code\n  FROM stores\n  WHERE opened_on <= DATE '2024-01-01'\n    AND close_date IS NULL\n), monthly AS (\n  -- one row per month with like-for-like sales, 2024 and 2025\n  SELECT sa.order_month AS month, SUM(sa.net_revenue_eur) AS revenue_eur\n  FROM sales sa\n  JOIN like_for_like l ON l.store_code = sa.store_code\n  WHERE sa.order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY sa.order_month\n)\nSELECT m.month, m.revenue_eur, p.revenue_eur AS revenue_prev_year_eur,\n  ROUND(100.0 * (m.revenue_eur - p.revenue_eur) / p.revenue_eur, 1) AS growth_pct\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR\nWHERE m.month >= DATE '2025-01-01'",
+  "alternatives": [
+    "WITH like_for_like AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code\n  FROM stores\n  WHERE opened_on <= DATE '2024-01-01'\n    AND close_date IS NULL\n), monthly AS (\n  -- one row per month with like-for-like sales, 2024 and 2025\n  SELECT sa.order_month AS month, SUM(sa.net_revenue_eur) AS revenue_eur\n  FROM sales sa\n  JOIN like_for_like l ON l.store_code = sa.store_code\n  WHERE sa.order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY sa.order_month\n)\nSELECT m.month, m.revenue_eur,\n  (SELECT p.revenue_eur FROM monthly p WHERE p.month = m.month - INTERVAL 1 YEAR) AS revenue_prev_year_eur,\n  ROUND(100.0 * (m.revenue_eur - (SELECT p.revenue_eur FROM monthly p WHERE p.month = m.month - INTERVAL 1 YEAR))\n    / (SELECT p.revenue_eur FROM monthly p WHERE p.month = m.month - INTERVAL 1 YEAR), 1) AS growth_pct\nFROM monthly m\nWHERE m.month >= DATE '2025-01-01'",
+    "WITH like_for_like AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code\n  FROM stores\n  WHERE opened_on <= DATE '2024-01-01'\n    AND close_date IS NULL\n), monthly AS (\n  -- one row per month with like-for-like sales, 2024 and 2025\n  SELECT sa.order_month AS month, SUM(sa.net_revenue_eur) AS revenue_eur\n  FROM sales sa\n  JOIN like_for_like l ON l.store_code = sa.store_code\n  WHERE sa.order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY sa.order_month\n)\nSELECT m.month, m.revenue_eur, p.revenue_eur AS revenue_prev_year_eur,\n  ROUND(100.0 * m.revenue_eur / p.revenue_eur - 100, 1) AS growth_pct\nFROM monthly m\nLEFT JOIN monthly p ON year(p.month) = year(m.month) - 1 AND month(p.month) = month(m.month)\nWHERE m.month >= DATE '2025-01-01'"
+  ],
+  "other_way": {
+    "sql": "WITH like_for_like AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code\n  FROM stores\n  WHERE opened_on <= DATE '2024-01-01'\n    AND close_date IS NULL\n), monthly AS (\n  -- one row per month with like-for-like sales, 2024 and 2025\n  SELECT sa.order_month AS month, SUM(sa.net_revenue_eur) AS revenue_eur\n  FROM sales sa\n  JOIN like_for_like l ON l.store_code = sa.store_code\n  WHERE sa.order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY sa.order_month\n)\nSELECT m.month, m.revenue_eur,\n  (SELECT p.revenue_eur FROM monthly p WHERE p.month = m.month - INTERVAL 1 YEAR) AS revenue_prev_year_eur,\n  ROUND(100.0 * (m.revenue_eur - (SELECT p.revenue_eur FROM monthly p WHERE p.month = m.month - INTERVAL 1 YEAR))\n    / (SELECT p.revenue_eur FROM monthly p WHERE p.month = m.month - INTERVAL 1 YEAR), 1) AS growth_pct\nFROM monthly m\nWHERE m.month >= DATE '2025-01-01'",
+    "tradeoff": "A scalar subquery per month also finds last year by date, but repeating it three times is harder to read than one join."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-48",
+      "sql": "WITH monthly AS (SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31' GROUP BY order_month) SELECT m.month, m.revenue_eur, p.revenue_eur AS revenue_prev_year_eur, ROUND(100.0 * (m.revenue_eur - p.revenue_eur) / p.revenue_eur, 1) AS growth_pct FROM monthly m LEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR WHERE m.month >= DATE '2025-01-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH like_for_like AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code\n  FROM stores\n  WHERE opened_on <= DATE '2024-01-01'\n    AND close_date IS NULL\n), monthly AS (\n  -- one row per month with like-for-like sales, 2024 and 2025\n  SELECT sa.order_month AS month, SUM(sa.net_revenue_eur) AS revenue_eur\n  FROM sales sa\n  JOIN like_for_like l ON l.store_code = sa.store_code\n  WHERE sa.order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY sa.order_month\n), compared AS (SELECT month, revenue_eur, LAG(revenue_eur, 12) OVER (ORDER BY month) AS revenue_prev_year_eur FROM monthly) SELECT month, revenue_eur, revenue_prev_year_eur, ROUND(100.0 * (revenue_eur - revenue_prev_year_eur) / revenue_prev_year_eur, 1) AS growth_pct FROM compared WHERE month >= DATE '2025-01-01'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH like_for_like AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code\n  FROM stores\n  WHERE opened_on <= DATE '2024-01-01'\n    AND close_date IS NULL\n), monthly AS (\n  -- one row per month with like-for-like sales, 2024 and 2025\n  SELECT sa.order_month AS month, SUM(sa.net_revenue_eur) AS revenue_eur\n  FROM sales sa\n  JOIN like_for_like l ON l.store_code = sa.store_code\n  WHERE sa.order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY sa.order_month\n) SELECT m.month, m.revenue_eur, p.revenue_eur AS revenue_prev_year_eur, ROUND(100.0 * (m.revenue_eur - p.revenue_eur) / m.revenue_eur, 1) AS growth_pct FROM monthly m LEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR WHERE m.month >= DATE '2025-01-01'"
+    }
+  ],
+  "hint3_partial": "WITH like_for_like AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code\n  FROM stores\n  WHERE opened_on <= DATE '2024-01-01'\n    AND close_date IS NULL\n), monthly AS (\n  -- one row per month with like-for-like sales, 2024 and 2025\n  SELECT sa.order_month AS month, SUM(sa.net_revenue_eur) AS revenue_eur\n  FROM sales sa\n  JOIN like_for_like l ON l.store_code = sa.store_code\n  WHERE sa.order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY sa.order_month\n)\nSELECT m.month, m.revenue_eur, p.revenue_eur AS revenue_prev_year_eur,\n  ROUND(100.0 * (m.revenue_eur - p.revenue_eur) / p.revenue_eur, 1) AS growth_pct\nFROM monthly m\nLEFT JOIN monthly p ON ___\nWHERE m.month >= DATE '2025-01-01'",
+  "solver": {
+    "prompt_hash": "23a97b7b018d4c9f",
+    "schema_version": "5dbd771f9d51",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH m AS (\n  SELECT s.order_month AS month, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE st.opened_on <= DATE '2024-01-01' AND st.close_date IS NULL\n    AND s.order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY s.order_month\n)\nSELECT cur.month, cur.revenue_eur, prev.revenue_eur AS revenue_prev_year_eur,\n  ROUND(100.0 * (cur.revenue_eur - prev.revenue_eur) / prev.revenue_eur, 1) AS growth_pct\nFROM m cur\nLEFT JOIN m prev ON prev.month = CAST(cur.month - INTERVAL 1 YEAR AS DATE)\nWHERE cur.month >= DATE '2025-01-01'\n",
+    "at": "2026-10-28T14:57:04.612Z"
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-PAT-04-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "grid",
+    "cross_join",
+    "support_tickets"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-DATE-02",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-month-grid",
+  "template_params": {
+    "table": "support_tickets",
+    "spine": "range x priority"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each ticket priority (P1 to P4, all four appear in support_tickets) and each month of 2025, how many support tickets were opened at LedgerLoop? opened_at holds Brussels time: take the month as stored. Every priority has a row for every month, and a month with no tickets of that priority shows 0. Return three columns, in this order: priority, month (the first day of the month) and tickets. Return one row for each priority and month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "priority",
+        "type_class": "text"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "tickets",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "priority",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "tickets",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "priority",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, pair every priority with every month of 2025, then attach the ticket counts.",
+    "The grid of priorities and months gives each cell a row; join the counts on both columns and turn a missing count into 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 611,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 612,
+      "to": 673,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 674,
+      "to": 691,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 692,
+      "to": 711,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 712,
+      "to": 780,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Every priority meets every month in the grid, so a month with no tickets of a priority still has a row, with 0."
+}

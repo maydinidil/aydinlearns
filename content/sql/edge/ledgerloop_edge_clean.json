@@ -1,0 +1,39 @@
+{
+  "schema": "ledgerloop_edge_clean",
+  "mirrors": "ledgerloop_raw",
+  "family": "clean",
+  "contains": [
+    "an expansion sent twice at the same moment: two rows with the same subscription, type, day, amount and recorded_at under two event IDs",
+    "an expansion and a churn each sent twice, the copy recorded minutes later",
+    "a churn recorded more than 30 days after the day it took effect",
+    "subscriptions and invoices that all say EUR, though one account is in GB and one in CH",
+    "payment attempts as UTC instants, one of them at 23:30 UTC, which is the next day in Brussels, after a failed first attempt",
+    "a running subscription that ends on 9999-12-31",
+    "segments spelled in several ways",
+    "a flagged test account and one only named like a test, holding no subscription"
+  ],
+  "tables": {
+    "accounts": [
+      "subscriptions and invoices that all say EUR, though one account is in GB and one in CH",
+      "segments spelled in several ways",
+      "a flagged test account and one only named like a test, holding no subscription"
+    ],
+    "subscriptions": [
+      "subscriptions and invoices that all say EUR, though one account is in GB and one in CH",
+      "a running subscription that ends on 9999-12-31",
+      "a flagged test account and one only named like a test, holding no subscription"
+    ],
+    "subscription_events": [
+      "an expansion sent twice at the same moment: two rows with the same subscription, type, day, amount and recorded_at under two event IDs",
+      "an expansion and a churn each sent twice, the copy recorded minutes later",
+      "a churn recorded more than 30 days after the day it took effect"
+    ],
+    "invoices": [
+      "subscriptions and invoices that all say EUR, though one account is in GB and one in CH",
+      "payment attempts as UTC instants, one of them at 23:30 UTC, which is the next day in Brussels, after a failed first attempt"
+    ],
+    "payments": [
+      "payment attempts as UTC instants, one of them at 23:30 UTC, which is the next day in Brussels, after a failed first attempt"
+    ]
+  }
+}

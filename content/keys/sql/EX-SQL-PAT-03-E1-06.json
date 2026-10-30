@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E1-06",
+  "item_version": 1,
+  "reference_sql": "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', invoice_date) AS DATE) AS quarter, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('quarter', invoice_date) AS DATE)\n)\nSELECT quarter, invoices,\n  invoices - LAG(invoices) OVER (ORDER BY quarter) AS change_invoices\nFROM quarterly",
+  "alternatives": [
+    "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', invoice_date) AS DATE) AS quarter, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('quarter', invoice_date) AS DATE)\n)\nSELECT q.quarter, q.invoices, q.invoices - p.invoices AS change_invoices\nFROM quarterly q\nLEFT JOIN quarterly p ON p.quarter = q.quarter - INTERVAL 3 MONTH",
+    "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', invoice_date) AS DATE) AS quarter, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('quarter', invoice_date) AS DATE)\n)\nSELECT quarter, invoices,\n  invoices - LAG(invoices, 1) OVER (ORDER BY quarter) AS change_invoices\nFROM quarterly"
+  ],
+  "other_way": {
+    "sql": "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', invoice_date) AS DATE) AS quarter, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('quarter', invoice_date) AS DATE)\n)\nSELECT q.quarter, q.invoices, q.invoices - p.invoices AS change_invoices\nFROM quarterly q\nLEFT JOIN quarterly p ON p.quarter = q.quarter - INTERVAL 3 MONTH",
+    "tradeoff": "Joining each quarter to the one three months earlier states the step by date, but LAG is shorter when every quarter has a row."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', invoice_date) AS DATE) AS quarter, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('quarter', invoice_date) AS DATE)\n) SELECT quarter, invoices, LAG(invoices) OVER (ORDER BY quarter) - invoices AS change_invoices FROM quarterly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', invoice_date) AS DATE) AS quarter, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('quarter', invoice_date) AS DATE)\n) SELECT quarter, invoices, invoices - LAG(invoices) OVER (ORDER BY invoices) AS change_invoices FROM quarterly"
+    }
+  ],
+  "hint3_partial": "WITH quarterly AS (\n  -- one row per quarter of 2024 and 2025\n  SELECT CAST(date_trunc('quarter', invoice_date) AS DATE) AS quarter, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('quarter', invoice_date) AS DATE)\n)\nSELECT quarter, invoices,\n  invoices - ___ AS change_invoices\nFROM quarterly",
+  "solver": {
+    "prompt_hash": "137811a66a207b23",
+    "schema_version": "396e5f46a369",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH q AS (\n  SELECT CAST(date_trunc('quarter', invoice_date) AS DATE) AS quarter, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY 1\n)\nSELECT quarter, invoices, invoices - LAG(invoices) OVER (ORDER BY quarter) AS change_invoices\nFROM q\n",
+    "at": "2026-10-28T14:57:02.103Z"
+  }
+}

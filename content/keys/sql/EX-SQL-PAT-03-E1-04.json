@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E1-04",
+  "item_version": 1,
+  "reference_sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', invoice_date) AS DATE) AS month, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', invoice_date) AS DATE)\n)\nSELECT month, invoices,\n  invoices - LAG(invoices) OVER (ORDER BY month) AS change_invoices\nFROM monthly",
+  "alternatives": [
+    "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', invoice_date) AS DATE) AS month, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', invoice_date) AS DATE)\n)\nSELECT m.month, m.invoices, m.invoices - p.invoices AS change_invoices\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 MONTH",
+    "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', invoice_date) AS DATE) AS month, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', invoice_date) AS DATE)\n)\nSELECT month, invoices,\n  invoices - LAG(invoices, 1) OVER (ORDER BY month) AS change_invoices\nFROM monthly"
+  ],
+  "other_way": {
+    "sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', invoice_date) AS DATE) AS month, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', invoice_date) AS DATE)\n)\nSELECT m.month, m.invoices, m.invoices - p.invoices AS change_invoices\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 MONTH",
+    "tradeoff": "A self-join on the month before works on engines without window functions, but it is longer and reads the totals twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', invoice_date) AS DATE) AS month, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', invoice_date) AS DATE)\n) SELECT month, invoices, LAG(invoices) OVER (ORDER BY month) - invoices AS change_invoices FROM monthly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', invoice_date) AS DATE) AS month, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', invoice_date) AS DATE)\n) SELECT month, invoices, invoices - LAG(invoices) OVER (ORDER BY invoices) AS change_invoices FROM monthly"
+    }
+  ],
+  "hint3_partial": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', invoice_date) AS DATE) AS month, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', invoice_date) AS DATE)\n)\nSELECT month, invoices,\n  invoices - LAG(___) OVER (ORDER BY month) AS change_invoices\nFROM monthly",
+  "solver": {
+    "prompt_hash": "5f9a588181984e7a",
+    "schema_version": "396e5f46a369",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH m AS (\n  SELECT CAST(date_trunc('month', invoice_date) AS DATE) AS month, COUNT(*) AS invoices\n  FROM invoices\n  WHERE invoice_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY 1\n)\nSELECT month, invoices, invoices - LAG(invoices) OVER (ORDER BY month) AS change_invoices\nFROM m\n",
+    "at": "2026-10-28T14:57:02.058Z"
+  }
+}

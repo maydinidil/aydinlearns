@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH units AS (\n  -- one row per Earbuds or Headphones product sold in 2025\n  SELECT ol.product_id,\n    SUM(CASE WHEN ol.promo_id IS NOT NULL THEN ol.quantity ELSE 0 END) AS promo_units,\n    SUM(CASE WHEN ol.promo_id IS NULL THEN ol.quantity ELSE 0 END) AS full_price_units\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE p.category_id IN (15, 16)\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY ol.product_id\n)\nSELECT product_id, promo_units, full_price_units,\n  ROUND(100.0 * promo_units / (promo_units + full_price_units), 1) AS promo_share_pct\nFROM units",
+  "alternatives": [
+    "SELECT ol.product_id,\n  COALESCE(SUM(ol.quantity) FILTER (WHERE ol.promo_id IS NOT NULL), 0) AS promo_units,\n  COALESCE(SUM(ol.quantity) FILTER (WHERE ol.promo_id IS NULL), 0) AS full_price_units,\n  ROUND(100.0 * COALESCE(SUM(ol.quantity) FILTER (WHERE ol.promo_id IS NOT NULL), 0) / SUM(ol.quantity), 1) AS promo_share_pct\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN products p ON p.product_id = ol.product_id\nWHERE p.category_id IN (15, 16)\n  AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY ol.product_id",
+    "WITH units AS (\n  -- one row per Earbuds or Headphones product sold in 2025\n  SELECT ol.product_id,\n    SUM(CASE WHEN ol.promo_id IS NOT NULL THEN ol.quantity ELSE 0 END) AS promo_units,\n    SUM(CASE WHEN ol.promo_id IS NULL THEN ol.quantity ELSE 0 END) AS full_price_units\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE p.category_id IN (15, 16)\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY ol.product_id\n)\nSELECT product_id, promo_units, full_price_units,\n  ROUND(promo_units * 100.0 / (promo_units + full_price_units), 1) AS promo_share_pct\nFROM units"
+  ],
+  "other_way": {
+    "sql": "SELECT ol.product_id,\n  COALESCE(SUM(ol.quantity) FILTER (WHERE ol.promo_id IS NOT NULL), 0) AS promo_units,\n  COALESCE(SUM(ol.quantity) FILTER (WHERE ol.promo_id IS NULL), 0) AS full_price_units,\n  ROUND(100.0 * COALESCE(SUM(ol.quantity) FILTER (WHERE ol.promo_id IS NOT NULL), 0) / SUM(ol.quantity), 1) AS promo_share_pct\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN products p ON p.product_id = ol.product_id\nWHERE p.category_id IN (15, 16)\n  AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY ol.product_id",
+    "tradeoff": "One query with filtered sums avoids the CTE, but it repeats the promotion sum inside the share."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH units AS (\n  -- one row per Earbuds or Headphones product sold in 2025\n  SELECT ol.product_id,\n    SUM(CASE WHEN ol.promo_id IS NOT NULL THEN ol.quantity END) AS promo_units,\n    SUM(CASE WHEN ol.promo_id IS NULL THEN ol.quantity END) AS full_price_units\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE p.category_id IN (15, 16)\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY ol.product_id\n) SELECT product_id, promo_units, full_price_units, ROUND(100.0 * promo_units / (promo_units + full_price_units), 1) AS promo_share_pct FROM units"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH units AS (\n  -- one row per Earbuds or Headphones product sold in 2025\n  SELECT ol.product_id,\n    SUM(CASE WHEN ol.promo_id IS NOT NULL THEN ol.quantity ELSE 0 END) AS promo_units,\n    SUM(CASE WHEN ol.promo_id IS NULL THEN ol.quantity ELSE 0 END) AS full_price_units\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE p.category_id IN (15, 16)\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY ol.product_id\n) SELECT product_id, promo_units, full_price_units, ROUND(1.0 * promo_units / (promo_units + full_price_units), 1) AS promo_share_pct FROM units"
+    }
+  ],
+  "hint3_partial": "WITH units AS (\n  -- one row per Earbuds or Headphones product sold in 2025\n  SELECT ol.product_id,\n    SUM(CASE WHEN ol.promo_id IS NOT NULL THEN ol.quantity ELSE 0 END) AS promo_units,\n    SUM(CASE WHEN ol.promo_id IS NULL THEN ol.quantity ELSE 0 END) AS full_price_units\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE p.category_id IN (15, 16)\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY ol.product_id\n)\nSELECT product_id, promo_units, full_price_units,\n  ROUND(___, 1) AS promo_share_pct\nFROM units",
+  "solver": {
+    "prompt_hash": "2d8caff4d606b269",
+    "schema_version": "f6cc3f56f764",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH t AS (\n  SELECT p.product_id,\n    COALESCE(SUM(l.quantity) FILTER (WHERE l.promo_id IS NOT NULL), 0) AS promo_units,\n    COALESCE(SUM(l.quantity) FILTER (WHERE l.promo_id IS NULL), 0) AS full_price_units\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  JOIN products p ON p.product_id = l.product_id\n  WHERE p.category_id IN (15, 16)\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY p.product_id\n)\nSELECT product_id, promo_units, full_price_units,\n  ROUND(100.0 * promo_units / (promo_units + full_price_units), 1) AS promo_share_pct\nFROM t\n",
+    "at": "2026-10-28T14:57:06.374Z"
+  }
+}

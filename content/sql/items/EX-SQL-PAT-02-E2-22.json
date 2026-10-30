@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-PAT-02-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "first_per_key",
+    "dedup",
+    "row_number",
+    "tie_break",
+    "leads"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-AGG-04",
+    "SQL-DATE-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-PAT-02-first-per-key-by-month",
+  "template_params": {
+    "table": "leads",
+    "key": "email",
+    "period": "month of 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How many new contacts arrived in each month of 2025, and how many of them through a paid source? A contact is an email, and it is new in the month of its earliest lead (the one with the earliest created_at, over all the leads, not only those of 2025). created_at is Brussels local time; 2025 runs from 2025-01-01 00:00 up to but not including 2026-01-01 00:00, and the month is the first day of its month. When two leads of an email tie on created_at, the lower lead_id is kept, and its source counts. The paid sources are display, events, paid_search, paid_social and review_sites. Return three columns, in this order: first_month, new_contacts and paid_contacts. Return one row for each month of 2025 with a new contact. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "first_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "new_contacts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid_contacts",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "first_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "new_contacts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid_contacts",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "first_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each email's earliest lead over all the leads, then keep the ones created in 2025 and count them by month, with a paid count beside.",
+    "Number the leads before the 2025 filter, or a contact first seen in 2024 would look new in 2025."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 37,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 38,
+      "to": 156,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 157,
+      "to": 169,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 172,
+      "to": 385,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 386,
+      "to": 397,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 398,
+      "to": 491,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 492,
+      "to": 532,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Numbering all of an email's leads first and filtering to 2025 after finds contacts that are new in 2025, each counted once."
+}

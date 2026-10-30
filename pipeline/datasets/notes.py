@@ -1,4 +1,4 @@
-"""pipeline/datasets/notes.py: schema-panel notes for the prepared real datasets and the real datasets' edge schemas (S6-23).
+"""pipeline/datasets/notes.py: schema-panel notes for the prepared registry datasets and their edge schemas (S6-23; S8-C34).
 
 A note has the shape of every other table note (schemas/schema-notes.ts TableNote; pipeline/voltmarkt/notes.note): grain, keys,
 1:N links, the row count, a 5-row sample, column notes and the allowed values of category-like text columns (E-019). Every note
@@ -86,17 +86,16 @@ def dataset_notes(con, record: dict, schema: str, tables: list[str]) -> list[dic
 
 
 def edge_notes(con, records: list[dict], built: set[str]) -> list[dict]:
-    """The notes of each real dataset's edge schema the database holds (`<schema>_edge`), in registry order: the dataset's grain,
-    keys and column notes, over the edge's own rows; no allowed values and no label (they are hidden test data, our own rows)."""
+    """The notes of each registry dataset's edge schema the database holds (`<schema>_edge`), in registry order: the dataset's
+    grain, keys and column notes, over the edge's own rows; no allowed values and no label (they are hidden test data, our own
+    rows). Sprint 8 Part 2 (S8-C34): a fictional dataset's edge schema (maven_toy_store_edge) has notes too, as every edge does."""
     out = []
     for record in records:
-        if record.get("real") is not True:
+        edges = [f"{s['name']}_edge" for s in record.get("schemas", []) if f"{s['name']}_edge" in built]
+        if not edges:   # the 8 Week SQL Challenge has no edge schema, so its loader is not even imported
             continue
         described, default = _module_notes(record)
-        for s in record.get("schemas", []):
-            edge = f"{s['name']}_edge"
-            if edge not in built:
-                continue
+        for edge in edges:
             for table in _tables(con, edge):
                 grain, pk, fks, column_notes = described.get(table, (default, [], [], {}))
                 out.append(note(con, edge, table, grain, pk, fks, column_notes, None, visible=False))

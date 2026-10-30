@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-06-E1-03",
+  "item_version": 2,
+  "reference_sql": "WITH paid AS (  -- one row per payment that was not refunded\n  SELECT u.user_id,\n         CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n         date_diff('month', date_trunc('month', u.signup_ts), date_trunc('month', p.paid_at)) AS month_offset\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  JOIN signups u ON u.user_id = s.user_id\n  WHERE NOT p.refunded\n    AND u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n)\nSELECT cohort_month, month_offset, COUNT(DISTINCT user_id) AS paying_users\nFROM paid\nGROUP BY cohort_month, month_offset",
+  "alternatives": [
+    "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       date_diff('month', u.signup_ts, p.paid_at) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS paying_users\nFROM signups u\nJOIN subscriptions s ON s.user_id = u.user_id\nJOIN payments p ON p.subscription_id = s.subscription_id\nWHERE p.refunded = false\n  AND u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\nGROUP BY 1, 2",
+    "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       (year(p.paid_at) * 12 + month(p.paid_at)) - (year(u.signup_ts) * 12 + month(u.signup_ts)) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS paying_users\nFROM signups u\nJOIN subscriptions s ON s.user_id = u.user_id\nJOIN payments p ON p.subscription_id = s.subscription_id\nWHERE NOT p.refunded\n  AND u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\nGROUP BY 1, 2"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       (year(p.paid_at) * 12 + month(p.paid_at)) - (year(u.signup_ts) * 12 + month(u.signup_ts)) AS month_offset,\n       COUNT(DISTINCT u.user_id) AS paying_users\nFROM signups u\nJOIN subscriptions s ON s.user_id = u.user_id\nJOIN payments p ON p.subscription_id = s.subscription_id\nWHERE NOT p.refunded\n  AND u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\nGROUP BY 1, 2",
+    "tradeoff": "Year times 12 plus month gives the same offset on any engine, though date_diff on month starts says what it means more plainly."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-46",
+      "sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month, date_diff('day', u.signup_ts, p.paid_at) // 30 AS month_offset, COUNT(DISTINCT u.user_id) AS paying_users FROM signups u\nJOIN subscriptions s ON s.user_id = u.user_id\nJOIN payments p ON p.subscription_id = s.subscription_id WHERE NOT p.refunded AND u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00' GROUP BY 1, 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-50",
+      "sql": "WITH f AS (SELECT s.user_id, MIN(p.paid_at) AS first_paid_at FROM payments p JOIN subscriptions s ON s.subscription_id = p.subscription_id GROUP BY s.user_id) SELECT CAST(date_trunc('month', f.first_paid_at) AS DATE) AS cohort_month, date_diff('month', date_trunc('month', f.first_paid_at), date_trunc('month', p.paid_at)) AS month_offset, COUNT(DISTINCT f.user_id) AS paying_users FROM f JOIN subscriptions s ON s.user_id = f.user_id JOIN payments p ON p.subscription_id = s.subscription_id WHERE NOT p.refunded AND f.first_paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND f.first_paid_at < TIMESTAMPTZ '2025-04-01 00:00:00+00' GROUP BY 1, 2"
+    }
+  ],
+  "hint3_partial": "WITH paid AS (  -- one row per payment that was not refunded\n  SELECT u.user_id,\n         CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n         date_diff('month', ___, date_trunc('month', p.paid_at)) AS month_offset\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  JOIN signups u ON u.user_id = s.user_id\n  WHERE NOT p.refunded\n    AND u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n)\nSELECT cohort_month, month_offset, COUNT(DISTINCT user_id) AS paying_users\nFROM paid\nGROUP BY cohort_month, month_offset",
+  "solver": {
+    "prompt_hash": "6beb28000e38d04c",
+    "schema_version": "b34b14f5dee5",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH coh AS (\n  SELECT user_id, CAST(date_trunc('month', signup_ts AT TIME ZONE 'UTC') AS DATE) AS cohort_month\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\npm AS (\n  SELECT DISTINCT s.user_id, CAST(date_trunc('month', p.paid_at AT TIME ZONE 'UTC') AS DATE) AS pay_month\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  WHERE NOT p.refunded\n)\nSELECT c.cohort_month,\n       date_diff('month', c.cohort_month, pm.pay_month) AS month_offset,\n       COUNT(DISTINCT c.user_id) AS paying_users\nFROM coh c\nJOIN pm ON pm.user_id = c.user_id\nGROUP BY 1, 2\n",
+    "at": "2026-10-28T16:44:11.409Z"
+  }
+}

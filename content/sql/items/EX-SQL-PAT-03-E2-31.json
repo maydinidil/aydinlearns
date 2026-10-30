@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-PAT-03-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "year_over_year",
+    "self_join",
+    "ad_spend_daily",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-fix-lag12-gap",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each paid channel and each month of 2025 in which the channel had ad spend, what did it spend, and what did the same channel spend in the same month of 2024? Spend days are UTC days. When the channel had no spend in that month of 2024, show spend_prev_year_eur as missing. Return four columns, in this order: channel_name, month (the first day of the 2025 month), spend_eur and spend_prev_year_eur. Return one row for each channel and month of 2025 with spend. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_prev_year_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "spend_prev_year_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_name",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check how the query finds the same month of the year before: does twelve rows back always mean twelve months back?",
+    "A channel that skipped a month has fewer rows, so twelve rows back lands on the wrong month; match last year by date instead."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 467,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 468,
+      "to": 547,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 548,
+      "to": 562,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 563,
+      "to": 657,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 658,
+      "to": 692,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH monthly AS (\n  -- one row per paid channel and month with spend, 2024 and 2025\n  SELECT ch.channel_name, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  JOIN channels ch ON ch.channel_id = c.channel_id\n  WHERE a.spend_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY ch.channel_name, CAST(date_trunc('month', a.spend_date) AS DATE)\n), compared AS (\n  -- one row per paid channel and month with spend\n  SELECT channel_name, month, spend_eur,\n    LAG(spend_eur, 12) OVER (PARTITION BY channel_name ORDER BY month) AS spend_prev_year_eur\n  FROM monthly\n)\nSELECT channel_name, month, spend_eur, spend_prev_year_eur\nFROM compared\nWHERE month >= DATE '2025-01-01'",
+  "starter_error_id": "ERR-LOG-39",
+  "time_target_ms": 240000,
+  "why_this_works": "Joining on the same channel and the month minus one year finds last year by date, so a month a channel skipped cannot shift the comparison."
+}

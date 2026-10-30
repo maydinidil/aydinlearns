@@ -26,7 +26,8 @@ import type { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { SCHEMA_VERSION } from '../../core/envelope.ts';
 import type { CaseExport } from '../../core/events.ts';
-import type { CaseStatus } from '../../core/replay.ts';
+import { countsAsAttempt } from '../../core/rating.ts';
+import type { CaseStatus, CheckpointAnswer } from '../../core/replay.ts';
 import { amsterdamDate } from '../../core/time.ts';
 import type { CaseKind, CaseRecord, DataSource } from '../../schemas/case.ts';
 import type { DatasetLicence } from '../../schemas/dataset.ts';
@@ -382,18 +383,45 @@ const typedOf = (payload: unknown): string | null => {
 /** S7D-04: SQL with every run of whitespace removed and in lower case, so a copy matches however it was re-spaced or re-cased. */
 const squashed = (sql: string): string => sql.replace(/\s+/g, '').toLowerCase();
 /**
- * S7D-04: the CP3 `answer` is a copy of the item's "other ways" answer: its own instance logged an other_way_opened at or before it, and its
- * `query` equals `otherWay` (the key's other-way SQL) once whitespace and case are squashed. "Other ways" opens only after a pass, so the
- * comparison tells a copy from the learner's own query, and no log record is needed. Compared here, on the server: the page gets only the
- * line (AFTER_OTHER_WAY), never the key's SQL.
+ * S7D-04, S8-20: the CP3 `answer` is a copy of the item's "other ways" answer: an other_way_opened for the same item, on any instance of it,
+ * was logged at or before it, and its `query` equals `otherWay` (the key's other-way SQL) once whitespace and case are squashed. "Other ways"
+ * opens only after a pass, so the comparison tells a copy from the learner's own query, and no log record is needed. Compared here, on the
+ * server: the page gets only the line (AFTER_OTHER_WAY), never the key's SQL.
  */
-export function followedOtherWay(records: readonly object[], answer: { instance_id: string; submitted_at: string }, query: string | null,
+export function followedOtherWay(records: readonly object[], answer: { submitted_at: string }, itemId: string, query: string | null,
   otherWay: string | null | undefined): boolean {
   if (query === null || typeof otherWay !== 'string' || otherWay.trim() === '') return false;
   const at = Date.parse(answer.submitted_at);
-  const opened = (records as Record<string, unknown>[]).some((r) => r.record === 'other_way_opened' && r.item_instance_id === answer.instance_id
+  const opened = (records as Record<string, unknown>[]).some((r) => r.record === 'other_way_opened' && r.item_id === itemId
     && typeof r.ts === 'string' && Date.parse(r.ts) <= at);
   return opened && squashed(query) === squashed(otherWay);
+}
+
+/**
+ * S8-20: the latest pass of a CP3 item, over every instance of it, that is not a copy of its "other ways" answer: the latest one with no
+ * "Show answer" or late hint before it on its instance, else the latest. Read from the attempt records (a pass here is an automatic pass;
+ * the caller keeps its own pick when none is found). Null when every pass is a copy.
+ */
+function ownPassOf(records: readonly object[], itemId: string, isCopy: (a: { submitted_at: string; payload: unknown }) => boolean): CheckpointAnswer | null {
+  const recs = records as Record<string, unknown>[];
+  const reveals = new Map<string, number[]>();
+  for (const r of recs) {
+    if ((r.record === 'solution_opened' || (r.record === 'hint_opened' && Number(r.level) >= 2)) && typeof r.item_instance_id === 'string' && typeof r.ts === 'string') {
+      reveals.set(r.item_instance_id, [...(reveals.get(r.item_instance_id) ?? []), Date.parse(r.ts)]);
+    }
+  }
+  let best: CheckpointAnswer | null = null, bestOwn: CheckpointAnswer | null = null;
+  for (const r of recs) {
+    if (r.record !== 'attempt' || r.item_id !== itemId || r.outcome !== 'pass' || !countsAsAttempt(r)) continue;
+    if (typeof r.item_instance_id !== 'string' || typeof r.submitted_at !== 'string') continue;
+    const at = Date.parse(r.submitted_at);
+    const answer: CheckpointAnswer = { attempt_id: String(r.attempt_id), instance_id: r.item_instance_id, submitted_at: r.submitted_at, passed: true, payload: r.payload ?? null,
+      assisted: (reveals.get(r.item_instance_id) ?? []).some((h) => h <= at) };
+    if (isCopy(answer)) continue;
+    if (best === null || at >= Date.parse(best.submitted_at)) best = answer;
+    if (!answer.assisted && (bestOwn === null || at >= Date.parse(bestOwn.submitted_at))) bestOwn = answer;
+  }
+  return bestOwn ?? best;
 }
 
 export function mountPortfolio(app: Hono, d: RouteDeps): void {
@@ -466,10 +494,15 @@ export function mountPortfolio(app: Hono, d: RouteDeps): void {
     // Seams M2: the learner's own latest passing CP3 query (no "show answer" and no hint 2 or 3 before it); when there is none, the
     // latest pass, and the page says it followed "Show answer" or a late hint.
     const cp3 = s.checkpoints.find((x) => x.kind === 'CP3');
-    const pass = cp3?.latest_own_pass ?? cp3?.latest_pass ?? null;
+    // S8-20: a copy of the item's "other ways" answer is never preferred to a pass that is not one.
+    const records = d.state.attemptRecords();
+    const otherWay = cp3 === undefined ? undefined : d.content.key(cp3.item_id)?.other_way?.sql;
+    const isCopy = (a: { submitted_at: string; payload: unknown }): boolean => cp3 !== undefined && followedOtherWay(records, a, cp3.item_id, sqlOf(a.payload), otherWay);
+    let pass = cp3?.latest_own_pass ?? cp3?.latest_pass ?? null;
+    if (pass !== null && cp3 !== undefined && isCopy(pass)) pass = ownPassOf(records, cp3.item_id, isCopy) ?? pass;
     const query = sqlOf(pass?.payload ?? null);
     // S7D-04: a copy of the CP3 item's "other ways" answer gets its own line; the key's SQL stays here.
-    const copied = pass !== null && cp3 !== undefined && followedOtherWay(d.state.attemptRecords(), pass, query, d.content.key(cp3.item_id)?.other_way?.sql);
+    const copied = pass !== null && isCopy(pass);
     const result = await rerun(r, query);
     const page = buildPage({
       case_id: r.case_id, kind: kindOf(r), title: r.title, level: levelOf(r), persona: r.persona, brief: r.brief, data_source: r.data_source ?? null,

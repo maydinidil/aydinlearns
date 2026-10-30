@@ -26,7 +26,7 @@ AB_TABLES = {"ab_assignments", "ab_conversions"}
 VIEWS = {"sales"}
 WEEKLY = "competitor_price_weekly"                      # S4B-31: its own build step, only where competitor_prices exists
 WEEKLY_SCHEMAS = ["voltmarkt", "voltmarkt_edge_join", "voltmarkt_edge_date", "voltmarkt_edge_set",
-                  "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo", "voltmarkt_edge_win"]
+                  "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo", "voltmarkt_edge_win", "voltmarkt_edge_pat"]
 WEEKLY_COLUMNS = [("product_id", "INTEGER"), ("iso_year", "BIGINT"), ("iso_week", "BIGINT"),
                   ("avg_competitor_price_eur", "DOUBLE"), ("competitors_seen", "BIGINT")]
 LEVEL1_EDGE_SCHEMAS = ["voltmarkt_edge_basics", "voltmarkt_edge_filter", "voltmarkt_edge_sort", "voltmarkt_edge_null"]
@@ -38,10 +38,13 @@ RAW = "voltmarkt_raw"
 RAW_TABLES = LEVEL2_TABLES
 RAW_WARNING = "This table may hold errors."
 COST = "cost_history"                                   # S6-07: appended to voltmarkt
+STOCK = "inventory_chain_daily"                         # sprint 8 Part 2 (S8-15, E-212): appended to voltmarkt, from level 6
+MRR_MONTHLY = "mrr_monthly"                             # sprint 8 Part 2 (S8-C28, E-215): LedgerLoop's view, its own build step
 WEEKLY_UNITS = "weekly_units"                           # S6-06: its own build step, in voltmarkt and the level 4 edge schemas
 # F2 C1: the schema panel shows weekly_units to every level 4 item (P11), so every level 4 edge schema that mirrors voltmarkt has it,
-# and so does the level 5 one (S7-25).
-WEEKLY_UNITS_SCHEMAS = ["voltmarkt", "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo", "voltmarkt_edge_win"]
+# and so does the level 5 one (S7-25), and the level 6 one (S8-07).
+WEEKLY_UNITS_SCHEMAS = ["voltmarkt", "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo", "voltmarkt_edge_win",
+                        "voltmarkt_edge_pat"]
 WEEKLY_UNITS_COLUMNS = [("product_id", "INTEGER"), ("iso_year", "INTEGER"), ("iso_week", "INTEGER"), ("week_start", "DATE"),
                         ("units", "BIGINT"), ("net_revenue_eur", "DECIMAL(38,2)")]
 # S6-04: three new edge schemas mirror voltmarkt (every table and view name it has, weekly_units included since F2 C1), and the
@@ -72,6 +75,14 @@ M5_ADDS = ([f"{s}.{t}" for s in LEVEL1_EDGE_SCHEMAS for t in M5_EMPTY_ORDER_TABL
 # lock are pipeline/tests/test_edge_win.py's; here they join the lists the build's views and notes cover.
 LEVEL5_EDGE_SCHEMAS = ["voltmarkt_edge_win"]
 MAILVORA_WIN_EDGE = "mailvora_edge_win"
+# Sprint 8 (S8-07, S8-C14, Task A2): the level 6 edge schemas, one each for Voltmarkt and Mailvora and two for LedgerLoop, each
+# with its schema's table names. Their rows, plants and lock are pipeline/tests/test_edge_pat.py's; here they join the lists the
+# build's views and notes cover.
+LEVEL6_EDGE_SCHEMAS = ["voltmarkt_edge_pat"]
+MAILVORA_PAT_EDGE = "mailvora_edge_pat"
+LEDGERLOOP_EDGE = "ledgerloop_edge_saas"
+LEDGERLOOP_CLEAN_EDGE = "ledgerloop_edge_clean"   # S8-C14: the raw-data items' edge schema, which mirrors ledgerloop_raw
+LEDGERLOOP_CASES_EDGE = "ledgerloop_edge_cases"   # Task E1 (S8-C39): the six LedgerLoop inbox cases' edge schema
 CLEAN_EDGE = "voltmarkt_edge_clean"
 NEW_EDGE_FAMILIES = {"voltmarkt_edge_subq": "subq", "voltmarkt_edge_interval": "interval", "voltmarkt_edge_clean": "clean",
                      "voltmarkt_edge_promo": "promo"}
@@ -92,12 +103,24 @@ MAILVORA_TABLES = {"channels", "campaigns", "ad_spend_daily", "fx_rates_monthly"
                    "subscriptions", "payments", "budget_monthly", "countries"}
 MAILVORA_RAW_TABLES = {"sessions", "ad_spend_daily", "payments", "channels", "campaigns", "fx_rates_monthly", "signups"}   # P37
 BUILD_LIMIT_SECONDS = 300                               # Task G1: the build stays under 5 minutes
+# Sprint 8 Task L1 (S8-01): LedgerLoop's clean schema (05 CO-02's 11 tables, then S8-01's 5) and its raw schema, which holds a copy
+# of every one of them (the quirk tables Q-02-01 to -07, unchanged copies of the rest). Its level 6 edge schema is Task A2's.
+LEDGERLOOP = "ledgerloop"
+LEDGERLOOP_RAW = "ledgerloop_raw"
+LEDGERLOOP_TABLES = {"accounts", "plans", "subscriptions", "subscription_events", "invoices", "payments", "fx_rates", "users",
+                     "usage_weekly", "support_tickets", "marketing_spend_monthly", "leads", "opportunities", "cogs_monthly",
+                     "sm_expense_monthly", "app_events"}
+# Review Focus 1 (sprint 8 Task G0): every table and view as built before sprint 8. Sprint 8 only adds objects.
+BEFORE_SPRINT8 = json.loads((pathlib.Path(__file__).resolve().parent / "manifest_before_sprint8.json").read_text(encoding="utf-8"))["tables"]
 # The schema each edge schema mirrors when it is not voltmarkt: the clean edge schema mirrors voltmarkt_raw (S6-04), Mailvora's
 # mirrors mailvora (S6-20), and Part 2's real-data edge schemas (Task G2) mirror their dataset's schema. The build runs every
 # pipeline/edge/*.sql; the real-data ones stay out of the manifest's voltmarkt and mailvora coverage. Sprint 7 Part 2 (Task G1):
 # mailvora_edge_clean mirrors mailvora_raw; its rows, plants and lock are pipeline/tests/test_mailvora_edge_clean.py's.
 EDGE_MIRRORS = {"voltmarkt_edge_clean": RAW, MAILVORA_EDGE: MAILVORA, MAILVORA_WIN_EDGE: MAILVORA, "online_retail_ii_edge": "online_retail_ii",
-                "breakfast_at_the_frat_edge": "breakfast_at_the_frat", "mailvora_edge_clean": MAILVORA_RAW}
+                "breakfast_at_the_frat_edge": "breakfast_at_the_frat", "mailvora_edge_clean": MAILVORA_RAW,
+                MAILVORA_PAT_EDGE: MAILVORA, LEDGERLOOP_EDGE: "ledgerloop", LEDGERLOOP_CLEAN_EDGE: "ledgerloop_raw",
+                "olist_edge": "olist", "maven_toy_store_edge": "maven_toy_store",   # sprint 8 Part 2, Task D1 (S8-16)
+                LEDGERLOOP_CASES_EDGE: "ledgerloop"}   # Task E1 (S8-C39)
 # S4-01: the order and price tables join the schema panel from level 3: (grain, primary key, foreign keys as
 # (column, referenced table, referenced column), each 1:N). Levels 1 and 2 keep today's tables (from_level 1).
 LEVEL3_NOTES = {
@@ -210,7 +233,7 @@ class CourseDb(unittest.TestCase):
         return tables, views
 
     def test_schemas_and_tables(self):
-        self.assertEqual(self.names("voltmarkt"), (VOLTMARKT_TABLES | AB_TABLES | {COST}, VIEWS | {WEEKLY, WEEKLY_UNITS}))
+        self.assertEqual(self.names("voltmarkt"), (VOLTMARKT_TABLES | AB_TABLES | {COST, STOCK}, VIEWS | {WEEKLY, WEEKLY_UNITS}))
         # M5 (S6-36): the level 1 edge schemas also hold the sales view, over empty copies of orders and order_lines. A calendar M5
         # filled is held to its promotions' days in pipeline/tests/test_edge_m5.py, not to a row count.
         for s in LEVEL1_EDGE_SCHEMAS:
@@ -259,7 +282,7 @@ class CourseDb(unittest.TestCase):
         self.assertEqual(self.one("SELECT count(*) FROM duckdb_views() WHERE schema_name = 'main' AND NOT internal")[0], 0)
 
     def test_sales_view_at_order_line_grain(self):
-        for s in ["voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS]:
+        for s in ["voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS, *LEVEL6_EDGE_SCHEMAS]:
             self.assertEqual(self.columns(s, "sales"), SALES_COLUMNS, s)
             views, lines = self.one(f"SELECT (SELECT count(*) FROM {s}.sales), (SELECT count(*) FROM {s}.order_lines)")
             self.assertEqual(views, lines, f"{s}.sales has one row per order line")
@@ -285,42 +308,56 @@ class CourseDb(unittest.TestCase):
         return {sql[start:tokens[k + 1][0] if k + 1 < len(tokens) else len(sql)].strip()
                 for k, (start, kind) in enumerate(tokens) if kind == duckdb.token_type.numeric_const}
 
-    def zero_fill_views(self):
-        """S6-06: the views the build's weekly_units step makes, by (schema, view), each with the SQL text DuckDB keeps for it and
-        the numbers that step writes. Taken from WEEKLY_UNITS_SCHEMAS and WEEKLY_UNITS_SQL, run here on an empty copy of each
-        schema, so the exemption below is that build step's view and no other, whatever it is called. The copy is written to a
-        file and read back, as the build's is: DuckDB keeps a view's text in the form it reads back from the file."""
-        template = build_course_db.WEEKLY_UNITS_SQL
+    def step_views(self, template, schemas, ddl, file):
+        """The views one build step makes, by (schema, view), each with the SQL text DuckDB keeps for it and the numbers that step
+        writes. Taken from the step's schemas and SQL template, run here on an empty copy of each schema (its company's DDL), so the
+        exemption below is that build step's view and no other, whatever it is called. The copy is written to a file and read back,
+        as the build's is: DuckDB keeps a view's text in the form it reads back from the file."""
         name = re.match(r"CREATE VIEW \{schema\}\.(\w+)", template).group(1)
         allowed = frozenset(self.numbers(template))
-        path = self.dir / "zerofill.duckdb"
+        path = self.dir / file
         path.unlink(missing_ok=True)
         writer = duckdb.connect(str(path), config=NO_NETWORK)
         writer.execute("SET TimeZone = 'UTC'")
-        for s in build_course_db.WEEKLY_UNITS_SCHEMAS:
-            writer.execute(build_course_db.DDL.read_text(encoding="utf-8").replace("{schema}", s))
+        for s in schemas:
+            writer.execute(ddl.read_text(encoding="utf-8").replace("{schema}", s))
             writer.execute(template.replace("{schema}", s))
         writer.close()
         reader = duckdb.connect(str(path), read_only=True, config=NO_NETWORK)
         reader.execute("SET TimeZone = 'UTC'")
         self.addCleanup(reader.close)
         return {(s, name): (reader.execute("SELECT sql FROM duckdb_views() WHERE schema_name = ? AND view_name = ?", [s, name]).fetchone()[0],
-                            allowed) for s in build_course_db.WEEKLY_UNITS_SCHEMAS}
+                            allowed) for s in schemas}
+
+    def zero_fill_views(self):
+        """S6-06: the views the build's weekly_units step makes (step_views)."""
+        return self.step_views(build_course_db.WEEKLY_UNITS_SQL, build_course_db.WEEKLY_UNITS_SCHEMAS, build_course_db.DDL, "zerofill.duckdb")
+
+    def mrr_monthly_views(self):
+        """Sprint 8 Part 2 (S8-C28, E-215): the views the build's mrr_monthly step makes (step_views)."""
+        return self.step_views(build_course_db.MRR_MONTHLY_SQL, build_course_db.MRR_MONTHLY_SCHEMAS, build_course_db.LEDGERLOOP_DDL,
+                               "mrrmonthly.duckdb")
 
     def test_view_bodies_hold_no_data_literals_and_read_their_own_schema(self):
         views = self.con.execute("SELECT schema_name, view_name, sql FROM duckdb_views() WHERE NOT internal").fetchall()
         self.assertEqual(len(views), 1 + len(LEVEL1_EDGE_SCHEMAS) + len(ORDER_EDGE_SCHEMAS) + len(LEVEL4_EDGE_SCHEMAS) + len(LEVEL5_EDGE_SCHEMAS)
-                         + len(WEEKLY_SCHEMAS) + len(WEEKLY_UNITS_SCHEMAS))
+                         + len(LEVEL6_EDGE_SCHEMAS) + len(WEEKLY_SCHEMAS) + len(WEEKLY_UNITS_SCHEMAS)
+                         + len(build_course_db.MRR_MONTHLY_SCHEMAS))
         zero_fill = self.zero_fill_views()
         self.assertEqual({numbers for _, numbers in zero_fill.values()}, {frozenset({"0"})},
                          "S6-06: the zero-fill's 0 is the one number the weekly_units step writes, and it holds no data")
+        mrr_monthly = self.mrr_monthly_views()
+        self.assertEqual({numbers for _, numbers in mrr_monthly.values()}, {frozenset({"0", "2", "12"})},
+                         "E-215: mrr_eur's type, DECIMAL(12,2), and the 0 its MRR must exceed are the numbers the mrr_monthly step writes, "
+                         "and they hold no data (its months and rates come from fx_rates, so it holds no date or currency)")
+        steps = {**zero_fill, **mrr_monthly}
         exempt = {}
         for schema, name, sql in views:
-            if (schema, name) in zero_fill:
-                built, numbers = zero_fill[(schema, name)]
+            if (schema, name) in steps:
+                built, numbers = steps[(schema, name)]
                 self.assertEqual(sql, built, f"{schema}.{name} is the build step's view")
                 exempt[(schema, name)] = numbers
-        self.assertEqual(set(exempt), set(zero_fill), "each schema the weekly_units step names has that step's view")
+        self.assertEqual(set(exempt), set(steps), "each schema the weekly_units and mrr_monthly steps name has that step's view")
         for schema, name, sql in views:
             tokens = duckdb.tokenize(sql)
             for k, (start, kind) in enumerate(tokens):
@@ -390,7 +427,8 @@ class CourseDb(unittest.TestCase):
         self.assertEqual(m["tables"]["voltmarkt.sales"]["rows"], m["tables"]["voltmarkt.order_lines"]["rows"])
         self.assertTrue(140_000 <= m["tables"]["voltmarkt.competitor_prices"]["rows"] <= 160_000)
         for s in ["voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, RAW, *LEVEL4_EDGE_SCHEMAS, CLEAN_EDGE,
-                  MAILVORA, MAILVORA_RAW, MAILVORA_EDGE, *LEVEL5_EDGE_SCHEMAS, MAILVORA_WIN_EDGE]:
+                  MAILVORA, MAILVORA_RAW, MAILVORA_EDGE, *LEVEL5_EDGE_SCHEMAS, MAILVORA_WIN_EDGE, *LEVEL6_EDGE_SCHEMAS, MAILVORA_PAT_EDGE,
+                  LEDGERLOOP_EDGE, LEDGERLOOP_CLEAN_EDGE, LEDGERLOOP_CASES_EDGE]:
             tables, views = self.names(s)
             self.assertTrue(tables, s)
             for t in tables | views:
@@ -436,9 +474,9 @@ class CourseDb(unittest.TestCase):
         notes = json.loads((self.dir / "schema-notes.json").read_text(encoding="utf-8"))
         visible = [n for n in notes if n["schema"] == "voltmarkt"]
         self.assertEqual({n["table"] for n in visible},
-                         LEVEL1_TABLES | set(LEVEL3_NOTES) | AB_TABLES | {COST} | VIEWS | {WEEKLY, WEEKLY_UNITS})
+                         LEVEL1_TABLES | set(LEVEL3_NOTES) | AB_TABLES | {COST, STOCK} | VIEWS | {WEEKLY, WEEKLY_UNITS})
         sales = {n["schema"]: n for n in notes if n["table"] == "sales"}
-        self.assertEqual(set(sales), {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS},
+        self.assertEqual(set(sales), {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS, *LEVEL6_EDGE_SCHEMAS},
                          "the view and every edge copy have notes")
         for s, n in sales.items():
             self.assertEqual(n["grain"], "one row per order line")
@@ -488,7 +526,9 @@ class CourseDb(unittest.TestCase):
         # Mailvora's notes are held by test_mailvora_notes_in_the_file.
         notes = [n for n in notes if n["schema"].startswith("voltmarkt")]
         for n in notes:
-            if n["schema"] == RAW or n["table"] in (COST, WEEKLY_UNITS):
+            if n["table"] == STOCK:   # sprint 8 Part 2 (S8-15): with CASE-RETAIL-04's date spine
+                self.assertEqual(n["from_level"], 6, f"{n['schema']}.{n['table']} shows from level 6 on")
+            elif n["schema"] == RAW or n["table"] in (COST, WEEKLY_UNITS):
                 self.assertEqual(n["from_level"], 4, f"{n['schema']}.{n['table']} shows from level 4 on")
             elif n["table"] == WEEKLY or n["table"] in AB_TABLES:
                 self.assertEqual(n["from_level"], 3, f"{n['table']} shows from level 3 on, with competitor_prices")
@@ -523,7 +563,7 @@ class CourseDb(unittest.TestCase):
                                           "promo_code", "promo_name"}, f"{table}.{column} has too many values to list")
         self.assertEqual(visible["products"], {}, "no products column is category-like")
         for n in notes:
-            if n["schema"] not in ("voltmarkt", RAW, MAILVORA, MAILVORA_RAW):
+            if n["schema"] not in ("voltmarkt", RAW, MAILVORA, MAILVORA_RAW, LEDGERLOOP, LEDGERLOOP_RAW):
                 self.assertNotIn("allowed_values", n, f"{n['schema']}: never from the edge schemas")
         # The raw schema is a visible schema too (S6-01): its notes list its own values.
         raw = {n["table"]: n.get("allowed_values", {}) for n in notes if n["schema"] == RAW}
@@ -700,7 +740,7 @@ class CourseDb(unittest.TestCase):
             self.assertEqual(set(n["column_notes"]), {"iso_year", "iso_week", "avg_competitor_price_eur", "competitors_seen"}, s)
             self.assertIn("UTC", n["column_notes"]["iso_week"], s)
         sales = [n for n in notes if n["table"] == "sales"]
-        self.assertEqual({n["schema"] for n in sales}, {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS})
+        self.assertEqual({n["schema"] for n in sales}, {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS, *LEVEL6_EDGE_SCHEMAS})
         for n in sales:
             self.assertIn("ship-to country", n["column_notes"]["country_code"], n["schema"])
 
@@ -960,7 +1000,7 @@ class CourseDb(unittest.TestCase):
         # in voltmarkt and in every edge copy of the sales view.
         notes = json.loads((self.dir / "schema-notes.json").read_text(encoding="utf-8"))
         sales = [n for n in notes if n["table"] == "sales"]
-        self.assertEqual({n["schema"] for n in sales}, {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS})
+        self.assertEqual({n["schema"] for n in sales}, {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS, *LEVEL6_EDGE_SCHEMAS})
         for n in sales:
             text = n.get("column_notes", {}).get("order_date", "")
             with self.subTest(schema=n["schema"]):
@@ -1053,6 +1093,94 @@ class CourseDb(unittest.TestCase):
 
     def test_the_build_stays_under_five_minutes(self):
         self.assertLess(self.build_seconds, BUILD_LIMIT_SECONDS)
+
+    # ---- Sprint 8 Task L1 (S8-01, S8-23): LedgerLoop in the built database ----
+
+    def test_every_object_before_sprint8_keeps_its_rows_and_hash(self):
+        # Review Focus 1 (R37): every table and view built before sprint 8 is exactly as it was; LedgerLoop only adds objects.
+        self.assertEqual(len(BEFORE_SPRINT8), 253)
+        moved = sorted(name for name, entry in BEFORE_SPRINT8.items() if self.manifest["tables"].get(name) != entry)
+        self.assertEqual(moved, [], "objects built before sprint 8 whose rows or hash changed")
+        # Task A2's level 6 edge schemas ledgerloop_edge_saas and ledgerloop_edge_clean are held by pipeline/tests/test_edge_pat.py, and
+        # so is Part 2's mrr_monthly view (S8-C31: Part 2's additions are held against manifest_before_sprint8b.json there).
+        added = sorted(n for n in set(self.manifest["tables"]) - set(BEFORE_SPRINT8) - {f"{LEDGERLOOP}.{MRR_MONTHLY}"}
+                       if n.split(".")[0] in (LEDGERLOOP, LEDGERLOOP_RAW))
+        expected = [f"{LEDGERLOOP}.{t}" for t in LEDGERLOOP_TABLES] + [f"{LEDGERLOOP_RAW}.{t}" for t in LEDGERLOOP_TABLES]
+        self.assertEqual(added, sorted(expected), "LedgerLoop adds its clean and raw schemas")
+        for name in expected:
+            self.assertEqual(len(self.manifest["tables"][name]["sha256"]), 64, name)
+        self.assertIn("ledgerloop", build_course_db.MANIFEST_PREFIXES)
+
+    def test_ledgerloop_schemas_and_tables(self):
+        self.assertEqual(self.names(LEDGERLOOP), (LEDGERLOOP_TABLES, {MRR_MONTHLY}), "sprint 8 Part 2 (S8-C28): its one view, E-215's")
+        self.assertEqual(self.names(LEDGERLOOP_RAW), (LEDGERLOOP_TABLES, set()), "S8-01: the quirks on their copies, copies of the rest")
+        for t in LEDGERLOOP_TABLES:
+            raw = self.columns(LEDGERLOOP_RAW, t)
+            clean = self.columns(LEDGERLOOP, t)
+            expected = [(c, "TIMESTAMP WITH TIME ZONE" if (t, c) == ("payments", "attempted_at") else k) for c, k in clean]
+            self.assertEqual(raw, expected, f"{LEDGERLOOP_RAW}.{t} has {LEDGERLOOP}.{t}'s columns (Q-02-04: payments in UTC)")
+        keys = self.one(f"SELECT count(*) FROM duckdb_constraints() WHERE schema_name = '{LEDGERLOOP}' AND constraint_type = 'PRIMARY KEY'")[0]
+        self.assertEqual(keys, len(LEDGERLOOP_TABLES), "every clean table has its key")
+        raw_events_key = self.one(f"""SELECT count(*) FROM duckdb_constraints() WHERE schema_name = '{LEDGERLOOP_RAW}'
+                                      AND table_name = 'subscription_events' AND constraint_type = 'PRIMARY KEY'""")[0]
+        self.assertEqual(raw_events_key, 0, "GEN-05: the table with a key quirk (Q-02-01) has no key")
+        self.assertEqual(sorted(s for (s,) in self.con.execute("SELECT schema_name FROM information_schema.schemata").fetchall()
+                                if s.startswith("ledgerloop_edge")), sorted([LEDGERLOOP_CLEAN_EDGE, LEDGERLOOP_EDGE, LEDGERLOOP_CASES_EDGE]),
+                         "the level 6 edge schemas are Task A2's, held by pipeline/tests/test_edge_pat.py, and the six inbox cases' "
+                         "is Task E1's, held by pipeline/tests/test_edge_cases.py")
+
+    def test_ledgerloop_notes_in_the_file(self):
+        notes = json.loads((self.dir / "schema-notes.json").read_text(encoding="utf-8"))
+        clean = {n["table"]: n for n in notes if n["schema"] == LEDGERLOOP}
+        raw = {n["table"]: n for n in notes if n["schema"] == LEDGERLOOP_RAW}
+        self.assertEqual((set(clean), set(raw)), (LEDGERLOOP_TABLES | {MRR_MONTHLY}, LEDGERLOOP_TABLES), "sprint 8 Part 2: and the clean view")
+        for schema, by in ((LEDGERLOOP, clean), (LEDGERLOOP_RAW, raw)):
+            for table, n in by.items():
+                self.assertEqual(n["from_level"], 6, f"{schema}.{table}")
+                self.assertEqual(n["row_count"], self.one(f"SELECT count(*) FROM {schema}.{table}")[0], f"{schema}.{table}")
+                for f in n["foreign_keys"]:
+                    self.assertIn(f["ref_table"], LEDGERLOOP_TABLES, f"{schema}.{table}")
+                    self.assertEqual(f["cardinality"], "1:N")
+        for table, n in raw.items():
+            self.assertTrue(n["grain"].startswith(RAW_WARNING), table)
+        self.assertIn("allowed_values", clean["subscriptions"])
+
+    def test_chain_stock_and_mrr_monthly_notes_in_the_file(self):
+        # Sprint 8 Part 2 (S8-15, S8-C28): both new objects show from level 6, in their visible schema only (an edge schema's tables
+        # have no note, and LedgerLoop's edge schemas none at all); the stock note names its products in words a learner reads.
+        notes = json.loads((self.dir / "schema-notes.json").read_text(encoding="utf-8"))
+        stock = [n for n in notes if n["table"] == STOCK]
+        self.assertEqual([n["schema"] for n in stock], ["voltmarkt"])
+        n = stock[0]
+        self.assertEqual((n["primary_key"], n["from_level"]), (["snapshot_date", "store_id", "product_id"], 6))
+        self.assertEqual([(f["columns"], f["ref_table"]) for f in n["foreign_keys"]], [(["store_id"], "stores"), (["product_id"], "products")])
+        self.assertEqual(n["row_count"], self.one(f"SELECT count(*) FROM voltmarkt.{STOCK}")[0])
+        self.assertEqual(n["sample"]["columns"], ["snapshot_date", "store_id", "product_id", "units_on_hand"])
+        text = json.dumps(n, ensure_ascii=False)
+        for words in ("Consoles", "Controllers", "PlayBox 5", "end of the day", "webshop", "every calendar day", "25 December",
+                      "without a sale"):
+            self.assertIn(words, text, f"the note says {words}")
+        mrr = [n for n in notes if n["table"] == MRR_MONTHLY]
+        self.assertEqual([(n["schema"], n["from_level"]) for n in mrr], [(LEDGERLOOP, 6)])
+        self.assertEqual(mrr[0]["row_count"], self.one(f"SELECT count(*) FROM {LEDGERLOOP}.{MRR_MONTHLY}")[0])
+        for n in stock + mrr:
+            self.assertNotIn("—", json.dumps(n, ensure_ascii=False), "no em dash")
+            self.assertNotIn("NULL", json.dumps(n, ensure_ascii=False), "missing, not NULL")
+
+    def test_ledgerloop_truth_file_and_no_truth_in_the_database(self):
+        # OD-GEN-01, E-091: the findings, plants and quirk counts go to data/truth/ledgerloop.json, never into the database.
+        truth = json.loads((self.dir / "truth" / "ledgerloop.json").read_text(encoding="utf-8"))
+        self.assertEqual((truth["company"], truth["seed"], truth["as_of_date"]), ("ledgerloop", 2202, "2026-01-01"))
+        for i in range(1, 16):
+            self.assertIs(truth["findings"][f"FIND-02-{i:02d}"]["pass"], True, f"FIND-02-{i:02d}")
+        self.assertEqual(set(truth["planted"]["raw"]), {f"Q-02-0{i}" for i in range(1, 8)})
+        schemas = {r[0] for r in self.con.execute("SELECT schema_name FROM information_schema.schemata").fetchall()}
+        self.assertFalse({s for s in schemas if "truth" in s}, "no truth schema")
+        tables = {r[0] for r in self.con.execute("SELECT table_name FROM information_schema.tables WHERE table_schema LIKE 'ledgerloop%'").fetchall()}
+        self.assertEqual(tables, LEDGERLOOP_TABLES | {MRR_MONTHLY},
+                         "LedgerLoop's schemas hold its sixteen tables and the mrr_monthly view, and nothing else (no truth or findings table)")
+        checkpoints = json.loads((self.dir / "truth" / "checkpoints.json").read_text(encoding="utf-8"))
+        self.assertTrue({LEDGERLOOP, LEDGERLOOP_RAW} <= set(checkpoints["schemas"]), "S6-13: LedgerLoop cases are available")
 
     # ---- S6-20: mailvora_edge_case holds each of its five plants (one assertion each) ----
 

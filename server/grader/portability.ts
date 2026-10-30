@@ -4,7 +4,8 @@
 // the prepared json_serialize_sql), and the integer division re-run is a gated display on the second locked runner; learner
 // text never reaches any other path here. GRADER_VERSION moved to 4b.1 with the new notes and screen mode (D41), and to 4c.1 with
 // the re-run's control run (D52). Sprint 6 (S6-10) adds the FROM subquery alias note, a note only. Sprint 7 (S7-20) words the QUALIFY
-// note as the ruling gives it, with GRADER_VERSION 7a.1. Sprint 7d (S7D-09) runs the control on the second runner too.
+// note as the ruling gives it, with GRADER_VERSION 7a.1. Sprint 7d (S7D-09) runs the control on the second runner too. Sprint 8 (S8-09)
+// adds the PIVOT note, with GRADER_VERSION 8a.1.
 import type { RunnerClient } from '../runner/client.ts';
 import type { DisplayOk, ParseTreeOk } from '../runner/protocol.ts';
 import { maskSql } from '../runner/tables.ts';
@@ -38,6 +39,14 @@ export const COUNT_NOTE = 'count() with nothing inside works only in DuckDB. Pos
 export const EXCLUDE_NOTE = 'SELECT * EXCLUDE works only in DuckDB. PostgreSQL, SQL Server and MySQL need the columns you want listed.';
 /** S7-20 (sprint 7, Task A1; DIALECT-04): the S4B-25 QUALIFY note, worded as the ruling gives it. GRADER_VERSION 7a.1 logs it. */
 export const QUALIFY_NOTE = 'PostgreSQL, MySQL and SQL Server have no QUALIFY: filter the window result in an outer query or a CTE.';
+/**
+ * S8-09 (sprint 8, Task A1): DuckDB's PIVOT. In 1.5.6 a PIVOT with an IN list is one SELECT, which the gate passes, so it gets this note;
+ * one with no IN list is two statements (a CREATE TYPE, then the SELECT), which the gate refuses, so it never reaches the lint. Worded
+ * by the controller's ruling S8-C07: SQL Server and Oracle have a PIVOT of their own, written another way. GRADER_VERSION 8a.1 logs it.
+ */
+export const PIVOT_NOTE = 'This PIVOT form is DuckDB\'s own: other databases write it differently or have none. Conditional aggregation runs everywhere.';
+/** A1-M1 (sprint 8): DuckDB's UNPIVOT is one SELECT too, so the gate passes it; it gets a note of its own, in the PIVOT note's form. GRADER_VERSION 8a.1 logs it. */
+export const UNPIVOT_NOTE = 'This UNPIVOT form is DuckDB\'s own: other databases write it differently or have none. UNION ALL runs everywhere.';
 /** S6-10 (sprint 6, Task A1): a subquery in FROM with no alias. PostgreSQL 16 dropped the rule; SQL Server keeps it. */
 export const SUBQUERY_ALIAS_NOTE = 'PostgreSQL before version 16 and SQL Server need an alias here: add `AS t`';
 /** S4B-24: after a pass, the integer division re-run gave another result. */
@@ -254,10 +263,12 @@ export function hasFromFirst(sql: string): boolean {
 /**
  * The S4B-25 constructs the parse tree shows: GROUP BY ALL, QUALIFY and a star's EXCLUDE list, anywhere in the statement; and
  * from S6-10 a subquery in FROM with no alias. A FROM subquery is a table reference of type SUBQUERY, which has no `class` (a
- * subquery in an expression has one), and DuckDB 1.5.6 leaves its alias empty when none is written.
+ * subquery in an expression has one), and DuckDB 1.5.6 leaves its alias empty when none is written. S8-09: a PIVOT is a table
+ * reference of type PIVOT in every form (the PIVOT statement, PIVOT_WIDER and FROM ... PIVOT (...)); an UNPIVOT is one too, told
+ * apart by the value column names it lists in unpivot_names, so it gets no PIVOT note but A1-M1's UNPIVOT note.
  */
-function treeConstructs(statement: unknown): { groupByAll: boolean; qualify: boolean; exclude: boolean; unaliasedSubquery: boolean } {
-  const found = { groupByAll: false, qualify: false, exclude: false, unaliasedSubquery: false };
+function treeConstructs(statement: unknown): { groupByAll: boolean; qualify: boolean; exclude: boolean; unaliasedSubquery: boolean; pivot: boolean; unpivot: boolean } {
+  const found = { groupByAll: false, qualify: false, exclude: false, unaliasedSubquery: false, pivot: false, unpivot: false };
   walk(statement, (o) => {
     if (o.type === 'SELECT_NODE') {
       if (o.aggregate_handling === 'FORCE_AGGREGATES') found.groupByAll = true;
@@ -265,6 +276,8 @@ function treeConstructs(statement: unknown): { groupByAll: boolean; qualify: boo
     }
     if (o.class === 'STAR' && (list(o.exclude_list).length > 0 || list(o.qualified_exclude_list).length > 0)) found.exclude = true;
     if (o.type === 'SUBQUERY' && o.class === undefined && !text(o.alias)) found.unaliasedSubquery = true;
+    if (o.type === 'PIVOT' && o.class === undefined && list(o.unpivot_names).length === 0) found.pivot = true;
+    if (o.type === 'PIVOT' && o.class === undefined && list(o.unpivot_names).length > 0) found.unpivot = true;
     return true;
   });
   return found;
@@ -273,7 +286,7 @@ function treeConstructs(statement: unknown): { groupByAll: boolean; qualify: boo
 /** A comma with nothing after it: before a closing bracket, the end, or the next clause. */
 const TRAILING_COMMA = /,\s*(?:\)|;|$|\b(?:from|where|group|having|order|limit|offset|qualify|window|union|intersect|except)\b)/i;
 
-/** S4B-25: the friendly-SQL notes for one statement, in their fixed order, then S6-10's alias note. The text constructs are read from the bare text. */
+/** S4B-25: the friendly-SQL notes for one statement, in their fixed order, then S6-10's alias note, then S8-09's PIVOT note and A1-M1's UNPIVOT note. The text constructs are read from the bare text. */
 function friendlySqlNotes(statement: unknown, sql: string): string[] {
   const tree = treeConstructs(statement);
   const bare = bareText(sql);
@@ -287,13 +300,15 @@ function friendlySqlNotes(statement: unknown, sql: string): string[] {
     [tree.exclude, EXCLUDE_NOTE],
     [tree.qualify, QUALIFY_NOTE],
     [tree.unaliasedSubquery, SUBQUERY_ALIAS_NOTE],
+    [tree.pivot, PIVOT_NOTE],
+    [tree.unpivot, UNPIVOT_NOTE],
   ];
   return found.flatMap(([on, note]) => (on ? [note] : []));
 }
 
 /**
  * The notes for one statement: alias notes grouped by clause (WHERE, GROUP BY, HAVING), one per alias and clause,
- * then the `==` note, then the friendly-SQL notes (S4B-25), then the FROM subquery alias note (S6-10). `tree` is
+ * then the `==` note, then the friendly-SQL notes (S4B-25), then the FROM subquery alias note (S6-10) and the PIVOT note (S8-09). `tree` is
  * json_serialize_sql's reply for `sql`, and `sql` must be the text the gate passed.
  */
 export function lintPortability(tree: unknown, sql: string, columnsOf: ColumnsOf): string[] {

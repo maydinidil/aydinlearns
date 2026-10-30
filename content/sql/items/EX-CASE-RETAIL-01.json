@@ -1,0 +1,161 @@
+{
+  "id": "EX-CASE-RETAIL-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "inbox",
+    "retail",
+    "aov",
+    "units_per_order",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "04:CASE-RETAIL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-29",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-CASE-RETAIL-01-aov-upt-by-channel",
+  "template_params": {
+    "month": "2025-11",
+    "table": "sales",
+    "grain": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "Sanne, the category manager, is preparing tomorrow's trading call and asks how the web and the stores compared in November 2025: how many orders each channel took, what those orders were worth, and how big an average order was. Use the order lines in the sales table with an order_date from 2025-11-01 to 2025-11-30, both days included; order_date is the UTC day of the order. Return one row for each channel, with five columns in this order: channel; orders, the number of different orders, each order counted once however many lines it has; net_sales_eur, the total net_revenue_eur, not rounded; aov_eur, the average order value, net_sales_eur divided by orders, rounded to 2 decimals; and units_per_order, the total units divided by orders, rounded to 2 decimals. A line with a missing net_revenue_eur adds nothing to net_sales_eur, and a line with a missing units value adds nothing to the units, but the order of such a line still counts. Sort by channel from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "net_sales_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "aov_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_per_order",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "channel",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "net_sales_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "aov_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "units_per_order",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the rows: the order lines of November 2025 in sales. Then decide what one row stands for.",
+    "Count each order once however many lines it has, then divide the net revenue total and the units total by that count, with a division that keeps the decimals."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 261,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 262,
+      "to": 272,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 273,
+      "to": 337,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 338,
+      "to": 354,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 355,
+      "to": 371,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Counting each order_id once makes an order one basket, so net sales and units are divided by baskets, not by order lines."
+}

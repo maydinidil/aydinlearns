@@ -358,7 +358,7 @@
       "detection_checks": [
         "CHK-ORDER"
       ],
-      "feedback_template": "The rows are right but not in the requested order. Add ORDER BY {sort_col} {direction}.",
+      "feedback_template": "The order, or the rows an order picks, do not match what the question asks for. Add ORDER BY {sort_col} {direction}, and sort the same way inside OVER or before a LIMIT when the order also picks the rows.",
       "concept_id": "SQL-SORT-01"
     },
     {
@@ -671,6 +671,86 @@
       ],
       "feedback_template": "On the first rows of a series a moving average has fewer rows than its window, so a 7-day average on the third day is the average of 3 days. Count the rows in the same frame with COUNT(*), and flag or leave out the rows where the count is below the window's size.",
       "concept_id": "SQL-WIN-05"
+    },
+    {
+      "id": "ERR-LOG-44",
+      "category": "LOG",
+      "name": "A funnel step counted without the step before it",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "Counting each step's users on their own counts a user who reached a later step without the step before it, such as a purchase with no view, so a later step can hold users the step before it never had. Count a user at a step only when the same user reached the step before it, and after it when the question says the steps happen in order.",
+      "concept_id": "SQL-PAT-07"
+    },
+    {
+      "id": "ERR-LOG-45",
+      "category": "LOG",
+      "name": "A funnel rate divided by the wrong step",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "A step rate divides a step's users by the users of the step right before it, and an overall rate divides them by the top of the funnel, so dividing by the other one gives a real-looking rate that answers a different question. Read which base the question names, the step before or the first step, and divide by that step's count.",
+      "concept_id": "SQL-PAT-07"
+    },
+    {
+      "id": "ERR-LOG-46",
+      "category": "LOG",
+      "name": "Cohort months worked out from days divided by 30",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "Months have 28 to 31 days, so a day count divided by 30 drifts away from calendar months and puts some activity in the wrong month of its cohort. Count calendar months instead, with date_diff('month', cohort_month, activity_month) on dates cut to the first of their month.",
+      "concept_id": "SQL-PAT-06"
+    },
+    {
+      "id": "ERR-LOG-47",
+      "category": "LOG",
+      "name": "A returning account booked as new",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "An account that comes back after it churned goes from 0 MRR to more than 0, just as a new one does, so a rule that looks only at the month before books its return as new business instead of a reactivation. Call a move from 0 new only when the account never had MRR in an earlier month, and a reactivation when it did.",
+      "concept_id": "SQL-PAT-10"
+    },
+    {
+      "id": "ERR-LOG-48",
+      "category": "LOG",
+      "name": "A partial period compared with a full one",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "The data ends partway through its last period, so that period holds fewer days than the full one before it, and a change between them shows a fall that is only the missing days. Leave out a period that is not complete, or compare the same days in each, as the question says.",
+      "concept_id": "SQL-PAT-03"
+    },
+    {
+      "id": "ERR-LOG-49",
+      "category": "LOG",
+      "name": "A change worked out the wrong way round",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "A change is the new value minus the old one, and growth divides it by the old value, so old minus new flips the sign and dividing by the new value gives another number. Subtract the earlier value from the later one and divide by the earlier one: (new - old) / old, which is new / old - 1.",
+      "concept_id": "SQL-PAT-03"
+    },
+    {
+      "id": "ERR-LOG-50",
+      "category": "LOG",
+      "name": "A cohort dated by the wrong event",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "A cohort is the month of the event the question names, such as the signup or the first payment, so dating it by another event puts customers in the wrong cohort or leaves them out. Take the cohort date from the event the question names, as each customer's first one with MIN, and check one customer by hand.",
+      "concept_id": "SQL-PAT-06"
+    },
+    {
+      "id": "ERR-LOG-51",
+      "category": "LOG",
+      "name": "An annual plan's price counted as one month's MRR",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "An annual plan's price pays for 12 months, so counting it as one month's MRR makes that account's MRR 12 times too big. Divide an annual plan's price by 12, after any annual discount, before you add it to MRR.",
+      "concept_id": "SQL-PAT-10"
     }
   ]
 }

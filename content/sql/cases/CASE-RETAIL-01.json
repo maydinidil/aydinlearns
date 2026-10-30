@@ -1,0 +1,159 @@
+{
+  "case_id": "CASE-RETAIL-01",
+  "kind": "inbox",
+  "level": 2,
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "Average order value and units per order by channel, November 2025",
+  "persona": {
+    "name": "Sanne",
+    "role": "Category manager"
+  },
+  "brief": {
+    "decision": "How to set next month's web and store sales targets, based on the orders, average order value and units per order each channel had in November 2025",
+    "deadline": "Tomorrow's trading call"
+  },
+  "data_needed": [
+    "sales"
+  ],
+  "expected_output": {
+    "columns": [
+      "channel",
+      "orders",
+      "net_sales_eur",
+      "aov_eur",
+      "units_per_order"
+    ],
+    "grain": "one row per sales channel, store and web, in November 2025",
+    "sort": [
+      {
+        "column": "channel",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-RETAIL-01:CP1",
+      "credits_concepts": [],
+      "prompt": "Sanne's average order value for each channel is its net sales divided by its number of orders. The sales table holds one row per order line, and one order can have several lines. What should the number of orders count?",
+      "options": [
+        {
+          "oid": "off4230a",
+          "text": "Every row of the sales table in the month, since each row records a sale"
+        },
+        {
+          "oid": "o3203c6d",
+          "text": "Each order_id once, however many lines that order has"
+        },
+        {
+          "oid": "o479d820",
+          "text": "Each customer once, since a customer who ordered twice is still one shopper"
+        },
+        {
+          "oid": "o118173b",
+          "text": "Each unit sold, since every unit is one item in a basket"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-RETAIL-01:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "Sanne first wants the size of the web channel behind the figures. How many web orders did Voltmarkt take in November 2025? Use the order lines in the sales table whose channel is 'web' and whose order_date, the UTC day of the order, is from 2025-11-01 to 2025-11-30, both days included. Count each order once, however many lines it has. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "orders"
+      },
+      "truth_key": "CASE-RETAIL-01:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-RETAIL-01",
+      "credits_concepts": [
+        "SQL-TYPE-01",
+        "SQL-AGG-02",
+        "SQL-AGG-01"
+      ],
+      "prompt": "Write the query that answers Sanne's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-RETAIL-01:CP4",
+      "credits_concepts": [],
+      "prompt": "Sanne's headline for the trading call: how many euros more was the average web order worth than the average store order in November 2025? Use the order lines in the sales table with an order_date, the UTC day of the order, from 2025-11-01 to 2025-11-30, both days included. A channel's average order value is its total net_revenue_eur divided by its number of orders, each order counted once however many lines it has; a line with a missing net_revenue_eur adds nothing to the total, but its order still counts. Round each channel's average order value to 2 decimals first, then subtract the 'store' channel's from the 'web' channel's. Type the amount in euros, rounded to 2 decimals, with a minus sign if the average web order was worth less, for example 12.50 or -12.50.",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-RETAIL-01:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-RETAIL-01:CP5",
+      "credits_concepts": [],
+      "prompt": "In November 2025 Voltmarkt's average order value differs between the web and the stores. Sanne asks: does that gap show which channel makes shoppers spend more per order?",
+      "options": [
+        {
+          "oid": "o44341a1",
+          "text": "Yes. Whichever channel has the higher average order value makes its shoppers spend more, so moving more shoppers to that channel would raise revenue."
+        },
+        {
+          "oid": "o137ab98",
+          "text": "Not on its own. The averages come before returns, more common online, and each channel sells its own mix, so the gap describes orders, not cause."
+        },
+        {
+          "oid": "oa11ed33",
+          "text": "No. The two channels take different numbers of orders, so their average order values cannot be compared with each other at all."
+        },
+        {
+          "oid": "o030da93",
+          "text": "Yes, provided both channels sell about the same number of units per order, because then the whole gap must come from the channel itself and from nothing else."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Sanne's trading call: how the web and the stores compared in November 2025 on orders, average order value and units per order, one caveat about what these averages leave out, and one next step before the targets are set."
+    }
+  ],
+  "model_plan": "Metric formula: orders = the number of different order_id values; net_sales_eur = the sum of net_revenue_eur; aov_eur = net_sales_eur divided by orders, rounded to 2 decimals; units_per_order = the sum of units divided by orders, with a division that keeps decimals, rounded to 2 decimals.\nOutput grain: one row per channel.\nTables and keys: the sales view only, one row per order line; an order is its order_id, which several lines can share.\nFilters: order_date from 2025-11-01 to 2025-11-30, both days included.\nEdge cases: an order with several lines counts once; a missing net_revenue_eur or units value adds nothing, but the line's order still counts; a whole-number division would cut units_per_order to a whole number.\nExpected row count: 2",
+  "model_answer_template": "In November 2025 the average web order was worth {CP4} euros more than the average store order, while both channels put about the same number of units in an order, so the gap comes from what each basket holds rather than how many items it has. The web took {CP2} orders, fewer than the stores. These averages come before returns, which are more common online, and November includes Black Week, when web demand and the deals change the mix. Before the targets are set, I would compare the same figures for October 2025 and November 2024 and split the gap by parent category to see whether the product mix explains it.",
+  "follow_up_question": "Why is the average web order worth more than the average store order?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "metric_ids": [
+    "MET-RETAIL-06",
+    "MET-RETAIL-07"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-PAT-05-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "orders"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-month-by-channel",
+  "template_params": {
+    "table": "orders",
+    "columns": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each month of 2025, how many of Voltmarkt's orders came in store and how many on the web (orders.channel 'store' and 'web')? order_ts holds UTC time: take the month in UTC. Return three columns, in this order: month (the first day of the month), store_orders and web_orders. A month with no orders of a channel shows 0 in that column. Return one row for each month of 2025 with orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "store_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "web_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "store_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "web_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the orders by month and count each channel in its own column.",
+    "Each column counts only the rows of its channel; a count with a condition gives 0, not missing, when no row matches."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 61,
+      "to": 177,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 178,
+      "to": 189,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 190,
+      "to": 288,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 289,
+      "to": 341,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each filtered count keeps only its channel's orders, so one row per month carries both counts, with 0 where a channel had none."
+}

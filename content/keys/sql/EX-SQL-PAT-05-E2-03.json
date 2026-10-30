@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH mrr AS (\n  -- one row per subscription, its MRR on 31 December 2025\n  SELECT subscription_id, SUM(mrr_delta_local) AS mrr_local\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-12-31'\n  GROUP BY subscription_id\n)\nSELECT a.segment,\n  SUM(CASE WHEN s.currency = 'EUR' THEN m.mrr_local ELSE 0 END) AS mrr_eur,\n  SUM(CASE WHEN s.currency = 'GBP' THEN m.mrr_local ELSE 0 END) AS mrr_gbp,\n  SUM(CASE WHEN s.currency = 'CHF' THEN m.mrr_local ELSE 0 END) AS mrr_chf\nFROM mrr m\nJOIN subscriptions s ON s.subscription_id = m.subscription_id\nJOIN accounts a ON a.account_id = s.account_id\nGROUP BY a.segment",
+  "alternatives": [
+    "WITH mrr AS (\n  -- one row per subscription, its MRR on 31 December 2025\n  SELECT subscription_id, SUM(mrr_delta_local) AS mrr_local\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-12-31'\n  GROUP BY subscription_id\n)\nSELECT a.segment,\n  COALESCE(SUM(m.mrr_local) FILTER (WHERE s.currency = 'EUR'), 0) AS mrr_eur,\n  COALESCE(SUM(m.mrr_local) FILTER (WHERE s.currency = 'GBP'), 0) AS mrr_gbp,\n  COALESCE(SUM(m.mrr_local) FILTER (WHERE s.currency = 'CHF'), 0) AS mrr_chf\nFROM mrr m\nJOIN subscriptions s ON s.subscription_id = m.subscription_id\nJOIN accounts a ON a.account_id = s.account_id\nGROUP BY a.segment",
+    "SELECT a.segment,\n  SUM(CASE WHEN s.currency = 'EUR' THEN e.mrr_delta_local ELSE 0 END) AS mrr_eur,\n  SUM(CASE WHEN s.currency = 'GBP' THEN e.mrr_delta_local ELSE 0 END) AS mrr_gbp,\n  SUM(CASE WHEN s.currency = 'CHF' THEN e.mrr_delta_local ELSE 0 END) AS mrr_chf\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nJOIN accounts a ON a.account_id = s.account_id\nWHERE e.event_date <= DATE '2025-12-31'\nGROUP BY a.segment"
+  ],
+  "other_way": {
+    "sql": "WITH mrr AS (\n  -- one row per subscription, its MRR on 31 December 2025\n  SELECT subscription_id, SUM(mrr_delta_local) AS mrr_local\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-12-31'\n  GROUP BY subscription_id\n)\nSELECT a.segment,\n  COALESCE(SUM(m.mrr_local) FILTER (WHERE s.currency = 'EUR'), 0) AS mrr_eur,\n  COALESCE(SUM(m.mrr_local) FILTER (WHERE s.currency = 'GBP'), 0) AS mrr_gbp,\n  COALESCE(SUM(m.mrr_local) FILTER (WHERE s.currency = 'CHF'), 0) AS mrr_chf\nFROM mrr m\nJOIN subscriptions s ON s.subscription_id = m.subscription_id\nJOIN accounts a ON a.account_id = s.account_id\nGROUP BY a.segment",
+    "tradeoff": "Filtered sums read clearly, but SUM with FILTER is missing when nothing matches, so each column still needs COALESCE."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH mrr AS (\n  -- one row per subscription, its MRR on 31 December 2025\n  SELECT subscription_id, SUM(mrr_delta_local) AS mrr_local\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-12-31'\n  GROUP BY subscription_id\n) SELECT a.segment, SUM(CASE WHEN s.currency = 'EUR' THEN m.mrr_local END) AS mrr_eur, SUM(CASE WHEN s.currency = 'GBP' THEN m.mrr_local END) AS mrr_gbp, SUM(CASE WHEN s.currency = 'CHF' THEN m.mrr_local END) AS mrr_chf FROM mrr m JOIN subscriptions s ON s.subscription_id = m.subscription_id JOIN accounts a ON a.account_id = s.account_id GROUP BY a.segment"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH mrr AS (\n  -- one row per subscription, its MRR on 31 December 2025\n  SELECT subscription_id, SUM(mrr_delta_local) AS mrr_local\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-12-31'\n  GROUP BY subscription_id\n) SELECT a.segment, SUM(CASE WHEN s.currency = 'EUR' THEN m.mrr_local ELSE 0 END) AS mrr_eur, SUM(CASE WHEN s.currency = 'GBP' THEN m.mrr_local ELSE 0 END) AS mrr_gbp, SUM(CASE WHEN s.currency = 'CHF' THEN m.mrr_local ELSE 0 END) AS mrr_chf FROM mrr m JOIN subscriptions s ON s.subscription_id = m.subscription_id JOIN accounts a ON a.account_id = s.account_id GROUP BY a.segment, s.currency"
+    }
+  ],
+  "hint3_partial": "WITH mrr AS (\n  -- one row per subscription, its MRR on 31 December 2025\n  SELECT subscription_id, SUM(mrr_delta_local) AS mrr_local\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-12-31'\n  GROUP BY subscription_id\n)\nSELECT a.segment,\n  SUM(CASE WHEN s.currency = 'EUR' THEN m.mrr_local ELSE 0 END) AS mrr_eur,\n  SUM(CASE WHEN s.currency = 'GBP' THEN ___ ELSE 0 END) AS mrr_gbp,\n  SUM(CASE WHEN s.currency = 'CHF' THEN m.mrr_local ELSE 0 END) AS mrr_chf\nFROM mrr m\nJOIN subscriptions s ON s.subscription_id = m.subscription_id\nJOIN accounts a ON a.account_id = s.account_id\nGROUP BY a.segment",
+  "solver": {
+    "prompt_hash": "059dfe019aedb7ec",
+    "schema_version": "8bd65db2c274",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT a.segment,\n  COALESCE(SUM(e.mrr_delta_local) FILTER (WHERE s.currency = 'EUR'), 0) AS mrr_eur,\n  COALESCE(SUM(e.mrr_delta_local) FILTER (WHERE s.currency = 'GBP'), 0) AS mrr_gbp,\n  COALESCE(SUM(e.mrr_delta_local) FILTER (WHERE s.currency = 'CHF'), 0) AS mrr_chf\nFROM subscriptions s\nJOIN accounts a ON a.account_id = s.account_id\nLEFT JOIN subscription_events e ON e.subscription_id = s.subscription_id AND e.event_date <= DATE '2025-12-31'\nGROUP BY a.segment\n",
+    "at": "2026-10-28T14:57:05.994Z"
+  }
+}

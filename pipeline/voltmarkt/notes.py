@@ -61,6 +61,14 @@ COST_GRAINS = {
     "cost_history": ("one row per product per cost version (valid_to is missing for the current cost)",
                      ["product_id", "valid_from"], [fk("product_id", "products", "product_id")], 4),
 }
+# Sprint 8 Part 2 (S8-15, E-212): chain-wide daily stock, appended after cost_history. It shows from level 6, where CASE-RETAIL-04
+# reads it with a date spine. Its grain names the products it covers, in words a learner reads.
+INVENTORY_GRAINS = {
+    "inventory_chain_daily": ("one row per day, store and product: the units on hand at the end of the day, for the consoles and "
+                              "controllers only (the Consoles and Controllers categories, PlayBox 5 included), in the physical stores",
+                              ["snapshot_date", "store_id", "product_id"],
+                              [fk("store_id", "stores", "store_id"), fk("product_id", "products", "product_id")], 6),
+}
 # Design §10: the canonical beginner sales view. Its notes say the grain, so a learner sees that order_id
 # repeats (an order has one or more lines) and that every measure belongs to its line.
 VIEWS = {
@@ -108,6 +116,14 @@ COLUMN_NOTES = {
     },
     # Sprint 6.
     "cost_history": {"unit_cost_eur": "What one unit cost Voltmarkt from valid_from to valid_to, both days included."},
+    # Sprint 8 Part 2 (S8-15).
+    "inventory_chain_daily": {
+        "snapshot_date": "The day. A row for every calendar day from 1 January 2024 (or the store's opening, if later) to its "
+                         "closing date or the end of the data, including days the store does not trade, such as 25 December.",
+        "store_id": "A physical store. The webshop (store 99) holds its stock elsewhere, so it has no rows here.",
+        "units_on_hand": "Units in the store at the end of the day. 0 means out of stock that day. Stock can also leave a store "
+                         "without a sale.",
+    },
     "weekly_units": {
         "iso_year": "The ISO year of the week, which can differ from the calendar year in late December and early January.",
         "iso_week": "The ISO week number (a week starts on Monday), as the calendar gives it.",
@@ -171,11 +187,12 @@ def note(con, schema: str, table: str, grain: str, pk: list[str], fks: list[dict
 
 
 def schema_notes(con, schema: str) -> list[dict]:
-    """The visible schema: its tables (level 1's, then level 3's, then the A/B test's, then cost_history), then the views
-    (the server shows an item's schema's notes)."""
+    """The visible schema: its tables (level 1's, then level 3's, then the A/B test's, then cost_history, then
+    inventory_chain_daily), then the views (the server shows an item's schema's notes)."""
     return ([note(con, schema, t, *spec, visible=True) for t, spec in GRAINS.items()]
             + [note(con, schema, t, *spec, visible=True) for t, spec in AB_GRAINS.items()]
             + [note(con, schema, t, *spec, visible=True) for t, spec in COST_GRAINS.items()]
+            + [note(con, schema, t, *spec, visible=True) for t, spec in INVENTORY_GRAINS.items()]
             + [note(con, schema, v, *spec, visible=True) for v, spec in VIEWS.items()]
             + [note(con, schema, "competitor_price_weekly", *WEEKLY_VIEW, visible=True)]
             + [note(con, schema, "weekly_units", *WEEKLY_UNITS_VIEW, visible=True)])

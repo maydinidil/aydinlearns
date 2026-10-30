@@ -24,6 +24,9 @@ Agents that write a case (a level opener, an inbox case or a daily case) also fo
   they win for level 4.
 - Level 5 content (sprint 7) follows the Level 3 and Level 4 sections too, then
   [Level 5](#level-5-window-functions-sprint-7). Where it differs from the rest, it wins for level 5.
+- Level 6 content (sprint 8) follows the Level 3 to Level 5 sections too, then
+  [Level 6](#level-6-business-patterns-sprint-8), and an item on LedgerLoop also follows
+  [LedgerLoop](#ledgerloop-the-saas-company-sprint-8). Where they differ from the rest, they win for level 6.
 - A held-out mock item (sprint 7) follows the sections for its level, then
   [Mock items](#mock-items-sprint-7-task-c3). Where it differs from the rest, it wins for mock items.
 - Paths are relative to `aydinlearns/`. Work in the folder the controller names in the `Root`
@@ -800,6 +803,277 @@ it is an engine-error trap such as `ERR-SYN-08`.
 | The level 5 constructs are `window` (`SQL-WIN-01`: any OVER), `ranking` (`SQL-WIN-02`: ROW_NUMBER, RANK, DENSE_RANK), `lag_lead` (`SQL-WIN-03`), `qualify` (`SQL-WIN-06`), and `ntile_first_value` and `percentile` (`SQL-WIN-07`: NTILE, FIRST_VALUE, LAST_VALUE, NTH_VALUE, PERCENT_RANK, CUME_DIST; MEDIAN and the quantile functions). `SQL-WIN-04` and `SQL-WIN-05` have none of their own | `content/sql/constructs.json` | C09, C16 |
 | Curriculum order: an `SQL-WIN-01` key uses no ranking function, an `SQL-WIN-02` key no LAG or LEAD, and only `SQL-WIN-07` keys use NTILE, FIRST_VALUE, LAST_VALUE or a percentile. QUALIFY appears only in an `SQL-WIN-06` other way | The learner has not met them yet (S7-21) | C09, C11 |
 
+## Level 6: business patterns (sprint 8)
+
+For the ten level 6 concepts, in curriculum order: `SQL-PAT-01` to `SQL-PAT-10`. Everything above still applies, the
+Level 3 to Level 5 sections included (the grain line fades, keys run on the edge schema, every key has an `other_way`,
+each CTE step names its grain in a comment, frames are written out, C53's tie rule); where this section differs, it wins.
+An item on LedgerLoop also follows [LedgerLoop](#ledgerloop-the-saas-company-sprint-8). The rulings are in the sprint 8
+plan (`docs/superpowers/plans/2026-10-27-aydinlearns-sprint-8.md`): S8-07 to S8-11 and S8-22, with the controller's
+S8-C09. The ERRATA rows are E-208 (LedgerLoop), E-209 (the level 6 error IDs and PIVOT) and E-210 (LedgerLoop as built).
+
+### What to write per concept
+
+| Concept | Companies | Must-have traps | Also |
+|---|---|---|---|
+| `SQL-PAT-01` Top-N per group | Voltmarkt, Mailvora, LedgerLoop | The tie rule (`ERR-LOG-40`, C53); `ERR-LOG-37` one LIMIT over every group where N per group was asked | Top N per group and per period; top N with an "all other" row |
+| `SQL-PAT-02` Deduplication and latest record per key | Voltmarkt, Mailvora, LedgerLoop; `ledgerloop_raw` for Q-02-01's events sent twice | `ERR-LOG-36` DISTINCT over rows that differ in one column; the tie rule (`ERR-LOG-40`) | The latest row per key (a product's current price version, each subscription's latest event, each account's latest subscription); one lead per email, keeping the earliest |
+| `SQL-PAT-03` Period comparisons | Voltmarkt, Mailvora, LedgerLoop | `ERR-LOG-39` LAG 12 over months that skip one; `ERR-LOG-48` a partial month against a full one | Month over month, year over year by a self-join on the month a year before, like-for-like stores |
+| `SQL-PAT-04` Date spines and gap filling | Voltmarkt, Mailvora, LedgerLoop | `ERR-LOG-39` no spine, or a spine joined with INNER JOIN | Day, week and month spines from `calendar`, `range()` or `budget_monthly`; a 7-day moving average over a spine |
+| `SQL-PAT-05` Pivoting long to wide | Voltmarkt, Mailvora, LedgerLoop | `ERR-LOG-17` a missing value against 0 in an empty cell | Conditional aggregation in every reference; PIVOT only in an other way (below) |
+| `SQL-PAT-06` Cohort retention | Mailvora, LedgerLoop | `ERR-LOG-46` months from days divided by 30; `ERR-LOG-04` rows counted instead of users; an immature cell shown as 0 (`ERR-LOG-35` for a rate, `ERR-LOG-17` for a count, S8-C16) | Cohort sizes; a long and a wide retention table |
+| `SQL-PAT-07` Funnel conversion | Mailvora, LedgerLoop | `ERR-LOG-44` a step counted without the step before; `ERR-LOG-45` a rate over the wrong step; `ERR-LOG-04` events counted instead of users | Step and overall conversion; an ordered funnel within a number of days |
+| `SQL-PAT-08` Basic sessionisation | Mailvora `activation_events`, LedgerLoop `app_events` | `ERR-LOG-37` a gap worked out across users (no PARTITION BY) | Session numbers, sessions per user, session length |
+| `SQL-PAT-09` Promo uplift versus baseline | Voltmarkt | `ERR-LOG-01` a sale in two overlapping promotions counted twice | Units or revenue in a promotion against a baseline of the same length; margin |
+| `SQL-PAT-10` SaaS MRR movements | LedgerLoop | `ERR-LOG-47` a returning account booked as new; `ERR-LOG-51` an annual plan's price counted as one month's MRR | An MRR bridge whose opening plus movements is its closing, month by month |
+
+At least a third of `SQL-PAT-06`'s and of `SQL-PAT-10`'s items read LedgerLoop, and at least a third of `SQL-PAT-07`'s and
+of `SQL-PAT-08`'s read Mailvora or LedgerLoop.
+
+For each concept (S8-10, as D109):
+- the lesson: the reading, 2 worked examples with subgoals and fading, the pretest (2 write items, then 1 predict item),
+  the lesson block, the re-test, and a `why_clause`;
+- a write pool of 8 to 10 items;
+- one fix item per trap ID the grader raises for that concept (`kind: "fix"`, `use: "pool"`);
+- 3 pool choice items, at least one a predict kind and one a `choose_query`;
+- 5 drill items, `use: "drill"`, E1 to E3: 50 across the level. Do not edit `content/sql/drills.json`: the controller lists
+  them in the level 6 entry's `pool_item_ids` after the blind solve (S8-11: 10 questions, 40 minutes, 90% to pass, normal
+  mode, 70% unseen, the 10 level 6 concepts). Until then the entry's pool is empty, the app lists the drill as not
+  available, and C19 warns;
+- every key with an `other_way`.
+
+| Company | `company`, `schema` | `edge_schema` |
+|---|---|---|
+| Voltmarkt | `"voltmarkt"`, `"voltmarkt"` | `"voltmarkt_edge_pat"` |
+| Mailvora | `"mailvora"`, `"mailvora"` | `"mailvora_edge_pat"` |
+| LedgerLoop | `"ledgerloop"`, `"ledgerloop"` | `"ledgerloop_edge_saas"` |
+| LedgerLoop raw data (`SQL-PAT-02`'s Q-02-01 items, and any item that cleans raw data) | `"ledgerloop"`, `"ledgerloop_raw"`, with `uses_raw: true` | `"ledgerloop_edge_clean"` |
+
+You may query `data/course.duckdb` read-only on your items' schemas and these edge schemas. Item numbers follow levels 3
+to 5: `01` upward for the pretest, lesson, re-test and write pool items, `21` upward for drill items, `31` upward for fix
+items and `41` upward for choice items, each counted within its difficulty.
+
+### Prompts at level 6 (S8-10, S8-22)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| State in words the grain, the period (both ends), the tie rule, the cohort date, the funnel's base and order, the session gap and what an empty cell shows, as the rows below say. Never in SQL | S8-10: each one left out has two right answers, and the blind solver sees only the prompt and the panel | Blind solver, review |
+| Every top-N prompt and every dedup or "latest per key" prompt states its tie rule in the words C53 reads (the Level 5 section): a tie-break column named in a sentence about ties, or that tied rows share a place. A keep-one dedup on `ledgerloop_raw` says which copy it keeps in a sentence with keep, kept or keeps that names an ID column and says lowest or highest: "Keep the row with the lowest event_id." | Review Focus 3: each level 6 edge schema holds a tie at the cutoffs below and two rows of one key at one moment, so a query with the other rule fails there | C53, blind solver |
+| A cohort prompt names the cohort date (the signup, the account's `created_at`, the first order, the first payment), the activity that counts in a month, how the month offset counts (calendar months, month 0 being the cohort's own month), the as-of date, and what an immature cell shows: a cell whose month ends after the as-of date shows missing unless the prompt says otherwise, while a month that has ended with no activity shows 0 | S8-03, Review Focus 4: `ERR-LOG-46` and `ERR-LOG-50`; the edge schemas hold cohorts whose later months fall after the as-of date, and a cohort month with no activity | Blind solver |
+| A funnel prompt names its steps, counts users (never events), gives the base of each rate (the step before, or the top of the funnel) and says whether order counts: a user counts at a step only after the step before, and within how many days | `ERR-LOG-44`, `ERR-LOG-45`, `ERR-LOG-04`: the edge schemas hold users who reach a step without the one before | Blind solver |
+| A session prompt names the gap in minutes, whether a gap of exactly that length starts a new session ("more than 30 minutes" or "30 minutes or more"), that each user's first event starts a session, and the time zone of any day or hour it reports. The gap is the time between the two instants, never between wall-clock times, and a key compares that interval itself (or the difference of the epoch seconds) with the gap, never a `date_diff` count, which counts minute boundaries | The edge schemas hold a pair of events across the 2025-10-26 clock change and a pair exactly 30 minutes apart | Blind solver |
+| A period comparison names the period it compares with (the previous calendar period, or the same month a year before), what a period with no rows counts as (0, or missing), and how it treats a partial period (left out, or compared on the same days) | `ERR-LOG-39`, `ERR-LOG-48`: the edge schemas skip a whole month inside a two-year series | Blind solver |
+| A change states its direction and scale: "this month's revenue minus last month's", "as a percentage of last month's, 12.5 for 12.5%" | `ERR-LOG-49`, `ERR-LOG-21` | Blind solver |
+| A pivot prompt names each column it wants, in order, and what an empty cell shows (0, or missing) | `ERR-LOG-17` | Blind solver |
+| An uplift prompt names the baseline (how many days before the promotion, the first promotion day left out), the measure (units, revenue or margin) and how a sale in two overlapping promotions counts | `ERR-LOG-01`, `ERR-LOG-34`, `ERR-LOG-06`: the Voltmarkt edge holds two promotions that overlap on one product | Blind solver |
+| No prompt says where missing values go in a sort (S8-22): the grader's order check accepts them first or last, every combination of sort keys included. For level 6 items this replaces two rules: the general one under "Prompts and wording" ("When a sort column can be missing, say whether those rows count, and where they go if they do": a level 6 prompt still says whether those rows count, never where they go) and level 5's rule that a prompt names where missing sort values go | A rule the grader does not need only adds words; F2-2-2 | Review |
+| Keep each question's period inside the edge data: Voltmarkt's edge orders and Mailvora's edge spend run from January 2024 to December 2025, LedgerLoop's edge data covers its whole window. A period comparison that needs a year before reads 2025 against 2024 | A key whose period misses the edge data returns nothing there and tests nothing | C03, review |
+| Say which clock a day or hour is on: Voltmarkt's `*_ts` columns are UTC (P-10); Mailvora's TIMESTAMPTZ columns are UTC instants, a user's local time comes through `countries.timezone`; LedgerLoop's clean times are Brussels local time, except `app_events.event_ts`, a UTC instant (see LedgerLoop) | The solver and the learner see only the prompt and the panel | Blind solver |
+
+### The level 6 edge schemas (S8-07)
+
+Each holds every table of its company's schema under the same names and columns (`voltmarkt_edge_pat` also the build's
+three views over its own tables), and `content/sql/edge/<schema>.json` lists every plant under its tables. Read
+`pipeline/edge/<schema>.sql` for the rows. A fourth, `ledgerloop_edge_clean`, is the edge of the raw-data items on
+`ledgerloop_raw` (S8-C14, below and in the LedgerLoop section): it mirrors `ledgerloop_raw` and holds the subscription event
+sent twice, so no clean item meets a duplicate on `ledgerloop_edge_saas`. A clean LedgerLoop item never uses
+`ledgerloop_edge_clean`, and a raw one never uses `ledgerloop_edge_saas`: C47 reads an item whose edge schema is a raw set's
+edge as a raw item. The ties sit at these cutoffs, each found by comparing ROW_NUMBER with RANK
+(`pipeline/tests/test_edge_pat.py`):
+
+| Ranking | Edge schema | Ties at the cutoff, and where |
+|---|---|---|
+| Products by revenue within category, January to December 2025, highest first | `voltmarkt_edge_pat` | Top 1 and top 3: TVs 50-55 inch (2) and Earbuds (16). Top 2: TVs up to 43 inch (1) and Cables (35). With no partition, products 1 and 2 tie for first |
+| Products by revenue within category, 2025, lowest first | `voltmarkt_edge_pat` | Top 2: categories 1, 2, 16 and 35 |
+| Products by units within store, 2025, highest first | `voltmarkt_edge_pat` | Top 1: stores 1, 2, 13, 15 and 24. Top 2: stores 13, 24 and 99. Top 3: all six stores |
+| Each customer's latest order | `voltmarkt_edge_pat` | Top 1: customers 3001 and 3002, whose two latest orders share a moment |
+| Each product's latest competitor price check | `voltmarkt_edge_pat` | Top 1: products 1 and 6 |
+| Campaigns by spend or by clicks within channel, 2025, highest first | `mailvora_edge_pat` | Top 1 and top 3: nonbrand search (1) and Meta (3). Top 2: brand search (2) and review sites (6) |
+| Each visitor's first session | `mailvora_edge_pat` | Top 1: visitors V9200002 and V9200003 |
+| Each user's latest activation event | `mailvora_edge_pat` | Top 1: user 2 |
+| Accounts by MRR in euros on 2025-12-31 (that day's rate) within segment, highest first | `ledgerloop_edge_saas` | Top 1: SMB and Mid-Market. Top 2: Enterprise. Top 3: SMB |
+| Each subscription's latest event, by `recorded_at` | `ledgerloop_edge_saas` | Top 1: subscription 3 (a price rise and a contraction recorded at one moment) |
+| Each email's earliest lead, by `created_at` | `ledgerloop_edge_saas` | Top 1: one email with two leads at the same moment |
+
+The ties hold over the periods named. A prompt that filters another period or group may lose them: C53 says so when it
+does, and you then rank on a row of this table or report the item ID and the tie it needs.
+
+The other plants, which every key must stay right on:
+
+| Plant | `voltmarkt_edge_pat` | `mailvora_edge_pat` | `ledgerloop_edge_saas` |
+|---|---|---|---|
+| A missing month (LAG 12 over a gap) | No order in September 2024, so LAG 12 over the months with orders is not the month a year before for January to September 2025; the calendar holds every day of 2024 and 2025 | No ad spend in June 2024 in any channel, while `budget_monthly` holds June 2024 for every paid channel; nonbrand search spends in every month but June 2024 | Account 6's subscription runs to 12 August 2024 and the next starts on 14 January 2025: MRR 0 at the August to December 2024 month ends, no invoice from August 2024, and no usage week from the week of 12 August 2024 to the week of 6 January 2025. New accounts in only 9 of the 24 months |
+| A missing week and day | No order in the week of 10 March 2025; store NL-01 orders on 3, 4, 5 and 7 March 2025, not the 6th | No spend in the week of 10 March 2025; campaign 1 spends on 3 to 9 March 2025 but not the 6th, with varying click-through rates | User 22 has app events on 1, 2 and 4 December 2025, not the 3rd |
+| Cohorts after the as-of date | Customers 3011 and 3010 first order in November and December 2025 (as of 2026-01-05); customer 3012 orders on 31 January and 1 March 2025, 29 days apart | Users 11 and 12 sign up in November and December 2025 and pay (as of 2026-01-05); user 4 signs up on 31 January 2025 and first pays on 1 March; three subscriptions end, so their later months are 0 | Accounts 13 and 14 are created in November and December 2025 (as of 2026-01-01); accounts 1 to 4 were created before 2024; account 6's months without a subscription are 0 |
+| A funnel step without the one before | None | User 6 pays and is never activated; user 7 pays two weeks before being activated; user 8 is activated and never pays | User 23 exports a report and never uploads a statement; user 6 matches a transaction before uploading a statement |
+| The clock change and 30 minutes | None | User 10 (NL): activation events at 00:45 and 01:20 UTC on 2025-10-26, 35 minutes apart, which read 02:45 then 02:20 on Amsterdam's clock; another pair exactly 30:00 apart | User 15: app events at 00:45 and 01:20 UTC on 2025-10-26, 35 minutes apart, which read 02:45 then 02:20 in Brussels; user 17: a pair exactly 30:00 apart |
+| Two overlapping promotions | Promotions 2 (10% off products 20 to 22, 7 to 20 April 2025) and 3 (20% off product 21, 18 to 21 April 2025) overlap on product 21; its line on 19 April carries the deeper one, 3. Products 20 and 21 sold in the 14 days before promotion 2. Promotion 1 has no sale | None | None |
+| Also | Store NL-13 opened on 2024-09-01, so it was not open for all of 2024 (like-for-like); guest orders; products 8, 15 and 21 change price; Audio costs rise 8% from 2025-07-01 | A refunded payment; a visitor with sessions and no signup | The SaaS plants (rules in [LedgerLoop](#ledgerloop-the-saas-company-sprint-8)): opening balances on accounts 1 to 4; contractions of subscriptions 3, 2 and 4 on renewal days; account 6's churn and reactivation (subscriptions 6 and 11); annual subscriptions 4 and 8; GBP subscriptions 2 and 12, CHF subscription 1. No duplicate event: that is `ledgerloop_edge_clean`'s |
+
+### Trap IDs at level 6 (E-209)
+
+Use only IDs the grader raises on DuckDB (R9). Each mistake of 01's LVL-06 cards has one ID (E-209). The new ones,
+`ERR-LOG-44` to `ERR-LOG-51` (Task A1, grader `8a.1`), are diagnosed by a planted match, as every ID below is.
+
+| ID | Concept | A planted query that works |
+|---|---|---|
+| `ERR-LOG-40` | `SQL-WIN-02` | `SQL-PAT-01`, `-02`: ROW_NUMBER where tied rows share a place, or RANK where exactly N rows are asked: the edge tie keeps a row too many or too few (the tie rule) |
+| `ERR-LOG-37` | `SQL-WIN-01` | `SQL-PAT-01`: one LIMIT N over every group where N per group was asked. `SQL-PAT-08`: a gap worked out with LAG over every user's events, with no PARTITION BY |
+| `ERR-LOG-07` | `SQL-AGG-02` | `SQL-PAT-01`: order lines ranked before they are added up to products. `SQL-PAT-04`: a spine at another grain than the facts |
+| `ERR-LOG-36` | `SQL-CLEAN-01` | `SQL-PAT-02`: DISTINCT over rows that differ in one column, so the copies stay; or the rows deduplicated after they are added up |
+| `ERR-LOG-41` | `SQL-WIN-03` | `SQL-PAT-02`: the winner picked by the wrong column. `event_date` where the prompt says `recorded_at` works only on `ledgerloop_raw` (Q-02-02's late records): clean LedgerLoop records every event on its `event_date`, so there the two pick the same row. On clean data use a pair checked to pick other rows on the item's data and on its edge, whatever the tie-break: on Voltmarkt, the latest price version per product by `list_price_eur` (highest first) instead of `valid_from` (890 products on `voltmarkt`, product 21 on `voltmarkt_edge_pat`); on LedgerLoop, each subscription's latest invoice by `amount_local` instead of `invoice_date` (193 subscriptions on `ledgerloop`, subscriptions 2, 3 and 4 on `ledgerloop_edge_saas`) |
+| `ERR-LOG-18` | `SQL-SORT-01` | `SQL-PAT-02`: the winner picked in the wrong direction (the earliest where the latest was asked). Its feedback says the order picks other rows |
+| `ERR-LOG-39` | `SQL-PAT-04` | `SQL-PAT-03`: LAG 12 (or LAG 1) over the months that have rows. `SQL-PAT-04`: no spine, or a spine joined with INNER JOIN. `SQL-PAT-10`: an account's MRR with no row for its months without a subscription |
+| `ERR-LOG-48` | `SQL-PAT-03` | A month that has not ended (or a shorter part of one) compared with a full month |
+| `ERR-LOG-49` | `SQL-PAT-03` | The change the wrong way round: last month minus this month, or divided by this month instead of last |
+| `ERR-LOG-21` | `SQL-BASICS-02` | A percentage at the wrong scale (0.125 where the prompt asks for 12.5) |
+| `ERR-LOG-17` | `SQL-NULL-01` | `SQL-PAT-04`: a zero-fill with no COALESCE. `SQL-PAT-05`: a missing value where an empty cell shows 0, or the reverse. `SQL-PAT-06`: an immature cell shown as 0 where the cell is a count (S8-C16) |
+| `ERR-LOG-35` | `SQL-CLEAN-01` | `SQL-PAT-06`: an immature cell shown as 0 where the cell is a rate, such as a retention share (S8-C16) |
+| `ERR-LOG-01` | `SQL-JOIN-03` | `SQL-PAT-04`: a finer spine that repeats each fact. `SQL-PAT-09`: a sale joined to both of two overlapping promotions |
+| `ERR-LOG-03` | `SQL-NULL-01` | `SQL-PAT-05`: a hard-coded value list that misses a value. `SQL-PAT-08`: each user's first event starts no session (its LAG is missing, and the comparison drops it) |
+| `ERR-LOG-04` | `SQL-AGG-01` | `SQL-PAT-06`, `-07`: rows or events counted instead of distinct users |
+| `ERR-LOG-46` | `SQL-PAT-06` | The month offset from `date_diff('day', ...)` divided by 30 (DuckDB's `/` gives a fraction, `//` a whole number): 31 January to 1 March is 2 calendar months, not 0 or 0.97 |
+| `ERR-LOG-50` | `SQL-PAT-06` | A cohort dated by another event: the first payment where the prompt names the signup, or the first event (2024-01-01 for every legacy account) where it names `created_at` |
+| `ERR-LOG-44` | `SQL-PAT-07` | A step counted for users who did not reach the step before, or reached it later where order counts |
+| `ERR-LOG-45` | `SQL-PAT-07` | A step's rate over the top of the funnel where the prompt asks for the step before, or the reverse |
+| `ERR-LOG-34` | `SQL-DATE-02` | `SQL-PAT-08`: a gap in the wrong unit (seconds compared with 30, or a `date_diff` minute count). `SQL-PAT-09`: a baseline of another length. A gap worked out between wall-clock times is not this ID: the clock-change plants catch it, and it falls to the fallback diagnosis (S8-C17) |
+| `ERR-LOG-06` | `SQL-FILTER-02` | `SQL-PAT-09`: a baseline window one day off |
+| `ERR-LOG-47` | `SQL-PAT-10` | A reactivation, or an opening balance, counted as new MRR |
+| `ERR-LOG-51` | `SQL-PAT-10` | An annual plan's year price counted as one month's MRR |
+| `ERR-LOG-00` | `SQL-BASICS-01` | `SQL-PAT-09`: revenue uplift with no margin loss, where the prompt names the measure; use it only where no ID above fits |
+
+The diagnosis order (engine error, shape, planted match, then the fallback) holds as at levels 3 to 5: a planted query
+returns the reference's number of columns, each in the same type class.
+
+### Keys and constructs at level 6 (C09, C11)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| The one level 6 construct is `pivot` (`SQL-PAT-05`: PIVOT and PIVOT_WIDER, and UNPIVOT). The other level 6 concepts have none of their own: their keys use the level 1 to 5 constructs | `content/sql/constructs.json` | C09 |
+| Lesson fading at level 6 is checked by review only: C16 finds nothing to look for, as nine concepts have no construct and no reference uses PIVOT. Stage 1's blank holds the concept's new step: `SQL-PAT-01` the rank filter per group; `SQL-PAT-02` the keep-one filter on the ranking; `SQL-PAT-03` the comparison with the other period (the LAG or the join on the month a year before); `SQL-PAT-04` the spine's LEFT JOIN with its zero-fill; `SQL-PAT-05` the conditional aggregates; `SQL-PAT-06` the month offset; `SQL-PAT-07` the per-step user counts; `SQL-PAT-08` the new-session flag and its running sum; `SQL-PAT-09` the baseline window; `SQL-PAT-10` the CASE that names each movement | The learner writes the new step, not the clause after it (design §4) | Review |
+| Every reference uses conditional aggregation (`SUM(CASE WHEN ... END)`, or `count(*) FILTER (WHERE ...)`), never PIVOT | S8-09: keys are portable first | C11 |
+| PIVOT appears only in an `other_way` of an item at `SQL-PAT-05` or later, copied from the alternatives, and always with an IN list (S8-C09). DuckDB 1.5.6 runs a PIVOT with an IN list as one SELECT, which passes with the note "This PIVOT form is DuckDB's own: other databases write it differently or have none. Conditional aggregation runs everywhere."; a PIVOT with no IN list is two statements, which the gate refuses as more than one statement. C11 does not flag PIVOT there; elsewhere it warns, and it always warns on UNPIVOT | E-209, S8-09 | C11, the gate |
+| The `SQL-PAT-05` reading tells the learner to write the IN list when using PIVOT, because one without it is refused as more than one statement, and that conditional aggregation runs on every engine | A learner who meets the refusal needs to know why | Review |
+| A key filters a ranking in a CTE or a derived table. QUALIFY in a level 6 key draws a C11 warning (its exemption is `SQL-WIN-06`'s other way only), so leave it out | Portable first (E-201) | C11 |
+| A spine comes from a table the panel shows (`calendar`, `budget_monthly`) or from `range()` or `generate_series()`, the table functions the gate allows; a key's spine covers the prompt's whole period and no more | `ERR-LOG-39`; the gate allows only those table functions | The gate, C03 |
+| A reference's result stays under 1,000 rows (C08), as at level 5 | | C08 |
+
+## LedgerLoop: the SaaS company (sprint 8)
+
+LedgerLoop is a fictional B2B accounting SaaS (05 CO-02, built in sprint 8 by Task L1: S8-01 to S8-06, E-208, E-210).
+Its clean schema `ledgerloop` and its raw schema `ledgerloop_raw` show from level 6 (`from_level` 6 in
+`data/schema-notes.json`). The data covers 2024-01-01 to 2025-12-31, and the as-of date is 1 January 2026 (2026-01-01).
+Its level 6 edge schema is `ledgerloop_edge_saas` (above), for the items and cases on `ledgerloop`; the raw-data items on
+`ledgerloop_raw` use `ledgerloop_edge_clean` (S8-C14, below).
+
+### The tables
+
+| Table | One row per | Key | Links (1:N) | What to know |
+|---|---|---|---|---|
+| `accounts` | Customer account (fictional companies) | `account_id` | | `country_code` is the ISO code (GB for the United Kingdom, where 05 writes UK); `segment` is SMB, Mid-Market or Enterprise; `created_at` is when it became a customer |
+| `plans` | Plan and price (a price change starts a new row) | `plan_id` | | Starter 290 a month to 2025-01-31, then 349; Growth 890; Scale 2,400; the AP Automation add-on 300, part of a subscription's MRR, never its plan. Enterprise has no list price: each contract sets its own |
+| `subscriptions` | Subscription (one at a time per account; an account that comes back starts a new one) | `subscription_id` | `account_id`, `plan_id` | `billing_period` monthly or annual; `currency` GBP for an account in GB, CHF in CH, EUR elsewhere; `end_date` is the day of its churn event, missing while it runs; `mrr_local` and `plan_id` are as at its end or on the as-of date |
+| `subscription_events` | Change in a subscription's MRR | `event_id` | `subscription_id`, `account_id` | The MRR source (below); `recorded_at` is when the change was recorded |
+| `invoices` | Invoice | `invoice_id` | `subscription_id`, `account_id` | In the subscription's currency: a month's MRR, twelve months' for an annual plan, or the rest of the year after an annual plan grows; `status` paid, uncollectible or open |
+| `payments` | Payment attempt (a failed invoice is tried up to three more times) | `payment_id` | `invoice_id` | `failure_reason` is missing when the attempt succeeded |
+| `fx_rates` | Day and currency | `rate_date`, `currency` | | Euros for one unit (1 for EUR), every day of the window, for EUR, GBP and CHF |
+| `users` | User of an account | `user_id` | `account_id` | `deactivated_at` is missing while the user is active |
+| `usage_weekly` | Account and week it was a customer | `account_id`, `week_start` | `account_id` | `week_start` is a Monday; `ap_module_events` is 0 for an account not using AP Automation |
+| `support_tickets` | Support ticket | `ticket_id` | `account_id` | `priority` P1 (most urgent) to P4; `resolved_at` is missing while it is open |
+| `marketing_spend_monthly` | Month and paid media channel | `month`, `channel` | | Paid media only |
+| `leads` | Lead | `lead_id` | | The paid `source` values match `marketing_spend_monthly.channel`; `email` is fictional and repeats when one contact comes back |
+| `opportunities` | Sales opportunity (at most one per lead) | `opportunity_id` | `lead_id`, `account_id` | `account_id` is set only when won, and that account is created on or after `closed_at`; `stage` is the furthest reached; `closed_at` and `is_won` are missing while it is open |
+| `cogs_monthly` | Month and cost type | `month`, `cost_type` | | The cost of delivering the service |
+| `sm_expense_monthly` | Month, channel and cost type | `month`, `channel`, `cost_type` | | Salaries, tools and partner fees; `channel` is `shared` for a cost of every channel |
+| `app_events` | In-app event of a user | `event_id` | `user_id`, `account_id` | `event_ts` is a UTC instant (TIMESTAMPTZ), October to December 2025, for a tracked sample of accounts, not every account |
+
+### Times
+
+Every clean time is Brussels local time with no time zone (TIMESTAMP), `payments.attempted_at` included, except
+`app_events.event_ts`, a UTC instant. `ledgerloop_raw.payments.attempted_at` holds the payment provider's UTC instants
+(TIMESTAMPTZ, Q-02-04). A prompt about a day or an hour says which clock; a key that needs Brussels time from
+`event_ts` uses `timezone('Europe/Brussels', event_ts)`.
+
+### MRR (S8-02, one source)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| A subscription's MRR on a date is the sum of its `subscription_events.mrr_delta_local` with `event_date` on or before that date, in its `subscriptions.currency`. It is above 0 exactly while the subscription is active: `start_date <= d` and `end_date` missing or after `d` | S8-02: one MRR source, so every key and case agrees | C03, C04, blind solver |
+| Event types: `opening` (the MRR a subscription already had on 2024-01-01, one for each subscription active that day, all on that day), `new` (a new account's first subscription), `expansion`, `contraction`, `churn` (the subscription ends) and `reactivation` (a churned account's later subscription, never `new`). Movement queries leave `opening` out: a month's opening MRR is the MRR at the end of the month before, and January 2024's is the opening events' sum | E-015, E-080; `ERR-LOG-47` | Blind solver |
+| An MRR bridge reconciles: opening MRR plus new, expansion and reactivation, less contraction and churn, is closing MRR, month by month. A bridge across currencies either stays per currency or converts every amount, opening, movements and closing alike, at one fixed date's rate (for example 2025-12-31); at month-end or event-day rates it does not add up, because the rate itself moves between months. A key's bridge holds that on the visible and the edge data | Review Focus 2; `ledgerloop_edge_saas` has GBP and CHF subscriptions | C03, review |
+| `subscriptions.mrr_local` is the MRR at the subscription's end (before its churn) or on the as-of date while it runs, and `plan_id` the plan then. No table holds a past plan: only a past MRR comes from the events (an upgrade or a downgrade shows only as an expansion or contraction amount), so no prompt asks for an account's plan on an earlier date | E-210 (a later ERRATA row corrects its phrase) | Blind solver |
+| Annual plans: the MRR is a twelfth of the year's price after the 15% discount (Starter at 290 a month is 246.50 a month when billed yearly); an annual plan renews, contracts and churns only on an anniversary of its start, and each annual invoice bills twelve months. Monthly plans renew each month on their start day | E-104; `ERR-LOG-51` | Blind solver |
+| The Starter price rise (290 to 349) applies at a subscription's first renewal from 2025-02-01, as an expansion event | 05, E-208 | Fact |
+| Amounts in GBP or CHF are never added to EUR ones unconverted. A prompt that converts states the rate rule: each amount at its own day's rate, each month at its month end's rate, or every amount at one fixed date's rate (for example 2025-12-31). A month end's rate suits a single month's total only; a bridge or any sum across months uses one fixed date's rate or stays per currency (the bridge row above). `fx_rates` holds every day | FIND-02-11, E-210 | Blind solver |
+
+### Cohorts and legacy accounts (S8-03, E-089)
+
+An account created before 2024 keeps that `created_at` and has only an `opening` event at the window's start, never
+`new`, so a cohort by `created_at` month puts it before 2024 and never in a 2024 cohort. Every cohort prompt names its
+cohort date (`created_at`, the first `new` event, the first invoice) and what counts as active in a month (MRR above 0
+at the month end, a usage week, a paid invoice). A cohort by the month of a subscription's first event puts every legacy
+account in January 2024 (`ERR-LOG-50`). Accounts created in November and December 2025 have months that end after the
+as-of date: those cells show missing unless the prompt says otherwise.
+
+### Raw data: `ledgerloop_raw`
+
+The same 16 tables, with 05's quirks Q-02-01 to Q-02-07 on the copies of `accounts`, `subscriptions`,
+`subscription_events`, `invoices` and `payments`; the other eleven are unchanged copies. The panel shows each with "This
+table may hold errors." A raw-data item follows the [Raw data](#raw-data-voltmarkt_raw-sprint-6) rules: `schema:
+"ledgerloop_raw"`, `uses_raw: true`, `edge_schema: "ledgerloop_edge_clean"`, unqualified table names, a prompt that says
+the tables may hold errors and what "correct" means, and a key whose result on `ledgerloop` differs from its result on
+`ledgerloop_raw`.
+
+| Quirk | Table | What it holds |
+|---|---|---|
+| Q-02-01 | `subscription_events` | About 210 events sent twice by webhook retries (about 7% of the events, E-210): the same `subscription_id`, `event_type`, `event_date` and `mrr_delta_local` under a new `event_id`, recorded seconds to minutes later; three in four are expansions |
+| Q-02-02 | `subscription_events` | About 6% of churn events recorded more than 30 days after their `event_date`, so reported MRR (by `recorded_at`) and restated MRR (by `event_date`) differ on raw only |
+| Q-02-03 | `subscriptions`, `invoices` | `currency` says EUR on every row, so GBP and CHF amounts sit there unconverted |
+| Q-02-04 | `payments` | `attempted_at` holds UTC instants (TIMESTAMPTZ) where clean holds Brussels local time |
+| Q-02-05 | `subscriptions` | About 4% of running subscriptions end on 9999-12-31 instead of a missing `end_date` |
+| Q-02-06 | `accounts` | `segment` spelled SMB, smb, Small Business, Mid-Market or midmarket (Enterprise keeps one spelling) |
+| Q-02-07 | `accounts` | 25 internal test accounts, in raw `accounts` only: some flagged `is_test`, some only named like a test; they hold no subscription |
+
+A dedup item on `subscription_events` (`SQL-PAT-02`) says which rows are one event (the same subscription, type, date
+and amount) and which copy it keeps, by an ID column ("Keep the row with the lowest event_id.").
+
+C47 needs a raw key's result to differ from the clean schema's, and a correct Q-02-01 dedup gives back `ledgerloop`'s
+events exactly. So a key that only returns the result after the dedup (expansion MRR per month, events per type) gives the
+same result on `ledgerloop` as on `ledgerloop_raw` and fails C47. A Q-02-01 key shows the quirk in its result: it counts or
+lists the copies, compares a total before and after removing them, or also reads another raw quirk. One worked shape: for
+each month of 2025, the number of expansion events as they arrived and the number left once the copies are removed (two rows
+are one event when the subscription, type, date and amount match; keep the row with the lowest event_id), one row per month
+with both counts. On `ledgerloop` the two counts are equal in every month, on `ledgerloop_raw` they are not, so the key finds
+the quirk.
+
+The raw-data items' edge schema, `ledgerloop_edge_clean` (S8-C14), mirrors `ledgerloop_raw` (the same 16 tables and
+columns, `payments.attempted_at` a UTC instant) and holds a case of each quirk, which every key must stay right on:
+
+| Quirk | On `ledgerloop_edge_clean` |
+|---|---|
+| Q-02-01 | Subscription 4's expansion of 2024-11-19 sent twice with the same `recorded_at`, so a rule by `recorded_at` alone ties; its expansion of 2025-06-17 and subscription 6's churn of 2025-07-10 each sent twice, the copy recorded minutes later. Each copy has an `event_id` after the last original; counted twice, the churn leaves subscription 6 below zero |
+| Q-02-02 | Subscription 3's churn of 2025-04-08 recorded on 2025-06-02, so reported and restated MRR differ at the April and May 2025 month ends |
+| Q-02-03 | Every subscription and invoice says EUR, though account 1 is in GB and account 3 in CH |
+| Q-02-04 | Payment attempts are UTC instants; one retry at 23:30 UTC on 17 March 2025 is 18 March in Brussels |
+| Q-02-05 | Subscription 5, which runs, ends on 9999-12-31 |
+| Q-02-06 | Segments spelled as raw spells them, and no other way |
+| Q-02-07 | Two test accounts after the last real one, one flagged and one only named like a test, with no subscription |
+
+Once cleaned by those rules (one row per business key, the currency from the country, a missing end date for the sentinel,
+the clean segment spellings, no test account), its rows follow LedgerLoop's rules: the events sum to each subscription's
+`mrr_local`, and the invoices bill the MRR in force.
+
+### Other facts the build settled (E-210)
+
+- LedgerLoop's counts are below 05's CO-02 table: about 1,450 accounts, 1,550 subscriptions, 3,100 events, 18,000
+  invoices, 19,500 payments and 102,000 usage weeks. A prompt never quotes 05's counts.
+- `plans` has 6 rows, and Enterprise's list price is missing.
+- `app_events` covers a tracked sample of accounts: a prompt about app use says "accounts with app events", not every
+  account.
+- Q-02-02's late churn records and Q-02-07's 25 test accounts are in `ledgerloop_raw` only.
+- A question about CAC payback states its formula (the build calibrates CAC over mean new MRR times gross margin), and
+  one about NRR or GRR states its rate rule (the truth converts start and end MRR at the 2025-12-31 rate).
+
 ## Mock items (sprint 7, Task C3)
 
 For the held-out SQL items of the recruiter mocks (design §2.1). A mock item is a write item that only
@@ -1146,7 +1420,7 @@ explanation, the model plan or the model answer.
 
 | File | Shape | Notes |
 |---|---|---|
-| `content/sql/openers/<case_id>.json` | `CaseRecord` (`schemas/case.ts`), `kind: "opener"` | Level openers only: `CASE-VOLT-L<level>` |
+| `content/sql/openers/<case_id>.json` | `CaseRecord` (`schemas/case.ts`), `kind: "opener"` | Level openers only: `CASE-VOLT-L1` to `-L5` on Voltmarkt, `CASE-LEDGER-L6` on LedgerLoop (S8-13) |
 | `content/sql/cases/<case_id>.json` | `CaseRecord`, `kind: "inbox"` or `"daily"` | Every other case |
 | `content/sql/items/<CP3 item ID>.json` | `SqlItem` | `use: "opener"` with ID `EX-OPENER-L<level>-01`, or `use: "case"` with ID `EX-CASE-<case tail>` (`EX-CASE-PRICE-01`, `EX-CASE-DAILY-L2-01`) |
 | `content/keys/sql/<CP3 item ID>.json` | `SqlKey` | The case's answer key (S4B-01): reference, alternatives, other way, planted queries |
@@ -1160,16 +1434,16 @@ inside it.
 
 | Field | What goes in |
 |---|---|
-| `case_id` | `CASE-<world>-NN`, `CASE-VOLT-L<level>` for an opener, `CASE-DAILY-L<level>-NN` for a daily case |
+| `case_id` | `CASE-<world>-NN`, `CASE-VOLT-L<level>` or `CASE-LEDGER-L6` for an opener, `CASE-DAILY-L<level>-NN` for a daily case; a dataset case is `CASE-REAL-NN` on real data and `CASE-MAVEN-NN` on Maven's fictional data |
 | `kind`, `level` | `opener`, `inbox` or `daily`. `level` is the highest curriculum level its credited concepts reach; for an opener, the level it opens, which C41 checks against `openerLevel` (`server/session-composer.ts`) |
-| `world`, `company_id`, `title` | The case's world (`PRICE` for the pricing cases), `voltmarkt`, and a short title |
+| `world`, `company_id`, `title` | The case's world (`PRICE`, `MKT`, `RETAIL`, `DQ` or `SAAS`), the company or dataset it reads (`voltmarkt`, `mailvora`, `ledgerloop`, or the dataset's schema, such as `online_retail_ii`), and a short title. `schema` names the schema its truths and CP3 run on when it is not `voltmarkt` |
 | `persona`, `brief` | The manager who asks (below), and `{ decision, deadline }`: the decision the answer feeds and when it is needed |
 | `data_needed` | The tables (and views) the answer reads, plain lower-case names, each once |
 | `expected_output` | `{ columns, grain, sort }`: `columns` are the CP3 item's output columns in order; `grain` says in words what one row stands for ("one row per product and week"); `sort` is exactly the CP3 item's `rules.sort_keys`, ending in an ID ascending (below) |
 | `checkpoints` | CP1 to CP6 in that order, as the case screen shows them (below) |
 | `model_plan`, `model_answer_template` | Below |
 | `follow_up_question` | The manager's next question: one plain question that ends with a question mark |
-| `data_source` | Every case this sprint: `{ "label": "Fictional, generated data: Voltmarkt", "real": false, "licence": null }` |
+| `data_source` | A company's case: `{ "label": "Fictional, generated data: <Voltmarkt, Mailvora or LedgerLoop>", "real": false, "licence": null }`. A dataset case copies its registry record's `label` and `real`, with the licence's name when `real` is true and `null` when it is false (`schemas/case.ts`) |
 | `difficulty` | 1 to 5; a daily case is 1 |
 | `concept_ids`, `metric_ids`, `find_ids`, `uses_raw` | Every concept the case exercises; the 04 metric and finding IDs it uses (or `[]`); `false` |
 
@@ -1180,17 +1454,31 @@ inside it.
 
 ### Manager voice (design §7 cast, §12 style guide)
 
-| Manager | Role |
-|---|---|
-| Sanne | Category manager |
-| Joost | Pricing lead |
-| Fleur | Trade marketing |
-| Marieke | CFO |
-| Yara | Retail operations |
+Each company has its own cast (design §7). A case is asked by a manager of the company it reads:
+
+| Company | Manager | Role |
+|---|---|---|
+| Voltmarkt | Sanne | Category manager |
+| Voltmarkt | Joost | Pricing lead |
+| Voltmarkt | Fleur | Trade marketing |
+| Voltmarkt | Marieke | CFO |
+| Voltmarkt | Yara | Retail operations |
+| Mailvora (S7-C11) | Aoife | Performance marketing manager |
+| Mailvora | Ciarán | Marketing director |
+| Mailvora | Siobhán | Lifecycle marketing manager |
+| Mailvora | Declan | Head of growth |
+| LedgerLoop (S8-12) | Lieselot | CFO |
+| LedgerLoop | Wannes | Head of customer success |
+| LedgerLoop | Griet | Revenue operations lead |
+| LedgerLoop | Nele | Growth marketing manager |
+| A dataset case (P42) | Noor | Analytics lead |
+| A dataset case | Ruben | Pricing analytics manager |
+
+A dataset case is asked by the hiring team of a fictional employer (P42), not by a company's manager.
 
 | Rule | Why | Checked by |
 |---|---|---|
-| `persona` is one of the five, with that role exactly. `CASE-PRICE-01` is Joost's and `CASE-PRICE-02` Sanne's (S4B-05) | One recurring cast (design §7); aydindutch reuses it | `validateCaseRecord` (daily cases), review |
+| `persona` is one of the case's own company's managers, with that role exactly (a dataset case: Noor or Ruben). `CASE-PRICE-01` is Joost's and `CASE-PRICE-02` Sanne's (S4B-05) | One recurring cast per company (design §7); aydindutch reuses it | `validateCaseRecord` (daily cases), review |
 | The brief and the CP3 prompt are the manager's message: a business question in plain words ("Which tablets sold below the competitors last month?"), not a SQL exercise. Name the manager; never use a gendered pronoun | Cases use manager wording, with CP1 as the bridge (prompt style guide, "5-6, cases") | Review, style test |
 | No em dashes. NULL is "missing" | Learner text rules | Style test, review |
 
@@ -1369,3 +1657,79 @@ C41's "has no value in the truth file" (the controller's `build:data`), and C50 
 FAIL on your case IDs or CP3 item IDs is yours. The report follows "Report format (cases)", plus per case its kind, the
 manager, the schema and the CP3 edge schema, the quirk IDs it uses (take-home), the closest shipped case by ID, and one
 line per truth key with its P16 proof (PASS or FAIL on the case schema and on the edge schema, never the value).
+
+## Cases in sprint 8 Part 2 (Tasks H1 to H3)
+
+For agents that write Part 2's inbox cases: the SaaS cases and `CASE-MKT-05` on LedgerLoop (H1), `CASE-RETAIL-01` and
+`-04` on Voltmarkt (H2), and the two dataset cases with their registry questions (H3), and for their fix rounds.
+Everything in [Cases](#cases-sprint-4b-task-b2-for-task-c1) applies. The CP3 item also follows
+[Level 6](#level-6-business-patterns-sprint-8) and, on LedgerLoop, [LedgerLoop](#ledgerloop-the-saas-company-sprint-8).
+Where this section differs, it wins. The rulings are S8-14 to S8-17 in the sprint 8 plan
+(`docs/superpowers/plans/2026-10-27-aydinlearns-sprint-8.md`) and S8-C28 to S8-C30 and S8-C35 in its record; the ERRATA rows
+are E-004, E-017, E-064, E-073, E-075, E-087, E-089, E-208, E-210, E-211 and E-212 to E-217.
+
+### Every case in this section
+
+| Rule | Why | Checked by |
+|---|---|---|
+| `kind: "inbox"`, checkpoints CP1 to CP6, `difficulty` as the tables below give it. `level` is the highest level its credits reach, at most 6 | S8-14, S8-15, S8-17 | C41 |
+| Port 04's question, re-dated into the data: LedgerLoop and Voltmarkt hold 2024 and 2025, so 04's 2026 dates move back one year. Every date in a prompt is a fixed date | E-004, E-073 | Review, blind solver |
+| The question's period also lies inside the CP3 edge schema's data, and the prompt's rules meet a planted case there (a tie at a cutoff, a month with no row, a returning account). Read the edge schema's JSON description first | A key that misses the edge data proves nothing there (Review Focus 3) | C40, review |
+| No CP2 or CP4 asks for a number a shipped case of the same company already shows. Read that company's opener, daily and inbox cases and name the closest by ID in the report. On LedgerLoop, `CASE-LEDGER-L6` shows new accounts per month and segment in 2025, so no CP2 or CP4 here is a 2025 count of new accounts or a 2025 cohort's size (F2-3-M2) | A number learnt in one case gives another away | Review |
+| Every CP2 and CP4 truth returns one number on the case's schema and on its CP3 edge schema (P16) | As in Cases | C41 |
+
+### The SaaS cases and `CASE-MKT-05` on LedgerLoop (H1; S8-14, S8-C28, S8-C29)
+
+`world` `SAAS` (`CASE-MKT-05`: `MKT`), `company_id` and `schema` `ledgerloop`, CP3's `edge_schema`
+`ledgerloop_edge_saas`, and LedgerLoop's `data_source`. S8-C29 maps 04's askers onto S8-12's cast by role:
+
+| Case | Asked by | Difficulty | 04's question, re-dated | Reads |
+|---|---|---|---|---|
+| `CASE-SAAS-01` | Lieselot, CFO | 1 | MRR, active accounts and ARPA per month of 2025, for the investor update | `mrr_monthly` |
+| `CASE-SAAS-02` | Wannes, Head of customer success | 2 | Logo churn rate per month, February to September 2025 | `mrr_monthly` |
+| `CASE-SAAS-03` | Griet, Revenue operations lead | 3 | The MRR bridge for July to September 2025: why MRR grew less than new sales | `mrr_monthly` |
+| `CASE-SAAS-04` | Lieselot, CFO | 4 | 12-month NRR and GRR per segment and for all segments, September 2024 to September 2025 | `mrr_monthly`, `accounts` |
+| `CASE-SAAS-05` | Griet, Revenue operations lead | 5 | Logo retention at months 1, 3 and 6 per cohort month, and CAC payback per cohort | `mrr_monthly`, `accounts`, `cogs_monthly`, `sm_expense_monthly`, `marketing_spend_monthly` |
+| `CASE-MKT-05` | Nele, Growth marketing manager | 5 | The lead funnel and the cost per won deal by source, for the leads created in the first half of 2025 | `leads`, `opportunities`, `marketing_spend_monthly` |
+
+| Rule | Why | Checked by |
+|---|---|---|
+| MRR comes from `mrr_monthly` (E-215): one row per account and month with the account's MRR in EUR on the month's last day, at one fixed rate; a month with no row means no MRR. Each prompt says so in a short clause | E-004 ports these cases through a view; one MRR source (S8-02) | Blind solver |
+| No period starts in January 2024 (E-215). Whether an account is new comes from `subscription_events` (`event_type` `new`, and `reactivation` for a comeback), never from its first row in `mrr_monthly`: an account that churns in January 2024 and comes back later has its first row in the comeback month (E-216). Each prompt that counts new accounts or new MRR says how new is decided | E-215, E-216 | Review, blind solver |
+| `CASE-SAAS-03`'s key reconciles: starting MRR plus new, expansion and reactivation, minus contraction and churn, equals ending MRR to the cent, on `ledgerloop` and on `ledgerloop_edge_saas`. An account that comes back after a month with no row is reactivation, never new, and so is an account whose first row is a comeback (its earlier events show it, E-216). Contraction and churn show as negative numbers, as in 04 | Review Focus 2 | Report: one line per month, PASS or FAIL, on both schemas |
+| `CASE-SAAS-04`: the base is the accounts with a row in the start month; an account with no row in the end month ends at 0; accounts that start later are left out. GRR caps each account's end MRR at its start MRR, so it is at most 100% (MET-SAAS-06, -07). The all-segments row comes last, and the prompt says how it sorts | 04's key | C15, review |
+| `CASE-SAAS-05`: the prompt names the cohort date (S8-03: `created_at`'s month; not the first month with a row, which misdates a comeback, E-216), says a returning account makes no new cohort, and says a cell after the last month of data is missing, not 0; choose the cohorts so at least one month 6 cell is missing. CAC payback states its formula (E-210: CAC / (mean new MRR x gross margin), with no churn), which spend makes up CAC (`marketing_spend_monthly` and `sm_expense_monthly`, E-087, and whether rows shared across channels count) and the revenue gross margin divides by. FIND-02-15's validation (`pipeline/ledgerloop/generate.py`) is one worked definition, per acquisition channel over the whole window; a per-cohort payback need not meet its band. Its CP2 asks something the opener does not show, such as a 2024 cohort's size or a retained count (F2-3-M2) | Review Focus 4; E-210 | Review, blind solver |
+| `CASE-MKT-05`: 04's stages become LedgerLoop's: a lead (`leads`), an opportunity (`opportunities` on `lead_id`) and a won deal (`is_won` true). The cohort is the leads created in the first half of 2025; later stages count whenever they happened, up to the last day of data, and the prompt says so. Each rate divides by the stage before it (`ERR-LOG-45`). Spend is paid media from `marketing_spend_monthly` for those months, matched on `source` = `channel` (S8-05); a source with no spend has spend 0; the cost per won deal is missing when no deal was won. The model answer says blended CAC with `sm_expense_monthly` would be higher, and that the latest leads are still maturing | 04's key; S8-05 | Review, blind solver |
+
+### `CASE-RETAIL-01` and `CASE-RETAIL-04` on Voltmarkt (H2; S8-15, S8-C30)
+
+`world` `RETAIL`, `company_id` `voltmarkt` (no `schema` field), and Voltmarkt's `data_source`.
+
+| Case | Asked by | Difficulty and level | 04's question, re-dated | Reads | CP3 edge |
+|---|---|---|---|---|---|
+| `CASE-RETAIL-01` | Sanne, Category manager | 1; credits at level 2 or below | Orders, net sales, average order value and units per order by channel for one month of 2025, for a trading call | The `sales` view: an order is 04's transaction, `units` and `net_revenue_eur` its lines | A level 1 or 2 Voltmarkt edge schema whose orders cover the month |
+| `CASE-RETAIL-04` | Yara, Retail operations | 4; level 6 (a date spine) | The store and product pairs with less than 2 weeks of cover on a fixed date, with a weekly sales rate counted over in-stock days only | `inventory_chain_daily` (E-212), `sales` or `orders` and `order_lines` | `voltmarkt_edge_pat`, which Task V1 gives the same table and a stockout day |
+
+| Rule | Why | Checked by |
+|---|---|---|
+| `inventory_chain_daily` holds each store's closing stock per product per day, for the products its notes name. A day on which a product sold nothing has no sales rows, so daily sales come from a date spine joined with LEFT JOIN and COALESCE to 0 (`SQL-PAT-04`, `ERR-LOG-39`) | FIND-01-09: zero sales on stockout days hide demand | Review, blind solver |
+| `CASE-RETAIL-04`'s window is 1 to 28 December 2024 with the cover date 29 December 2024, on `voltmarkt` and on `voltmarkt_edge_pat` (S8-C35, E-217). Stock also leaves a store without a sale (a return to the supplier, E-217), so an in-stock day is a day whose closing stock is above 0, whatever moved it. The edge's stock pairs are not consoles: neither the key nor the prompt filters by category | S8-C35, E-217 | C40, review |
+| `CASE-RETAIL-04`'s prompt states the window (28 days, fixed dates), which channel's sales count, what an in-stock day is (closing stock above 0), how the weekly rate is worked out, the cover date, and that a pair with no in-stock day or no sales is left out. Its sort ends in the store and product IDs ascending | 04's key; the sort rule in Cases | C15, review |
+| `CASE-RETAIL-01` credits only concepts at level 2 or below, so Today can offer it early | S8-15 | C41 |
+
+### `CASE-REAL-03`, `CASE-MAVEN-01` and the registry questions (H3; S8-16, S8-17)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| The registry first: at least 5 manager questions in each record's `questions` (`content/datasets/registry.json`), built from 03's questions for the dataset, each with fixed dates inside the data, and the record's `links` from 03. Then each case from one of its record's questions | E-064, E-073, E-214 | `validateDataset`, review |
+| `CASE-REAL-03` on Olist (`company_id` and `schema` `olist`, `world` `RETAIL`): repeat buyers by first-order month, a cohort question that counts customers by `customer_unique_id`, never `customer_id`, which changes per order. The prompt names which orders count (by status) and the cohort's date column. `data_source`: the record's label, `real: true`, licence `CC BY-NC-SA 4.0` | 03; E-214 | C41, review |
+| `CASE-MAVEN-01` on Maven Toy Store (`company_id` and `schema` `maven_toy_store`, `world` `MKT`): sessions to orders by channel and month, a funnel question. The prompt says what a channel is (the session's source, and what a missing source counts as) and how an order is matched to its session. `data_source`: the record's label, `real: false`, licence `null`. It is fictional data: never call it real | E-075, E-213, E-214 | C41, review |
+| Asked by Noor (Analytics lead) or Ruben (Pricing analytics manager), the hiring team of a fictional employer (P42). CP3's edge is `olist_edge` or `maven_toy_store_edge` | S8-17 | C40, review |
+| Each case is skipped by name when its schema is not built. Run `npm run check:content` with the data present, then on a scratch copy of the database without the two schemas: both cases are named as skipped and nothing fails (Task H3 Step 3) | Review Focus 5 | C41 |
+
+### Before you hand back (sprint 8 Part 2 cases)
+
+As [Before you hand back (cases)](#before-you-hand-back-cases). The report follows
+[Report format (cases)](#report-format-cases), plus per case: the asker, the schema and the CP3 edge schema, the closest
+shipped case by ID, one line per truth key with its P16 proof (PASS or FAIL on the case schema and on the edge schema,
+never the value), and for `CASE-SAAS-03` one reconciliation line per month on each schema.

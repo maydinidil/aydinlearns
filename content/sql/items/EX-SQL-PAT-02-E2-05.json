@@ -1,0 +1,150 @@
+{
+  "id": "EX-SQL-PAT-02-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "dedup",
+    "keep_one",
+    "raw_data",
+    "Q-02-01",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-PAT-02-dedup-before-after",
+  "template_params": {
+    "table": "subscription_events",
+    "period": "month of 2025",
+    "event_type": "expansion"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop_raw",
+  "edge_schema": "ledgerloop_edge_clean",
+  "uses_raw": true,
+  "prompt": "How many expansion events were there in each month of 2025, as the rows arrived and once the copies are removed? These tables may hold errors. Some subscription events arrived twice: two rows of subscription_events are copies of one event when subscription_id, event_type, event_date and mrr_delta_local all match. Keep the row with the lowest event_id. Clean nothing else. Use the expansion rows whose event_date falls in 2025; the month is the first day of the event_date's month. Return three columns, in this order: event_month, rows_arrived (the expansion rows that arrived) and events (the expansion events once copies are removed). Return one row for each month of 2025 with an expansion row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "rows_arrived",
+        "type_class": "numeric"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "rows_arrived",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number the copies of each event, the lowest event_id first, then count per month every row and the rows numbered 1.",
+    "A count with a filter beside a plain count gives both numbers in one GROUP BY."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 70,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 71,
+      "to": 255,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 256,
+      "to": 282,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 283,
+      "to": 386,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 389,
+      "to": 480,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 481,
+      "to": 494,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 495,
+      "to": 515,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The row numbered 1 in each set of copies is the event; counting all rows and only those rows per month shows how many copies arrived."
+}

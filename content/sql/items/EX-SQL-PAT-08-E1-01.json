@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-PAT-08-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "lag",
+    "app_events",
+    "clock_change"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-gap-seconds",
+  "template_params": {
+    "table": "app_events",
+    "day": "2025-10-26"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "LedgerLoop's product team is checking app events on the day the clocks went back. For each app event on 26 October 2025 (the UTC day of event_ts, a UTC instant), show how many seconds passed since the same user's previous event that day. Use only that day's events, so a user's first event of the day shows gap_seconds as missing. Measure the time between the two moments, not between clock times. Return four columns, in this order: event_id, user_id, event_ts and gap_seconds. Return one row for each event. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "user_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "event_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "gap_seconds",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per app event on 26 October 2025 (UTC)"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "user_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "event_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "gap_seconds",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the time of the same user's previous event onto each row.",
+    "Use LAG over each user's events in time order, then subtract the two moments as seconds since the epoch."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 35,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 36,
+      "to": 147,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 148,
+      "to": 163,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 164,
+      "to": 272,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "LAG in each user's time order reads the event before, and subtracting the two UTC moments gives the true gap, even across the clock change."
+}

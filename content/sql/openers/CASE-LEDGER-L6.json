@@ -1,0 +1,174 @@
+{
+  "case_id": "CASE-LEDGER-L6",
+  "kind": "opener",
+  "level": 6,
+  "world": "SAAS",
+  "company_id": "ledgerloop",
+  "schema": "ledgerloop",
+  "title": "New accounts against the year before",
+  "persona": {
+    "name": "Nele",
+    "role": "Growth marketing manager"
+  },
+  "brief": {
+    "decision": "How to spread the 2026 acquisition campaign budget over the months and the segments",
+    "deadline": "Nele's 2026 campaign planning session in the second week of January 2026"
+  },
+  "data_needed": [
+    "accounts"
+  ],
+  "expected_output": {
+    "columns": [
+      "month_start",
+      "segment",
+      "new_accounts",
+      "new_accounts_year_before",
+      "change_pct"
+    ],
+    "grain": "one row per segment and month of 2025, including a segment and month with no new account",
+    "sort": [
+      {
+        "column": "month_start",
+        "desc": false
+      },
+      {
+        "column": "segment",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "prompt": "Nele, the growth marketing manager, wants each of the three segments (SMB, Mid-Market and Enterprise) in each month of 2025, with the number of accounts created in that month next to the number created in the same month of 2024; a segment and month with no account created counts as 0. An account is new in the month of its created_at. Before you write any SQL, which plan returns that?",
+      "credits_concepts": [],
+      "item_id": "CASE-LEDGER-L6:CP1",
+      "options": [
+        {
+          "oid": "o1290ae4",
+          "text": "Count the accounts created in each segment and month, then take for each row of 2025 the count 12 rows earlier in the same segment, in month order."
+        },
+        {
+          "oid": "o2ff4ec2",
+          "text": "Count the subscriptions that started in each segment and month, left join those counts to every segment and month of 2024 and 2025 with 0 where there are none, then pair each month of 2025 with the same month of 2024."
+        },
+        {
+          "oid": "of0b1be9",
+          "text": "List every segment and month of 2024 and 2025, left join the counts of accounts created with 0 where there are none, then pair each month of 2025 with the same segment's month of 2024."
+        },
+        {
+          "oid": "o8a644e9",
+          "text": "List every segment and month of 2024 and 2025, inner join the counts of accounts created, then pair each month of 2025 with the same segment's month of 2024."
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "prompt": "Nele first wants the base of the comparison. How many accounts, all segments together, have a created_at from 2024-02-01 00:00:00 up to but not including 2024-05-01 00:00:00? created_at holds Brussels local time. Type a whole number.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-LEDGER-L6:CP2",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "accounts"
+      },
+      "truth_key": "CASE-LEDGER-L6:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Nele's question.",
+      "credits_concepts": [
+        "SQL-PAT-04",
+        "SQL-PAT-03",
+        "SQL-JOIN-05",
+        "SQL-JOIN-02",
+        "SQL-CTE-01",
+        "SQL-AGG-02"
+      ],
+      "item_id": "EX-OPENER-L6-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Nele's headline: count the accounts, all segments together, with a created_at from 2025-02-01 00:00:00 up to but not including 2025-05-01 00:00:00, and those with a created_at from 2024-02-01 00:00:00 up to but not including 2024-05-01 00:00:00; created_at holds Brussels local time. What is the change from the 2024 count to the 2025 count, as a percentage of the 2024 count: 100 times (the 2025 count minus the 2024 count) divided by the 2024 count? Type the percentage rounded to 1 decimal, with a minus sign if the count fell, for example 4.2 or -4.2.",
+      "credits_concepts": [],
+      "item_id": "CASE-LEDGER-L6:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-LEDGER-L6:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "prompt": "Nele's result shows that SMB and Mid-Market each won fewer new accounts in every month from February to April 2025 than in the same month of 2024, and the list price of the Starter plan rose on 1 February 2025. What can Nele conclude from this result alone?",
+      "credits_concepts": [],
+      "item_id": "CASE-LEDGER-L6:CP5",
+      "options": [
+        {
+          "oid": "o0331f2a",
+          "text": "The price rise drove these customers away, so taking the Starter price back to its old level will bring the monthly new accounts back to where they were in 2024."
+        },
+        {
+          "oid": "o2776714",
+          "text": "Fewer new accounts in those months means LedgerLoop's MRR fell from February to April 2025, so the revenue plan for the year was missed."
+        },
+        {
+          "oid": "oc2bff62",
+          "text": "Wins fell for three months in SMB and Mid-Market; the counts alone cannot say why, so the price rise is one cause to test, not a proven one."
+        },
+        {
+          "oid": "oa0b9eba",
+          "text": "Enterprise accounts do not buy the Starter plan, so the Enterprise rows show that the price rise changed nothing in any of the segments."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "prompt": "Write 2 to 4 sentences for Nele: the headline number, what it means for the 2026 acquisition plan, one caveat and one next step.",
+      "credits_concepts": []
+    }
+  ],
+  "model_plan": "Metric formula: new_accounts, the accounts of a segment created in a month; new_accounts_year_before, the same count for the same month of 2024; change_pct, 100 times (new_accounts minus new_accounts_year_before) divided by new_accounts_year_before, rounded to 1 decimal.\nOutput grain: one row per segment and month of 2025.\nTables and keys: accounts only; a spine of every month of 2024 and 2025 crossed with the three segments, left joined to the counts per segment and month on segment and month; then each month of 2025 joined to the same segment's month one year earlier on the spine.\nFilters: created_at from 2024-01-01 up to but not including 2026-01-01, as stored in Brussels local time; the output keeps the months of 2025.\nEdge cases: a segment and month with no account created shows 0 instead of losing its row, so no month is paired with the wrong one; an account created before 2024 counts in no month; a change against 0 is missing.\nExpected row count: 36",
+  "model_answer_template": "From February to April 2025, LedgerLoop's new accounts changed by {CP4} percent against the {CP2} it won in the same months of 2024, and SMB and Mid-Market fell in every one of those months. From May the monthly totals were above 2024's again, so a yearly total close to 2024's hides three weak months. The counts cannot say why: the Starter price rose on 1 February 2025, but campaign spend, the sales pipeline and the season may explain the dip too, and a count of new accounts says nothing about the MRR they bring. Next, compare the leads and won opportunities of February to April by source with 2024, and keep enough campaign budget for those months in the 2026 plan.",
+  "follow_up_question": "Which lead sources brought fewer won accounts from February to April 2025 than in the same months of 2024?",
+  "data_source": {
+    "label": "Fictional, generated data: LedgerLoop",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-04",
+    "SQL-JOIN-05",
+    "SQL-DATE-02",
+    "SQL-CLEAN-01",
+    "SQL-PAT-03",
+    "SQL-PAT-04"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

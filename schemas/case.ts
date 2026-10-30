@@ -67,8 +67,11 @@ export interface CaseKey {
 export interface ExpectedOutput { columns: string[]; grain: string; sort: SortKey[] }
 /** S4B-01: where the case's data comes from, as its portfolio page says. A fictional source has no licence. */
 export interface DataSource { label: string; real: boolean; licence: string | null }
-/** The case worlds (D80, S6-17): pricing, retail, marketing and, from sprint 6, data quality (the incident tickets, S6-14). */
-export const CASE_WORLDS = ['PRICE', 'RETAIL', 'MKT', 'DQ'] as const;
+/**
+ * The case worlds (D80, S6-17): pricing, retail, marketing, from sprint 6 data quality (the incident tickets, S6-14) and, from
+ * sprint 8, SaaS (LedgerLoop's opener and cases, S8-13).
+ */
+export const CASE_WORLDS = ['PRICE', 'RETAIL', 'MKT', 'DQ', 'SAAS'] as const;
 export type CaseWorld = (typeof CASE_WORLDS)[number];
 /** S6-13: the schema a case reads when its record names none. */
 export const DEFAULT_CASE_SCHEMA = 'voltmarkt';
@@ -112,6 +115,8 @@ const MAY_CREDIT_NOTHING: readonly CheckpointKind[] = ['CP1', 'CP4', 'CP5'];
 const CAST = new Map([['Sanne', 'Category manager'], ['Joost', 'Pricing lead'], ['Fleur', 'Trade marketing'], ['Marieke', 'CFO'], ['Yara', 'Retail operations']]);
 /** Design §7's other cast: Mailvora's four managers and their roles. A daily case whose schema is `mailvora` is asked by one of them (S7-C11). */
 const MAILVORA_CAST = new Map([['Aoife', 'Performance marketing manager'], ['Ciarán', 'Marketing director'], ['Siobhán', 'Lifecycle marketing manager'], ['Declan', 'Head of growth']]);
+/** S8-12 (sprint 8): LedgerLoop's four managers and their roles. A daily case whose schema starts with `ledgerloop` (ledgerloop or ledgerloop_raw) is asked by one of them (F2-3-M4). */
+const LEDGERLOOP_CAST = new Map([['Lieselot', 'CFO'], ['Wannes', 'Head of customer success'], ['Griet', 'Revenue operations lead'], ['Nele', 'Growth marketing manager']]);
 const CASE_ID = /^CASE-[A-Z0-9]+(-[A-Z0-9]+)*$/;
 /** A plain table name, as data_needed lists it. */
 const TABLE = /^[a-z_][a-z0-9_]*$/;
@@ -216,7 +221,7 @@ function checkCheckpoint(c: unknown, i: number, x: Record<string, unknown>, kind
   }
 }
 
-/** S4B-04, amended by S5A-14 (D56): a daily case must have CP3 and CP4 and may add CP1, CP2, CP5 and CP6; difficulty 1, the ID CASE-DAILY-L<level>-NN, and one of Voltmarkt's five managers (S7-C11: one of Mailvora's four when the case's schema is `mailvora`). */
+/** S4B-04, amended by S5A-14 (D56): a daily case must have CP3 and CP4 and may add CP1, CP2, CP5 and CP6; difficulty 1, the ID CASE-DAILY-L<level>-NN, and one of Voltmarkt's five managers (S7-C11: one of Mailvora's four when the case's schema is `mailvora`; F2-3-M4: one of LedgerLoop's four when it starts with `ledgerloop`). */
 function checkDaily(x: Record<string, unknown>, kinds: Set<string>, e: string[]): void {
   if (x.kind !== 'daily') {
     if (typeof x.case_id === 'string' && x.case_id.startsWith('CASE-DAILY-')) e.push('only a daily case may use a CASE-DAILY- ID');
@@ -231,6 +236,10 @@ function checkDaily(x: Record<string, unknown>, kinds: Set<string>, e: string[])
   if (x.schema === 'mailvora') {
     if (!isObj(p) || typeof p.name !== 'string' || MAILVORA_CAST.get(p.name) !== p.role) {
       e.push('a daily case on Mailvora is asked by one of its four managers in their own role: Aoife, Ciarán, Siobhán or Declan');
+    }
+  } else if (typeof x.schema === 'string' && x.schema.startsWith('ledgerloop')) {
+    if (!isObj(p) || typeof p.name !== 'string' || LEDGERLOOP_CAST.get(p.name) !== p.role) {
+      e.push('a daily case on LedgerLoop is asked by one of its four managers in their own role: Lieselot, Wannes, Griet or Nele');
     }
   } else if (!isObj(p) || typeof p.name !== 'string' || CAST.get(p.name) !== p.role) {
     e.push('a daily case is asked by one of the five managers in their own role: Sanne, Joost, Fleur, Marieke or Yara');

@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-PAT-04-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "grid",
+    "cross_join",
+    "sales",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-week-grid",
+  "template_params": {
+    "table": "sales",
+    "spine": "calendar x categories"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each parent category in categories and each week starting 3, 10, 17 or 24 March 2025 (weeks start on Monday), how many units did Voltmarkt sell? Order dates are UTC days. Every parent category has a row for every one of the four weeks, and a week with no sales in a parent category shows 0. Return three columns, in this order: parent_category, week_start and units. Return one row for each parent category and week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category",
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, pair every parent category with every Monday of the four weeks, then attach the weekly units.",
+    "The spine must be weeks, not days: a weekly total joined to seven daily rows would be counted seven times."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 544,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 545,
+      "to": 614,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 615,
+      "to": 629,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 630,
+      "to": 648,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 649,
+      "to": 740,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "A grid of parent categories and Mondays matches the weekly totals one to one, so each cell gets its units once, or 0."
+}

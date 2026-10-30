@@ -249,6 +249,30 @@ for (const [name, base, patch, message] of keyCases) {
   });
 }
 
+// F2-3-M4 (S8-12): a LedgerLoop daily case is asked by one of LedgerLoop's four managers in their own role.
+const LEDGER_MSG = 'a daily case on LedgerLoop is asked by one of its four managers in their own role: Lieselot, Wannes, Griet or Nele';
+test('a LedgerLoop daily case asked by Nele in her role validates, on the clean and the raw schema (F2-3-M4)', () => {
+  for (const schema of ['ledgerloop', 'ledgerloop_raw']) {
+    assert.deepEqual(validateCaseRecord(patched(dailyCase, (r) => { r.schema = schema; r.persona = { name: 'Nele', role: 'Growth marketing manager' }; })), [], schema);
+  }
+});
+test('every LedgerLoop manager validates in their own role and fails in another (F2-3-M4)', () => {
+  const cast: [string, string][] = [['Lieselot', 'CFO'], ['Wannes', 'Head of customer success'], ['Griet', 'Revenue operations lead'], ['Nele', 'Growth marketing manager']];
+  for (const [name, role] of cast) {
+    assert.deepEqual(validateCaseRecord(patched(dailyCase, (r) => { r.schema = 'ledgerloop'; r.persona = { name, role }; })), [], name);
+    assert.deepEqual(validateCaseRecord(patched(dailyCase, (r) => { r.schema = 'ledgerloop'; r.persona = { name, role: 'Pricing lead' }; })), [LEDGER_MSG], `${name} in another role`);
+  }
+});
+test('a LedgerLoop daily case asked by a Voltmarkt or a Mailvora manager fails (F2-3-M4)', () => {
+  for (const persona of [{ name: 'Marieke', role: 'CFO' }, { name: 'Sanne', role: 'Category manager' }, { name: 'Aoife', role: 'Performance marketing manager' }]) {
+    assert.deepEqual(validateCaseRecord(patched(dailyCase, (r) => { r.schema = 'ledgerloop'; r.persona = persona; })), [LEDGER_MSG], persona.name);
+  }
+});
+test('a Voltmarkt daily case asked by a LedgerLoop manager still fails with the Voltmarkt message (F2-3-M4)', () => {
+  assert.deepEqual(validateCaseRecord(patched(dailyCase, (r) => { r.persona = { name: 'Nele', role: 'Growth marketing manager' }; })),
+    ['a daily case is asked by one of the five managers in their own role: Sanne, Joost, Fleur, Marieke or Yara']);
+});
+
 // Ruling S7-C11: a Mailvora daily case is asked by one of Mailvora's four managers in their own role.
 test('a Mailvora daily case asked by Aoife in her role validates (S7-C11)', () => {
   const rec = patched(dailyCase, (r) => { r.schema = 'mailvora'; r.persona = { name: 'Aoife', role: 'Performance marketing manager' }; });

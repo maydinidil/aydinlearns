@@ -109,7 +109,8 @@ test('S6-24: GET /api/explore lists the companies\' built schemas, the real data
   const r = await json(get(app, '/api/explore')) as ExploreView;
   assert.equal(r.schema, 'voltmarkt', 'the explorer opens on Voltmarkt');
   assert.deepEqual(r.datasets.map((d) => [d.id, d.group]),
-    [['voltmarkt', 'company'], ['mailvora', 'company'], ['DS-RETAIL-02', 'real'], ['DS-PRICE-101', 'real'], ['CH-01', 'fictional']]);
+    [['voltmarkt', 'company'], ['mailvora', 'company'], ['DS-RETAIL-02', 'real'], ['DS-PRICE-101', 'real'], ['DS-RETAIL-01', 'real'],
+      ['CH-01', 'fictional'], ['DS-MKT-03', 'fictional']]);   // S8-16: Olist is real data, Maven Toy Store fictional
   const by = Object.fromEntries(r.datasets.map((d) => [d.id, d])) as Record<string, ExploreDataset>;
   // A company lists only the schemas the build holds: Mailvora's raw schema is not built here. With a clean schema active, its raw
   // schema may be named (S6-01): `also`.
@@ -207,6 +208,28 @@ test('S7-30: a build that holds mailvora_raw lists it as the second schema of Ma
   const notes = (store: ContentStore) => setup(store, exploreNotes()).then(({ app: a }) => json(get(a, '/api/explore')).then((v: ExploreView) => [...new Set(v.notes.map((n) => n.schema))].sort()));
   assert.ok((await notes(withMailvoraRaw.content)).includes('mailvora_raw'));
   assert.ok(!(await notes(withData.content)).includes('mailvora_raw'));
+});
+
+test('S8-23: a build that holds LedgerLoop lists it after Mailvora under the fictional companies, clean then raw, with their notes', async () => {
+  const built = [...BUILT_WITH_MAILVORA_RAW, 'ledgerloop', 'ledgerloop_raw', 'ledgerloop_edge_saas'].sort();
+  const store = await exploreContent(built);
+  made.push(...store.dirs);
+  const ledgerNotes = [note('accounts', 'ledgerloop', 6), note('accounts', 'ledgerloop_raw', 6), note('accounts', 'ledgerloop_edge_saas')];
+  const { app } = await setup(store.content, [...exploreNotes(), ...ledgerNotes]);
+  const r = await json(get(app, '/api/explore')) as ExploreView;
+  const companies = r.datasets.filter((d) => d.group === 'company');
+  assert.deepEqual(companies.map((d) => [d.id, d.name]), [['voltmarkt', 'Voltmarkt'], ['mailvora', 'Mailvora'], ['ledgerloop', 'LedgerLoop']]);
+  const ledger = companies[2]!;
+  assert.deepEqual(ledger.schemas.map((s) => [s.name, s.title, s.prepared, s.also]),
+    [['ledgerloop', 'LedgerLoop', true, 'ledgerloop_raw'], ['ledgerloop_raw', 'LedgerLoop raw data', true, null]]);
+  assert.match(ledger.label, /^Fictional, generated data: LedgerLoop/);
+  assert.deepEqual([ledger.licence, ledger.source_url, ledger.links, ledger.prep_command], [null, null, [], null]);
+  const schemas = new Set(r.notes.map((n) => n.schema));
+  assert.ok(schemas.has('ledgerloop') && schemas.has('ledgerloop_raw'), 'the notes of both schemas are served');
+  assert.ok(!schemas.has('ledgerloop_edge_saas'), 'its edge schema is never offered');
+  // A build without LedgerLoop lists no LedgerLoop card.
+  const without = await json(get((await setup(withMailvoraRaw.content, exploreNotes())).app, '/api/explore')) as ExploreView;
+  assert.ok(!without.datasets.some((d) => d.id === 'ledgerloop'));
 });
 
 test('S6-24: a schema not in the list is refused with 400 before the runner: unknown, an edge schema, not built, not prepared', async () => {

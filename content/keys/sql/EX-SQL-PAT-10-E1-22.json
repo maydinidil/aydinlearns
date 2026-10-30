@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-10-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT a.segment, ROUND(SUM(e.mrr_delta_local * f.eur_per_unit), 2) AS mrr_eur\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nJOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\nJOIN accounts a ON a.account_id = e.account_id\nWHERE e.event_date <= DATE '2025-12-31'\nGROUP BY a.segment",
+  "alternatives": [
+    "WITH acct AS (\n  -- one row per account with an event by 31 December 2025, in euros\n  SELECT e.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY e.account_id\n)\nSELECT a.segment, ROUND(SUM(c.mrr_eur), 2) AS mrr_eur\nFROM acct c\nJOIN accounts a ON a.account_id = c.account_id\nGROUP BY a.segment",
+    "SELECT a.segment, ROUND(SUM(e.mrr_delta_local * f.eur_per_unit), 2) AS mrr_eur\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nJOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\nJOIN accounts a ON a.account_id = e.account_id\nWHERE e.event_date < DATE '2026-01-01'\nGROUP BY a.segment"
+  ],
+  "other_way": {
+    "sql": "WITH acct AS (\n  -- one row per account with an event by 31 December 2025, in euros\n  SELECT e.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY e.account_id\n)\nSELECT a.segment, ROUND(SUM(c.mrr_eur), 2) AS mrr_eur\nFROM acct c\nJOIN accounts a ON a.account_id = c.account_id\nGROUP BY a.segment",
+    "tradeoff": "Working each account's balance out first lets you check it account by account before the segments are added up."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT a.segment, ROUND(SUM(e.mrr_delta_local * f.eur_per_unit), 2) AS mrr_eur FROM subscription_events e JOIN subscriptions s ON s.subscription_id = e.subscription_id JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31' JOIN accounts a ON a.account_id = e.account_id WHERE e.event_date < DATE '2025-12-31' GROUP BY a.segment"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT a.segment, ROUND(SUM(e.mrr_delta_local * f.eur_per_unit), 2) AS mrr_eur FROM subscription_events e JOIN subscriptions s ON s.subscription_id = e.subscription_id JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = e.event_date JOIN accounts a ON a.account_id = e.account_id WHERE e.event_date <= DATE '2025-12-31' GROUP BY a.segment"
+    }
+  ],
+  "hint3_partial": "SELECT a.segment, ROUND(SUM(e.mrr_delta_local * f.eur_per_unit), 2) AS mrr_eur\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nJOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\nJOIN accounts a ON a.account_id = e.account_id\nWHERE ___\nGROUP BY a.segment",
+  "solver": {
+    "prompt_hash": "01fa1a840a2d52be",
+    "schema_version": "cd69b2dffbc0",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH ev AS (SELECT e.account_id, a.segment, e.event_type, e.event_date, s.currency, e.mrr_delta_local AS d, e.mrr_delta_local * f.eur_per_unit AS eur\n  FROM subscription_events e JOIN subscriptions s ON s.subscription_id = e.subscription_id JOIN accounts a ON a.account_id = e.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31') SELECT segment, ROUND(SUM(eur), 2) AS mrr_eur FROM ev WHERE event_date <= DATE '2025-12-31' GROUP BY segment\n",
+    "at": "2026-10-28T14:57:21.914Z"
+  }
+}

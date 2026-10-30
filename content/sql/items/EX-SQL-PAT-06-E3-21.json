@@ -1,0 +1,194 @@
+{
+  "id": "EX-SQL-PAT-06-E3-21",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "logo_retention",
+    "immature_cells",
+    "wide_table",
+    "mrr"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-wide-logo-retention",
+  "template_params": {
+    "cohort_date": "created_at",
+    "activity": "MRR above 0 at month end",
+    "cohorts": "2025-10 to 2025-12",
+    "months": "m0-m3"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Show the logo retention of the accounts created from October to December 2025, one row per cohort month that has accounts. An account's cohort month is the month of its created_at (Brussels local time). An account is active at a month's end when the sum of its subscription events' mrr_delta_local with event_date on or before that day is above 0. Month 0 is the cohort month itself, month 1 the next calendar month, and so on to month 3. Each cell is the cohort's active accounts at that month's end divided by all its accounts, as a fraction between 0 and 1. The as-of date is 1 January 2026: a month that ends after it is not known yet and shows missing, while a month that has ended with no active account shows 0. Return five columns, in this order: cohort_month (the first day of the month), m0, m1, m2 and m3. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "m0",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m1",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m2",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m3",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "m0",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "m1",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "m2",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "m3",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give every cohort account its MRR at the end of each month 0 to 3 from the subscription events.",
+    "Each column divides the accounts above 0 at one offset by all the cohort's accounts at that offset; leave a month that starts on or after 1 January 2026 missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 78,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 81,
+      "to": 161,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 164,
+      "to": 177,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 180,
+      "to": 280,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 284,
+      "to": 386,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 389,
+      "to": 484,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 487,
+      "to": 688,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 691,
+      "to": 744,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 747,
+      "to": 1512,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1513,
+      "to": 1521,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1522,
+      "to": 1543,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each account gets its MRR at every month end from its own events, each column averages one offset, and months after the as-of date stay missing."
+}

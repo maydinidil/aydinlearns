@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-03-E1-42",
+  "item_version": 1,
+  "value": 3,
+  "explanation": "The inner join keeps a 2025 month only when the same month of 2024 also had spend. Of YouTube's seven 2025 months, only January, September and November have a 2024 match, so 3 rows come back; the other four months drop out instead of showing a missing value, which a LEFT JOIN would keep.",
+  "solver": {
+    "prompt_hash": "ea82237a3787c1d2",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "3",
+    "at": "2026-10-28T14:57:24.757Z"
+  }
+}

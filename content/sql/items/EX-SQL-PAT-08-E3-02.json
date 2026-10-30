@@ -1,0 +1,198 @@
+{
+  "id": "EX-SQL-PAT-08-E3-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "running_sum",
+    "lead",
+    "app_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-WIN-04",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-break-between-sessions",
+  "template_params": {
+    "table": "app_events",
+    "group": "account"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How long do users stay away between app sessions? Use every app event in the data. A user's first app event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant, never between clock times. A break is the time from the last event of one session to the first event of the same user's next session. For each account, give the average of all the breaks of its users (each break counts once, not each user's average), in hours, rounded to 2 decimals with ROUND; a user's last session has no break after it, and an account whose users never had a second session shows avg_break_hours as missing. Return two columns, in this order: account_id and avg_break_hours. Return one row for each account with app events. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "account_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_break_hours",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "account_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_break_hours",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "account_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, turn the events into sessions with their first and last moments, then read each user's next session start.",
+    "LEAD over each user's sessions in number order gives the next start; the last session's break is missing and AVG skips it."
+  ],
+  "subgoals": [
+    {
+      "from": 42,
+      "to": 91,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 92,
+      "to": 176,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 177,
+      "to": 194,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 238,
+      "to": 287,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 288,
+      "to": 396,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 397,
+      "to": 408,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 453,
+      "to": 492,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 493,
+      "to": 632,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 633,
+      "to": 647,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 690,
+      "to": 792,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 793,
+      "to": 808,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 809,
+      "to": 851,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 892,
+      "to": 912,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 913,
+      "to": 1029,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1030,
+      "to": 1045,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1048,
+      "to": 1121,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1122,
+      "to": 1133,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1134,
+      "to": 1153,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each break runs from a session's last event to the next session's first, and AVG skips the missing break after a user's last session."
+}

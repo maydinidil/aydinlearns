@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-06-E1-31",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  AND date_trunc('month', e.event_ts) = date_trunc('month', u.signup_ts)\nGROUP BY CAST(date_trunc('month', u.signup_ts) AS DATE)",
+  "alternatives": [
+    "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month, COUNT(*) AS active_users\nFROM signups u\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  AND EXISTS (SELECT 1 FROM activation_events e\n              WHERE e.user_id = u.user_id\n                AND date_trunc('month', e.event_ts) = date_trunc('month', u.signup_ts))\nGROUP BY 1",
+    "WITH user_months AS (  -- one row per user and month with an activation event\n  SELECT DISTINCT user_id, CAST(date_trunc('month', event_ts) AS DATE) AS event_month\n  FROM activation_events\n)\nSELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month, COUNT(*) AS active_users\nFROM signups u\nJOIN user_months m ON m.user_id = u.user_id AND m.event_month = CAST(date_trunc('month', u.signup_ts) AS DATE)\nWHERE date_part('year', u.signup_ts) = 2025\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month, COUNT(*) AS active_users\nFROM signups u\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  AND EXISTS (SELECT 1 FROM activation_events e\n              WHERE e.user_id = u.user_id\n                AND date_trunc('month', e.event_ts) = date_trunc('month', u.signup_ts))\nGROUP BY 1",
+    "tradeoff": "EXISTS asks once per user whether an event happened, so no user can be counted twice, though it hides the events themselves."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       COUNT(*) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  AND date_trunc('month', e.event_ts) = date_trunc('month', u.signup_ts)\nGROUP BY CAST(date_trunc('month', u.signup_ts) AS DATE)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-46",
+      "sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  AND date_diff('day', u.signup_ts, e.event_ts) // 30 = 0\nGROUP BY CAST(date_trunc('month', u.signup_ts) AS DATE)"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       COUNT(___) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  AND date_trunc('month', e.event_ts) = date_trunc('month', u.signup_ts)\nGROUP BY CAST(date_trunc('month', u.signup_ts) AS DATE)",
+  "solver": {
+    "prompt_hash": "20e19b780d6a4192",
+    "schema_version": "40925758ae44",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT CAST(date_trunc('month', timezone('UTC', u.signup_ts)) AS DATE) AS cohort_month,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  AND date_trunc('month', timezone('UTC', e.event_ts)) = date_trunc('month', timezone('UTC', u.signup_ts))\nGROUP BY CAST(date_trunc('month', timezone('UTC', u.signup_ts)) AS DATE)\n",
+    "at": "2026-10-28T14:57:07.131Z"
+  }
+}

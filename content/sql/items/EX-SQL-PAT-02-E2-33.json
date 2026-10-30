@@ -1,0 +1,154 @@
+{
+  "id": "EX-SQL-PAT-02-E2-33",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "wrong_direction",
+    "fix",
+    "competitor_prices"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-fix-wrong-winner-direction",
+  "template_params": {
+    "table": "competitor_prices",
+    "key": "product",
+    "scope": "Earbuds"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what is the latest competitor price check of each product in the Earbuds category? observed_ts holds UTC time. Keep exactly one check per product. When two checks of a product tie on observed_ts, the one whose competitor comes first alphabetically is kept. Return four columns, in this order: product_id, competitor, observed_ts and price_eur, from that check. Return one row for each Earbuds product with a competitor check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the direction of the numbering: the question asks for each product's latest check.",
+    "The row numbered 1 is the first in the window's order, so the order must put the most recent check first."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 71,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 72,
+      "to": 246,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 247,
+      "to": 377,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 378,
+      "to": 413,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 416,
+      "to": 469,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 470,
+      "to": 481,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 482,
+      "to": 494,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH ranked AS (  -- one row per competitor check of an Earbuds product\n  SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur,\n         ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts, cp.competitor) AS rn\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.category_name = 'Earbuds'\n)\nSELECT product_id, competitor, observed_ts, price_eur\nFROM ranked\nWHERE rn = 1",
+  "time_target_ms": 240000,
+  "why_this_works": "Sorting each product's checks by observed_ts with DESC puts the latest first, so rn = 1 keeps the most recent check; ascending kept the first one.",
+  "starter_error_id": "ERR-LOG-18"
+}

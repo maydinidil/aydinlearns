@@ -3,6 +3,11 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
+## PR #57: sprint 8 Part 1, SQL level 6 and LedgerLoop, release 0.8.0 (reviewed 2026-10-29, merged 2026-10-29)
+
+Codex completed its review of `17733e03` with no line comments; its summary comment reports no findings (checked through
+the API on 2026-10-29: 0 review comments, 0 reviews). No findings; nothing to log.
+
 ## PR #55: sprint 7d, second fix and polish, release 0.7.3 (reviewed 2026-10-23)
 
 Codex left one line comment (P2) on `d2252492`, plus its summary comment. It is confirmed. Y3's implementer had named the

@@ -162,6 +162,14 @@ test('S6-17: a case funnel takes its theme from the world, and a Mailvora exerci
   assert.equal(sqlFunnel('E1', 'somedataset').case_theme, 'pricing');
 });
 
+test('sprint 8 (owner, 2026-10-28): a SAAS case and a LedgerLoop exercise, clean, raw or edge, have the theme saas', () => {
+  assert.equal(caseFunnel('SAAS', 'level 6').case_theme, 'saas');
+  assert.equal(sqlFunnel('E2', 'ledgerloop').case_theme, 'saas');
+  for (const schema of ['ledgerloop', 'ledgerloop_raw', 'ledgerloop_edge_saas', 'ledgerloop_edge_clean', 'ledgerloop_edge_cases']) {
+    assert.equal(sqlFunnel('E2', companyOf(schema)).case_theme, 'saas', schema);
+  }
+});
+
 test('K2 (S6-32, D80): an SQL item follows its case when it is a case or opener item, else its company; a lesson stays pricing', () => {
   const rec = (case_id: string, world: string, ...item_ids: string[]) => ({ case_id, world, checkpoints: item_ids.map((item_id) => ({ item_id })) });
   const content = { cases: () => [rec('CASE-DQ-01', 'DQ', 'EX-CASE-DQ-01'), rec('CASE-RETAIL-03', 'RETAIL', 'EX-CASE-RETAIL-03'), rec('CASE-VOLT-L4', 'MKT', 'EX-OPENER-L4-01')] };

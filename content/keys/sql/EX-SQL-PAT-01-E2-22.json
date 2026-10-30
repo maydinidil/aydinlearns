@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-01-E2-22",
+  "item_version": 1,
+  "reference_sql": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n),\nranked AS (  -- one row per account\n  SELECT segment, account_id, mrr_eur,\n         ROW_NUMBER() OVER (PARTITION BY segment ORDER BY mrr_eur DESC, account_id) AS rn\n  FROM account_mrr\n)\nSELECT segment, account_id, mrr_eur\nFROM ranked\nWHERE rn <= 3",
+  "alternatives": [
+    "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n)\nSELECT am.segment, am.account_id, am.mrr_eur\nFROM account_mrr am\nWHERE (SELECT COUNT(*) FROM account_mrr am2\n       WHERE am2.segment = am.segment\n         AND (am2.mrr_eur > am.mrr_eur OR (am2.mrr_eur = am.mrr_eur AND am2.account_id < am.account_id))) < 3",
+    "SELECT t.segment, t.account_id, t.mrr_eur\nFROM (\n  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur,\n         ROW_NUMBER() OVER (PARTITION BY a.segment ORDER BY SUM(e.mrr_delta_local * f.eur_per_unit) DESC, a.account_id) AS rn\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n) AS t\nWHERE t.rn <= 3"
+  ],
+  "other_way": {
+    "sql": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n)\nSELECT am.segment, am.account_id, am.mrr_eur\nFROM account_mrr am\nWHERE (SELECT COUNT(*) FROM account_mrr am2\n       WHERE am2.segment = am.segment\n         AND (am2.mrr_eur > am.mrr_eur OR (am2.mrr_eur = am.mrr_eur AND am2.account_id < am.account_id))) < 3",
+    "tradeoff": "Counting the accounts ahead of each one in its segment keeps the same 3 with no window, at the cost of a longer condition."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n), ranked AS (SELECT segment, account_id, mrr_eur, RANK() OVER (PARTITION BY segment ORDER BY mrr_eur DESC) AS rn FROM account_mrr) SELECT segment, account_id, mrr_eur FROM ranked WHERE rn <= 3"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n) SELECT segment, account_id, mrr_eur FROM account_mrr ORDER BY mrr_eur DESC, account_id LIMIT 3"
+    }
+  ],
+  "hint3_partial": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n),\nranked AS (  -- one row per account\n  SELECT segment, account_id, mrr_eur,\n         ROW_NUMBER() OVER (PARTITION BY ___ ORDER BY ___) AS rn\n  FROM account_mrr\n)\nSELECT segment, account_id, mrr_eur\nFROM ranked\nWHERE rn <= 3",
+  "solver": {
+    "prompt_hash": "9ae64401fe8c182e",
+    "schema_version": "cd69b2dffbc0",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH m AS (SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur FROM subscription_events e JOIN subscriptions s ON s.subscription_id = e.subscription_id JOIN accounts a ON a.account_id = s.account_id JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31' WHERE e.event_date <= DATE '2025-12-31' GROUP BY a.segment, a.account_id),\nr AS (SELECT segment, account_id, mrr_eur, ROW_NUMBER() OVER (PARTITION BY segment ORDER BY mrr_eur DESC, account_id) AS mrr_place FROM m)\nSELECT segment, account_id, mrr_eur FROM r WHERE mrr_place <= 3\n",
+    "at": "2026-10-28T14:56:59.593Z"
+  }
+}

@@ -54,6 +54,9 @@ export const DETECTORS: Record<string, RegExp> = {
   qualify: /\bqualify\b/i,
   ntile_first_value: /\b(ntile|first_value|last_value|nth_value|percent_rank|cume_dist)\s*\(/i,
   percentile: /\b(median|quantile|quantile_cont|quantile_disc|percentile_cont|percentile_disc)\s*\(/i,
+  // Sprint 8 Task A1 (S8-09): DuckDB's PIVOT and UNPIVOT, with their other names PIVOT_WIDER and PIVOT_LONGER, in the statement and the
+  // FROM ... PIVOT (...) forms. A whole word only, so a name such as pivot_point is not one.
+  pivot: /\b(un)?pivot(_wider|_longer)?\b/i,
 };
 
 /**

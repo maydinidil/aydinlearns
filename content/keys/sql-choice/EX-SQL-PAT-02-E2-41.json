@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-02-E2-41",
+  "item_version": 1,
+  "correct_oid": "o3141ed9",
+  "explanation": "Numbering each email's leads from the earliest, with lead_id splitting a tie, and keeping number 1 leaves one lead per email, so each contact counts once, in the segment of its first lead. DISTINCT over email and segment keeps an email once for every segment its leads name, so a contact can count twice. RANK keeps both leads when two share the earliest created_at, and the descending order keeps the latest lead instead of the earliest.",
+  "solver": {
+    "prompt_hash": "af13af6562535ade",
+    "grader_version": "choice.3",
+    "chosen": "o3141ed9",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.752Z"
+  }
+}

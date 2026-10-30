@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-06-E2-32",
+  "item_version": 1,
+  "reference_sql": "WITH cohort AS (  -- one row per account created in 2024\n  SELECT account_id, CAST(date_trunc('month', created_at) AS DATE) AS cohort_month\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00' AND created_at < TIMESTAMP '2025-01-01 00:00:00'\n),\nmrr_end AS (  -- one row per cohort account, with its MRR on 31 December 2025\n  SELECT c.account_id, c.cohort_month, SUM(e.mrr_delta_local) AS mrr\n  FROM cohort c\n  JOIN subscription_events e ON e.account_id = c.account_id\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY c.account_id, c.cohort_month\n)\nSELECT cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(*) FILTER (WHERE mrr > 0) AS paying_at_end\nFROM mrr_end\nGROUP BY cohort_month",
+  "alternatives": [
+    "SELECT CAST(date_trunc('month', a.created_at) AS DATE) AS cohort_month,\n       COUNT(*) AS cohort_accounts,\n       SUM(CASE WHEN m.mrr > 0 THEN 1 ELSE 0 END) AS paying_at_end\nFROM accounts a\nJOIN (  -- one row per account, with its MRR on 31 December 2025\n  SELECT account_id, SUM(mrr_delta_local) AS mrr\n  FROM subscription_events\n  WHERE event_date <= DATE '2025-12-31'\n  GROUP BY account_id\n) AS m ON m.account_id = a.account_id\nWHERE date_part('year', a.created_at) = 2024\nGROUP BY 1",
+    "SELECT CAST(date_trunc('month', a.created_at) AS DATE) AS cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(*) FILTER (WHERE (SELECT SUM(e.mrr_delta_local) FROM subscription_events e\n                               WHERE e.account_id = a.account_id AND e.event_date <= DATE '2025-12-31') > 0) AS paying_at_end\nFROM accounts a\nWHERE a.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND a.created_at < TIMESTAMP '2025-01-01 00:00:00'\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(date_trunc('month', a.created_at) AS DATE) AS cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(*) FILTER (WHERE (SELECT SUM(e.mrr_delta_local) FROM subscription_events e\n                               WHERE e.account_id = a.account_id AND e.event_date <= DATE '2025-12-31') > 0) AS paying_at_end\nFROM accounts a\nWHERE a.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND a.created_at < TIMESTAMP '2025-01-01 00:00:00'\nGROUP BY 1",
+    "tradeoff": "A subquery inside FILTER sums one account's events where it is needed, with no extra step, but it is harder to read at a glance."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-50",
+      "sql": "WITH cohort AS (  -- one row per account created in 2024\n  SELECT account_id, CAST(date_trunc('month', MIN(event_date)) AS DATE) AS cohort_month\n  FROM subscription_events\n  GROUP BY account_id\n  HAVING MIN(event_date) < DATE '2025-01-01'\n),\nmrr_end AS (  -- one row per cohort account, with its MRR on 31 December 2025\n  SELECT c.account_id, c.cohort_month, SUM(e.mrr_delta_local) AS mrr\n  FROM cohort c\n  JOIN subscription_events e ON e.account_id = c.account_id\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY c.account_id, c.cohort_month\n)\nSELECT cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(*) FILTER (WHERE mrr > 0) AS paying_at_end\nFROM mrr_end\nGROUP BY cohort_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH cohort AS (SELECT a.account_id, CAST(date_trunc('month', a.created_at) AS DATE) AS cohort_month FROM accounts a JOIN subscriptions s ON s.account_id = a.account_id WHERE a.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND a.created_at < TIMESTAMP '2025-01-01 00:00:00'), mrr_end AS (SELECT account_id, SUM(mrr_delta_local) AS mrr FROM subscription_events WHERE event_date <= DATE '2025-12-31' GROUP BY account_id) SELECT c.cohort_month, COUNT(*) AS cohort_accounts, COUNT(*) FILTER (WHERE m.mrr > 0) AS paying_at_end FROM cohort c JOIN mrr_end m ON m.account_id = c.account_id GROUP BY c.cohort_month"
+    }
+  ],
+  "hint3_partial": "WITH cohort AS (  -- one row per account created in 2024\n  SELECT account_id, CAST(date_trunc('month', created_at) AS DATE) AS cohort_month\n  FROM accounts\n  WHERE ___\n),\nmrr_end AS (  -- one row per cohort account, with its MRR on 31 December 2025\n  SELECT c.account_id, c.cohort_month, SUM(e.mrr_delta_local) AS mrr\n  FROM cohort c\n  JOIN subscription_events e ON e.account_id = c.account_id\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY c.account_id, c.cohort_month\n)\nSELECT cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(*) FILTER (WHERE mrr > 0) AS paying_at_end\nFROM mrr_end\nGROUP BY cohort_month",
+  "solver": {
+    "prompt_hash": "35ee978b7bc072be",
+    "schema_version": "e8f95a91a2bb",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH cohort AS (\n  SELECT account_id, CAST(date_trunc('month', created_at) AS DATE) AS cohort_month\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00' AND created_at < TIMESTAMP '2025-01-01 00:00:00'\n),\nmrr_end AS (\n  SELECT c.account_id, c.cohort_month, COALESCE(SUM(e.mrr_delta_local), 0) AS mrr\n  FROM cohort c\n  LEFT JOIN subscription_events e ON e.account_id = c.account_id AND e.event_date <= DATE '2025-12-31'\n  GROUP BY c.account_id, c.cohort_month\n)\nSELECT cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(*) FILTER (WHERE mrr > 0) AS paying_at_end\nFROM mrr_end\nGROUP BY cohort_month\n",
+    "at": "2026-10-28T14:57:07.612Z"
+  }
+}

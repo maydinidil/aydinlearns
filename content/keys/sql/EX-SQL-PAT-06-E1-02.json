@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-06-E1-02",
+  "item_version": 1,
+  "reference_sql": "WITH first_pay AS (  -- one row per user who has paid\n  SELECT s.user_id, MIN(p.paid_at) AS first_paid_at\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  GROUP BY s.user_id\n)\nSELECT date_diff('month', date_trunc('month', u.signup_ts), date_trunc('month', f.first_paid_at)) AS months_to_first_payment,\n       COUNT(*) AS users\nFROM signups u\nJOIN first_pay f ON f.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY months_to_first_payment",
+  "alternatives": [
+    "SELECT date_diff('month', date_trunc('month', signup_ts), date_trunc('month', first_paid_at)) AS months_to_first_payment, COUNT(*) AS users\nFROM (  -- one row per 2025 user who has paid\n  SELECT u.user_id, u.signup_ts, MIN(p.paid_at) AS first_paid_at\n  FROM signups u\n  JOIN subscriptions s ON s.user_id = u.user_id\n  JOIN payments p ON p.subscription_id = s.subscription_id\n  WHERE date_part('year', u.signup_ts) = 2025\n  GROUP BY u.user_id, u.signup_ts\n) AS f\nGROUP BY 1",
+    "WITH first_pay AS (  -- one row per user who has paid\n  SELECT s.user_id, MIN(p.paid_at) AS first_paid_at\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  GROUP BY s.user_id\n)\nSELECT (year(f.first_paid_at) * 12 + month(f.first_paid_at)) - (year(u.signup_ts) * 12 + month(u.signup_ts)) AS months_to_first_payment,\n       COUNT(*) AS users\nFROM signups u\nJOIN first_pay f ON f.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH first_pay AS (  -- one row per user who has paid\n  SELECT s.user_id, MIN(p.paid_at) AS first_paid_at\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  GROUP BY s.user_id\n)\nSELECT (year(f.first_paid_at) * 12 + month(f.first_paid_at)) - (year(u.signup_ts) * 12 + month(u.signup_ts)) AS months_to_first_payment,\n       COUNT(*) AS users\nFROM signups u\nJOIN first_pay f ON f.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY 1",
+    "tradeoff": "Year times 12 plus month gives the same count on any engine, though date_diff on month starts says what it means more plainly."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-46",
+      "sql": "WITH first_pay AS (SELECT s.user_id, MIN(p.paid_at) AS first_paid_at FROM payments p JOIN subscriptions s ON s.subscription_id = p.subscription_id GROUP BY s.user_id) SELECT date_diff('day', u.signup_ts, f.first_paid_at) // 30 AS months_to_first_payment, COUNT(*) AS users FROM signups u JOIN first_pay f ON f.user_id = u.user_id WHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH first_pay AS (SELECT s.user_id, s.subscription_id, MIN(p.paid_at) AS first_paid_at FROM payments p JOIN subscriptions s ON s.subscription_id = p.subscription_id GROUP BY s.user_id, s.subscription_id) SELECT date_diff('month', date_trunc('month', u.signup_ts), date_trunc('month', f.first_paid_at)) AS months_to_first_payment, COUNT(*) AS users FROM signups u JOIN first_pay f ON f.user_id = u.user_id WHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "WITH first_pay AS (  -- one row per user who has paid\n  SELECT s.user_id, MIN(p.paid_at) AS first_paid_at\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  GROUP BY s.user_id\n)\nSELECT date_diff('month', ___, ___) AS months_to_first_payment,\n       COUNT(*) AS users\nFROM signups u\nJOIN first_pay f ON f.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY months_to_first_payment",
+  "solver": {
+    "prompt_hash": "b31e9349accaea63",
+    "schema_version": "b34b14f5dee5",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH u AS (\n  SELECT user_id, timezone('UTC', signup_ts) AS s FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n),\nfp AS (\n  SELECT s.user_id, timezone('UTC', MIN(p.paid_at)) AS f\n  FROM subscriptions s JOIN payments p ON p.subscription_id = s.subscription_id\n  GROUP BY s.user_id\n)\nSELECT date_diff('month', date_trunc('month', u.s), date_trunc('month', fp.f)) AS months_to_first_payment, COUNT(*) AS users\nFROM u JOIN fp ON fp.user_id = u.user_id\nGROUP BY 1\n",
+    "at": "2026-10-28T14:57:06.731Z"
+  }
+}

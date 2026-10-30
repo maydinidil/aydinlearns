@@ -20,7 +20,7 @@
           "why": "order_lines has one row per line, so the lines of one order are added up together."
         },
         {
-          "text": "GROUP BY order_id)",
+          "text": "GROUP BY order_id)  -- one row per order",
           "subgoal": "output_grain",
           "why": "The step has one row per order; the bracket closes the step."
         },
@@ -56,7 +56,7 @@
           "why": "Guest orders have no customer, so they leave before the grouping."
         },
         {
-          "text": "GROUP BY customer_id)",
+          "text": "GROUP BY customer_id)  -- one row per known customer",
           "subgoal": "output_grain",
           "why": "The step has one row per customer."
         },

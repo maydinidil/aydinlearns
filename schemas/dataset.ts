@@ -1,6 +1,7 @@
 // schemas/dataset.ts: the dataset registry, content/datasets/registry.json (sprint 6 Part 2, Task G2; S6-21, E-062, E-063, E-064,
-// E-069, E-073, E-075, E-076, E-078, E-197, ruling P35). One record per dataset the owner prepares from their own download
-// (S6-22, pipeline/datasets/). Data files are never committed: a record holds names, schemas, file names, fingerprints and links.
+// E-069, E-073, E-075, E-076, E-078, E-197, ruling P35; sprint 8 Part 2, Task D1: S8-16, E-213). One record per dataset the owner
+// prepares from their own download (S6-22, pipeline/datasets/). Data files are never committed: a record holds names, schemas, file
+// names, fingerprints and links.
 
 /** Where the registry sits under the content root. */
 export const REGISTRY_FILE = 'datasets/registry.json';
@@ -8,10 +9,16 @@ export const REGISTRY_FILE = 'datasets/registry.json';
 /** The licence the data is under: its name ("CC BY 4.0", or "No licence stated"), its page (null when it has none) and its terms. */
 export interface DatasetLicence { name: string; url: string | null; terms: string }
 /**
- * A file the prep reads from the download folder: its name and SHA-256 fingerprint (S6-22: a difference warns and is recorded), the
- * workbook's path inside a zip (`inside`), the schema it loads when the record has more than one, and where to get it (`url`).
+ * S8-16: one CSV file inside a downloaded zip, and the table it loads. The prep finds it by its file name wherever it sits in the zip
+ * (at the top or in a folder), so `name` holds no folder; a zip that lacks it, or holds it twice, is named with its dataset.
  */
-export interface DatasetFile { name: string; sha256: string; inside?: string; schema?: string; url?: string }
+export interface DatasetMember { name: string; table: string }
+/**
+ * A file the prep reads from the download folder: its name and SHA-256 fingerprint (S6-22: a difference warns and is recorded), the
+ * workbook's path inside a zip (`inside`) or the CSV files a zip holds (`members`, S8-16), the schema it loads when the record has more
+ * than one, and where to get it (`url`). The prep also finds a browser's copy of the name, such as `archive (2).zip`.
+ */
+export interface DatasetFile { name: string; sha256: string; inside?: string; members?: DatasetMember[]; schema?: string; url?: string }
 /** A schema the prep loads into data/course.duckdb: its name, a title, and its own page (each 8 Week SQL Challenge case study). */
 export interface DatasetSchema { name: string; title: string; page?: string }
 /** E-064: one of our own manager questions on the dataset, `<id>-Q<n>`, anchored to fixed dates (E-073). */
@@ -76,6 +83,24 @@ function textProblems(at: string, text: string, e: string[]): void {
   if (/sqlite/i.test(text)) e.push(`${at} names SQLite: the data is prepared in DuckDB only (E-078)`);
 }
 
+/** S8-16: a zip's members, each a plain file name (found anywhere in the zip, so no folder) and the table it loads, none twice. */
+function checkMembers(f: Record<string, unknown>, at: string, e: string[]): void {
+  if (f.inside !== undefined) e.push(`${at} names either the workbook inside the zip (inside) or the files it holds (members), not both`);
+  if (!Array.isArray(f.members) || f.members.length === 0) { e.push(`${at}.members must list the files the zip holds that the prep reads`); return; }
+  const names = new Set<string>();
+  const tables = new Set<string>();
+  f.members.forEach((m: unknown, k) => {
+    const mat = `${at}.members[${k}]`;
+    if (!isObj(m)) { e.push(`${mat} needs a name and a table`); return; }
+    if (!isStr(m.name) || !FILE_NAME.test(m.name) || m.name.includes('..')) e.push(`${mat}.name must be a plain file name: the prep finds it by name anywhere in the zip`);
+    else if (names.has(m.name.toLowerCase())) e.push(`${mat}.name repeats ${m.name}`);   // Windows names ignore case
+    else names.add(m.name.toLowerCase());
+    if (typeof m.table !== 'string' || !SCHEMA.test(m.table)) e.push(`${mat}.table must be a plain table name such as orders`);
+    else if (tables.has(m.table)) e.push(`${mat}.table repeats ${m.table}`);
+    else tables.add(m.table);
+  });
+}
+
 function checkFiles(x: Record<string, unknown>, schemaNames: string[], e: string[]): void {
   if (!Array.isArray(x.files) || x.files.length === 0) { e.push('files must list at least one file'); return; }
   const many = schemaNames.length > 1;
@@ -89,6 +114,7 @@ function checkFiles(x: Record<string, unknown>, schemaNames: string[], e: string
     if (f.inside !== undefined && (!isStr(f.inside) || f.inside.startsWith('/') || f.inside.split('/').includes('..') || /[\\:]/.test(f.inside))) {
       e.push(`${at}.inside must be the workbook's path inside the zip`);
     }
+    if (f.members !== undefined) checkMembers(f, at, e);
     if (f.url !== undefined && !isHttps(f.url)) e.push(`${at}.url must be an https link`);
     if (many || f.schema !== undefined) {
       if (typeof f.schema !== 'string' || !schemaNames.includes(f.schema)) e.push(`${at}.schema must name one of the record's schemas`);
@@ -176,6 +202,8 @@ export function validateDataset(x: unknown): string[] {
     textProblems('label', x.label, e);
     // Design §7 and E-075: fictional data is labelled fictional; real data names its source and licence.
     if (x.real === false && !/fictional/i.test(x.label)) e.push('a fictional dataset\'s label says it is fictional (E-075)');
+    // S8-16: the label and `real` agree both ways, so a fictional set (Maven Toy Store) can never count as a real-data analysis.
+    if (x.real === true && /fictional/i.test(x.label)) e.push('a dataset labelled fictional must have real: false (E-075)');
     if (x.real === true && isObj(licence) && isStr(licence.name) && !x.label.includes(licence.name)) {
       e.push(`a real dataset's label names its licence, ${licence.name}`);
     }

@@ -10,6 +10,136 @@ come from git.
 0.5.0 is the first release. Slices 0 and 1a are the first application code; the entries before
 them are research and planning.
 
+## 0.8.1 (2026-10-30)
+
+Sprint 8 Part 2 (D124 to D127, S8-14 to S8-23): the SaaS cases on LedgerLoop, two retail cases on Voltmarkt, Olist and
+Maven Toy Store as datasets you prepare yourself, and four backlog rows. Released as the public `v0.8.1` after the merge.
+
+| What 0.8.1 adds | In short |
+|---|---|
+| SaaS cases | Five inbox cases on LedgerLoop, `CASE-SAAS-01` to `-05`, and `CASE-MKT-05` on its leads and opportunities. Level 6's goal now counts the SaaS cases you solve |
+| Retail cases | `CASE-RETAIL-01` (asked by Sanne) and `CASE-RETAIL-04` (asked by Yara) on Voltmarkt, with a new chain-wide daily stock table |
+| Olist | Real data (CC BY-NC-SA 4.0): about 100,000 Brazilian orders, 2016 to 2018. You prepare it from your downloads. `CASE-REAL-03` (asked by Ruben) and six registry questions |
+| Maven Toy Store | Fictional data (Public Domain): a made-up online teddy bear shop. You prepare it from your downloads. `CASE-MAVEN-01` (asked by Noor) and six registry questions |
+| Backlog | Three fixes (an orphaned take-home, the export's own pass, the release check from a worktree) and two prompts that no longer fix where missing values sort |
+
+### Added
+
+- The SaaS cases (S8-14, S8-C29, S8-C38): `CASE-SAAS-01` and `-04` are Lieselot's, `-02` is Wannes's, `-03` and `-05`
+  are Griet's, and `CASE-MKT-05` is Nele's. Each has six checkpoints and its own hidden-data check. `CASE-SAAS-01` adds a
+  growth-rate column, so it needs level 6's tables.
+- Level 6's goal (S8-18, S8-C27): `G-SQL-LEVEL-6` counts SaaS inbox cases solved and Progress shows "SaaS cases solved:
+  n of 5". The opener `CASE-LEDGER-L6` does not count toward the five.
+- `CASE-RETAIL-01` and `CASE-RETAIL-04` (S8-15, S8-C30, S8-C35). `CASE-RETAIL-04` reads the new table
+  `inventory_chain_daily`: the closing stock of each product in each physical store, each day, for 59 products in the
+  Consoles and Controllers category (about 950,000 rows). It asks about stockouts in December 2024.
+- Olist and Maven Toy Store (S8-16, S8-17, S8-C33, S8-C34): registry records `DS-RETAIL-01` and `DS-MKT-03`, prep
+  scripts, the explorer schemas `olist` and `maven_toy_store`, and the edge schemas `olist_edge` and
+  `maven_toy_store_edge`. Run `npm run prep:datasets -- --from <downloads folder>` (see the README). The prep says which
+  copy of a download it used, and names any file that is missing. Olist's geolocation file is not read. Until a dataset is
+  prepared, its case shows in the inbox with the command that prepares it.
+- `CASE-REAL-03` (Olist, repeat buyers by first-order month, counted on `customer_unique_id`) and `CASE-MAVEN-01` (Maven
+  Toy Store, sessions to orders by channel and month).
+- A new edge schema, `ledgerloop_edge_cases` (S8-C39), built for the six LedgerLoop cases: a few dozen fixed rows, so a
+  query that is right only on the visible data fails there.
+- Browser smoke rows 8b-1 to 8b-6.
+
+### Changed
+
+- LedgerLoop gains the view `mrr_monthly` (E-215, E-216, S8-C28): one row per account and month where its MRR is above
+  0, in euros. The edge schemas `ledgerloop_edge_saas` and `ledgerloop_edge_cases` have it too. Every older object keeps
+  its hash.
+- Two prompts, `EX-CASE-DQ-03` and `EX-CASE-PRICE-03` (S8-22), now say missing values may come first or last in a sort.
+  Only `EX-MOCK-TAKE-A` still states where they go, and a taken form is not edited.
+- Voltmarkt's edge `voltmarkt_edge_pat` also holds December 2024 stock rows (E-217).
+
+### Fixed
+
+- A take-home whose case left the content (S8-19): at an app start, a run that names a case the content no longer holds is
+  closed with the same record a 24-hour close writes, so it no longer stays open with no questions.
+- The portfolio export (S8-20): a CP3 answer copied from "Other ways to write this" is a copy whenever that item opened
+  its other way first. The export takes the latest pass that is not a copy, and a copy only when no own pass exists.
+- The release check from a worktree (S8-21): its monorepo-path note also counts lines that name the main checkout's
+  folder.
+- `inventory_chain_daily.snapshot_date`'s note now says the rows start on 1 January 2024 or the store's opening, whichever
+  is later.
+- Two GA4 and Methodology tests no longer fail in the first minute after midnight.
+- The browser smoke test checks "1 of 5" after one SaaS case, not only "0 of 5".
+
+### Known issues
+
+- Maven Toy Store's licence is settled: Public Domain, read on its page on 2026-10-29. This closes 0.8.0's known issue.
+  The app ships none of Maven's files.
+- An own pass reached only through an "I was right" override is not counted when the export looks for your own pass; a
+  later copy pass is exported, marked as a copy (B1 review M1).
+- `EX-CASE-RETAIL-04` has two rules that only the visible data catches: the two-week boundary and the per-day sum,
+  because the edge's stock rows cannot change its orders (H2 review M2).
+- Maven's registry questions 2 and 3 have minimum thresholds that no small edge can meet. A case built on either needs
+  its own edge rows (D1).
+- `EX-CASE-DQ-03` has two readings of a row with a missing `sku` or `category_raw`, and no data row separates them (K1
+  review M1).
+- The three 0.8.0 backlog rows (S8-B1 to S8-B3) are still open.
+
+## 0.8.0 (2026-10-28)
+
+Sprint 8 Part 1 (D124 to D127): SQL level 6, the business patterns, and LedgerLoop, the third company. A private
+release: the public `v0.8.1` follows Part 2 (the SaaS cases, Olist and Maven Toy Store, four backlog rows).
+
+| What 0.8.0 adds | In short |
+|---|---|
+| SQL level 6 | Ten concepts, `SQL-PAT-01` to `SQL-PAT-10`: top-N per group, dedup, period comparisons, date spines, pivoting, cohorts, funnels, sessions, promo uplift and SaaS MRR. 10 lessons, 264 exercises (write, fix, predict and choose), and a level 6 drill of 50 |
+| LedgerLoop | A B2B SaaS company in Ghent, clean and raw, in the dataset explorer. 32 new database objects; every older object keeps its hash |
+| Cases | The level 6 opener `CASE-LEDGER-L6` (asked by Nele, growth marketing manager) and two daily cases, `CASE-DAILY-L6-01` and `CASE-DAILY-L6-02` |
+| Mistakes | Eight new mistake IDs, `ERR-LOG-44` to `ERR-LOG-51`, each with its own feedback |
+| The grader | `GRADER_VERSION` `8a.1`: a note when a query uses PIVOT or UNPIVOT, and PIVOT allowed as an other way from `SQL-PAT-05` |
+
+### Added
+
+- SQL level 6 (S8-07, S8-08, S8-C20 to S8-C25). The 10 lessons and 264 exercises were solved blind: all pass after four
+  rounds (the `SQL-PAT-09` promotion items needed the fourth, S8-C24 and S8-C25). The level 6 drill (S8-11) asks 10
+  questions, one for each concept, drawn from a pool of 50; a run holds 4 easy, 4 medium and 2 hard questions.
+- LedgerLoop (D124, E-208, E-210, E-211): seed 2202, 2024-01-01 to 2025-12-31, about 1,450 accounts and six plans,
+  with country code GB and a raw copy that carries the quirks Q-02-01 to Q-02-07. Clean times are Brussels
+  local time, except `app_events.event_ts`, which is UTC. The explorer lists it with its notes.
+- The opener `CASE-LEDGER-L6` and the daily cases `CASE-DAILY-L6-01` (Voltmarkt) and `CASE-DAILY-L6-02` (Mailvora)
+  (S8-12, S8-13). LedgerLoop's cast: Lieselot (CFO), Wannes (head of customer success), Griet (revenue operations lead)
+  and Nele (growth marketing manager).
+- Four edge schemas for the hidden-data check: `voltmarkt_edge_pat`, `mailvora_edge_pat`, `ledgerloop_edge_saas` and
+  `ledgerloop_edge_clean` (S8-07, S8-C14). A query that is right only on the visible data now fails on them.
+- The telemetry theme `saas` (the owner's yes, 2026-10-28): a SQL attempt in world `SAAS`, or on LedgerLoop, reports
+  `case_theme` `saas`. No new attribute; an existing one takes one more value.
+
+### Changed
+
+- `ERR-LOG-44` to `ERR-LOG-51` (E-209, S8-C06): a funnel step counted without the step before it, a funnel rate
+  divided by the wrong step, cohort months from days divided by 30, a returning account booked as new, a partial period
+  compared with a full one, a change worked out the wrong way round, a cohort dated by the wrong event, and an annual
+  price counted as one month's MRR. `GRADER_VERSION` is `8a.1`.
+- PIVOT (S8-C07, S8-C09): the note reads "This PIVOT form is DuckDB's own: other databases write it differently or have
+  none. Conditional aggregation runs everywhere." A PIVOT with an IN list is one SELECT and passes the gate. Without one,
+  the lesson's form is a syntax error and DuckDB's short form becomes two statements, which the app refuses (F2-2-M1). C11 now allows PIVOT as an other way
+  from `SQL-PAT-05`, and the `pivot` construct is mapped. UNPIVOT gets its own portability note (A1-M1).
+- `ERR-LOG-18`'s feedback (S8-C08) no longer says the rows are right: a ranking in the wrong direction picks other
+  rows.
+- The F2 round, 61a9419c (the seams review, below): `ERR-LOG-48`'s feedback also covers a store or account that opened
+  or closed during a period; `ERR-LOG-44`'s model query returns rows on Mailvora's real event order and says a step has a
+  time window; the `SQL-PAT-05` lesson says what a PIVOT without an IN list does; 14 grain comments in four lessons;
+  eight plants moved to `ERR-LOG-00` where the ID's feedback was about another mistake; six rounded-form
+  `ERR-LOG-46` plants; the level 6 pool rotates so every run mixes difficulties; edge rows tell Brussels days from UTC
+  days and plant a session across midnight and an exact 30-minute gap (`app_events` 20 to 31 rows, `activation_events`
+  21 to 30); `schemas/case.ts` knows LedgerLoop's cast.
+
+### Fixed
+
+- `ERR-LOG-18`'s feedback told a learner who had ranked in the wrong direction that the rows were right (S8-C08).
+
+### Known issues
+
+- Maven Toy Store's licence line is still owed by Aydin ([`owner-tasks.md`](docs/planning/owner-tasks.md)).
+- Three backlog rows from this part: drill pools for levels 3 to 5 can serve one difficulty band (S8-B1); every SQL attempt
+  is logged with world `pricing` (S8-B2, ask first); a `SQL-PAT-09` wording pass with a blind re-solve (S8-B3).
+- LedgerLoop's seed 2202 is the one that passes every FIND-02 band; other seeds can miss a band (L1-M1).
+
 ## 0.7.3 (2026-10-23)
 
 Sprint 7d, second fix and polish: log format version 8 (D123), a window inside another window's definition told apart

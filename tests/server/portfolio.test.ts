@@ -303,6 +303,26 @@ test('S4B-17: table cells are escaped, a missing value is an empty cell with a n
   assert.ok(md.includes('````sql\nSELECT 1 AS "```"\n````'), 'the fence is longer than any backtick run in the query');
 });
 
+test('S8-20: ownPassOf prefers an assisted own pass to a later unassisted copy, and an unassisted own pass to a later assisted non-copy', async () => {
+  const t = T0 + 9_000_000;
+  const Q_OWN = 'SELECT s.city FROM stores AS s ORDER BY s.city';
+  const Q_LATE = 'SELECT s.city FROM stores AS s WHERE s.store_id < 4 ORDER BY s.city';
+  const run = async (extra: object[]): Promise<string> => {
+    const { folder } = await tempRoot();
+    const d = await deps({ attempts: [...solved(DAILY_ID, 'SELECT 1', ['CP3']), ...extra] }, { portfolio_folder: folder }, withOtherWay);
+    const r = await exportCase(createApp(d), DAILY_ID);
+    assert.equal(r.status, 200);
+    return readFile(join(folder, ((await r.json()) as any).files[0]), 'utf8');
+  };
+  const copyLater = [otherWayOpened(`${DAILY_ID}-CP3-9`, t + 60_000), ...checkpoint(DAILY_ID, 'CP3', 9, [{ at: t + 120_000, submit: 'pass', query: OTHER_COPY }])];
+  const a = await run([...passedAfterHelp(DAILY_ID, 1, t, Q_OWN), ...copyLater]);
+  assert.ok(a.includes(`${Q_OWN}\n\`\`\`\n\n${AFTER_REVEAL}\n`), 'the assisted own pass, with its after-reveal line');
+  assert.equal(a.includes(AFTER_OTHER_WAY) || a.includes(OTHER_COPY), false, 'not the copy');
+  const b = await run([...checkpoint(DAILY_ID, 'CP3', 1, [{ at: t, submit: 'pass', query: Q_OWN }]), ...passedAfterHelp(DAILY_ID, 2, t + 30_000, Q_LATE), ...copyLater]);
+  assert.ok(b.includes(Q_OWN), 'the unassisted own pass');
+  assert.equal(b.includes(Q_LATE) || b.includes(AFTER_REVEAL) || b.includes(AFTER_OTHER_WAY), false, 'not the later assisted pass, nor the copy');
+});
+
 test('S4B-17: a query that no longer runs makes the page say so, with no result table', () => {
   const md = buildPage(page({ result: { ok: false, reason: 'The database said: column gone_column not found.' } }));
   assert.match(md, /## The result\n\nThis query no longer runs on the course data\. The database said: column gone_column not found\. The CSV beside this page holds the header only\./);
@@ -638,17 +658,41 @@ async function exportedPage(second: string, extra: (t: number) => object[]): Pro
   return readFile(join(folder, ((await r.json()) as any).files[0]), 'utf8');
 }
 
-test('S7D-04: a CP3 query that follows "Other ways" on its instance and equals the other way, whitespace and case squashed, is marked with its own line', async () => {
-  const md = await exportedPage(OTHER_COPY, (t) => [otherWayOpened(`${DAILY_ID}-CP3-2`, t + 60_000)]);
+test('S7D-04, S8-20: a CP3 query that follows "Other ways" and equals the other way, whitespace and case squashed, is marked with its own line when no own pass exists', async () => {
+  const { folder } = await tempRoot();
+  const t = T0 + 9_000_000;
+  const attempts = [...solved(DAILY_ID, 'SELECT 1', ['CP3']), otherWayOpened(`${DAILY_ID}-CP3-1`, t - 60_000),
+    ...checkpoint(DAILY_ID, 'CP3', 1, [{ at: t, submit: 'pass', query: OTHER_COPY }])];
+  const d = await deps({ attempts }, { portfolio_folder: folder }, withOtherWay);
+  const r = await exportCase(createApp(d), DAILY_ID);
+  assert.equal(r.status, 200);
+  const md = await readFile(join(folder, ((await r.json()) as any).files[0]), 'utf8');
   assert.ok(md.includes(`${OTHER_COPY}\n\`\`\`\n\n${AFTER_OTHER_WAY}\n\n## The result`), 'the copied query, then the line under it');
   assert.equal(md.includes(AFTER_REVEAL), false, 'no "Show answer" or late hint came before it');
+});
+
+test('S8-20: a learner who passes with an own query, opens "Other ways" and passes with the copy on the same instance exports the own query', async () => {
+  const md = await exportedPage(OTHER_COPY, (t) => [otherWayOpened(`${DAILY_ID}-CP3-2`, t + 60_000)]);
+  assert.ok(md.includes('SELECT s.city FROM stores AS s ORDER BY s.city'), 'the own query');
+  assert.equal(md.includes(OTHER_COPY), false, 'not the copy');
+  assert.equal(md.includes(AFTER_OTHER_WAY), false, 'and no copy line');
+});
+
+test('S8-20: a copy pasted into a later CP3 instance than the one that opened "Other ways" is marked', async () => {
+  const { folder } = await tempRoot();
+  const t = T0 + 9_000_000;
+  const attempts = [...solved(DAILY_ID, 'SELECT 1', ['CP3']), otherWayOpened(`${DAILY_ID}-CP3-1`, t - 600_000),
+    ...checkpoint(DAILY_ID, 'CP3', 2, [{ at: t, submit: 'pass', query: OTHER_COPY }])];
+  const d = await deps({ attempts }, { portfolio_folder: folder }, withOtherWay);
+  const r = await exportCase(createApp(d), DAILY_ID);
+  assert.equal(r.status, 200);
+  const md = await readFile(join(folder, ((await r.json()) as any).files[0]), 'utf8');
+  assert.ok(md.includes(AFTER_OTHER_WAY), 'marked');
 });
 
 test('S7D-04: no line for the learner\'s own query after "Other ways", nor for a copy with no "Other ways" opened before it on its own instance', async () => {
   const cases: [string, string, (t: number) => object[]][] = [
     ['an own query after "Other ways"', 'SELECT s.store_id, s.city FROM stores AS s WHERE s.store_id < 4 ORDER BY s.city', (t) => [otherWayOpened(`${DAILY_ID}-CP3-2`, t + 60_000)]],
-    ['the same text with "Other ways" opened on another instance', OTHER_COPY, (t) => [...checkpoint(DAILY_ID, 'CP3', 3, [{ at: t - 600_000, submit: 'pass', query: 'SELECT 1' }]),
-      otherWayOpened(`${DAILY_ID}-CP3-3`, t - 500_000)]],
     ['the same text with "Other ways" opened only after it', OTHER_COPY, (t) => [otherWayOpened(`${DAILY_ID}-CP3-2`, t + 180_000)]],
     ['the same text with no "Other ways" opened', OTHER_COPY, () => []],
   ];

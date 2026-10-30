@@ -1,0 +1,149 @@
+{
+  "concept_id": "SQL-PAT-10",
+  "version": 2,
+  "reading_md": "## MRR movements: where recurring revenue went\n\nMonthly recurring revenue (MRR) is what customers pay each month for their running subscriptions. A SaaS company explains each month's change with five movements:\n\n- **new**: a new customer's first subscription;\n- **expansion**: an existing customer pays more (more seats, an add-on, a price rise);\n- **contraction**: an existing customer pays less but stays;\n- **churn**: a customer leaves;\n- **reactivation**: a customer who left comes back.\n\n### One source of truth\n\nAt LedgerLoop every change is a row in `subscription_events`, signed in `mrr_delta_local`. A subscription's MRR on a date is the sum of its changes up to that date. The data starts on 1 January 2024, so each subscription running then has an `opening` event carrying the MRR it already had. Opening events belong in every balance, but they are no movement: leave them out of new MRR, or January 2024 shows a burst of fake new business.\n\n### A returning customer is not new\n\nAn account that churned and comes back goes from 0 to above 0, exactly like a new one. If your rule only looks at last month, it books the comeback as new and flatters Sales. The events here type it as `reactivation`. When you classify from balances instead, test history first: from 0 to above 0 is a reactivation when the account had MRR at an earlier month end, and new only when it never had.\n\n### Annual plans\n\nAn annual plan is billed a year at a time. Its MRR is the year's price over 12, so an annual invoice of 3,559.80 stands for 296.65 a month. Count the invoice itself as MRR and that account is 12 times too big.\n\n### Currencies\n\nLedgerLoop bills in EUR, GBP and CHF, and amounts in different currencies never add up unconverted. A bridge either stays per currency, or converts every amount at **one fixed date's rate**, such as 2025-12-31. Convert at each event's own rate and the euro bridge stops adding up, because the rate itself moved.\n\n### The bridge\n\nFor each month: opening MRR (every change before the month), plus new, expansion and reactivation, plus contraction and churn (both negative), is closing MRR (every change up to the month's end). Conditional aggregation builds the movement columns: `SUM(CASE WHEN event_type = 'new' THEN amount ELSE 0 END)`. Check that each row adds up before rounding; after each amount is rounded on its own, a row can differ by a cent.\n\n### Two ways to classify\n\n1. **By event type**: sum each type per month. Two changes in one month stay apart.\n2. **By month-end balances**: give every account a row at every month end (a spine, so a month with no subscription shows 0), LAG the balance, and name the change with a CASE. Changes within a month net out: an expansion and a larger contraction on one day show as one contraction.\n\nThe question says which one it wants.",
+  "syntax_md": "```sql\nSELECT CAST(date_trunc('month', e.event_date) AS DATE) AS month_start,\n  SUM(CASE WHEN e.event_type = 'new' THEN e.mrr_delta_local * f.eur_per_unit ELSE 0 END) AS new_mrr,\n  SUM(CASE WHEN e.event_type = 'reactivation' THEN e.mrr_delta_local * f.eur_per_unit ELSE 0 END) AS reactivation_mrr,\n  SUM(CASE WHEN e.event_type = 'churn' THEN e.mrr_delta_local * f.eur_per_unit ELSE 0 END) AS churn_mrr\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nJOIN fx_rates f ON f.currency = s.currency\n  AND f.rate_date = DATE '2025-12-31'                   -- one fixed rate for every amount\nWHERE e.event_type <> 'opening'                          -- balances, not movements\nGROUP BY CAST(date_trunc('month', e.event_date) AS DATE);\n```\n\n- MRR on a date: `SUM(mrr_delta_local)` of the events with `event_date <=` that date, opening included.\n- From balances: `LAG(mrr) OVER (PARTITION BY account_id ORDER BY month_end)`, with reactivation tested before new.\n- An annual invoice's MRR: `amount_local / 12`.",
+  "dialect_note": "Conditional aggregation with CASE runs in every engine; `SUM(x) FILTER (WHERE ...)` does the same in DuckDB and PostgreSQL. `range(start, stop, INTERVAL 1 MONTH)` is DuckDB's spine and stops before `stop`; PostgreSQL writes `generate_series`, which includes its end.",
+  "worked_examples": [
+    {
+      "title": "Each month's movements by kind, in euros",
+      "prompt": "For each month of 2025, give the new, reactivation and churn MRR in euros at the 2025-12-31 rate, leaving out the opening events. Return month_start, new_mrr, reactivation_mrr and churn_mrr.",
+      "clauses": [
+        {
+          "text": "SELECT CAST(date_trunc('month', e.event_date) AS DATE) AS month_start,",
+          "subgoal": "metrics",
+          "why": "Each event counts in the month of its event_date."
+        },
+        {
+          "text": "  SUM(CASE WHEN e.event_type = 'new' THEN e.mrr_delta_local * f.eur_per_unit ELSE 0 END) AS new_mrr,",
+          "subgoal": "metrics",
+          "why": "Only new events are new business, converted at the fixed rate."
+        },
+        {
+          "text": "  SUM(CASE WHEN e.event_type = 'reactivation' THEN e.mrr_delta_local * f.eur_per_unit ELSE 0 END) AS reactivation_mrr,",
+          "subgoal": "metrics",
+          "why": "A returning account gets its own column, never new."
+        },
+        {
+          "text": "  SUM(CASE WHEN e.event_type = 'churn' THEN e.mrr_delta_local * f.eur_per_unit ELSE 0 END) AS churn_mrr",
+          "subgoal": "metrics",
+          "why": "Churn keeps its negative sign, so the movements add up to the net change."
+        },
+        {
+          "text": "FROM subscription_events e JOIN subscriptions s ON s.subscription_id = e.subscription_id",
+          "subgoal": "source_grain",
+          "why": "The event has the amount; the subscription has its currency."
+        },
+        {
+          "text": "JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'",
+          "subgoal": "source_grain",
+          "why": "One fixed date's rate for every amount keeps the months comparable."
+        },
+        {
+          "text": "WHERE e.event_type <> 'opening' AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'",
+          "subgoal": "row_filter",
+          "why": "Opening events are balances from before the data, not movements."
+        },
+        {
+          "text": "GROUP BY CAST(date_trunc('month', e.event_date) AS DATE)",
+          "subgoal": "output_grain",
+          "why": "One row per month."
+        }
+      ]
+    },
+    {
+      "title": "Name each account's movement from month-end balances",
+      "prompt": "For each account and month end of 2025, name its movement since the month end before: reactivation, new, churn, expansion, contraction or flat. Return account_id, month_end and movement.",
+      "clauses": [
+        {
+          "text": "WITH month_ends AS (SELECT CAST(range AS DATE) - 1 AS month_end FROM range(DATE '2024-02-01', DATE '2026-02-01', INTERVAL 1 MONTH))  -- one row per month end, January 2024 to December 2025",
+          "subgoal": "source_grain",
+          "why": "A spine of month ends from January 2024, so the history test can look back."
+        },
+        {
+          "text": ", account_mrr AS (SELECT a.account_id, m.month_end, COALESCE(SUM(e.mrr_delta_local), 0) AS mrr FROM accounts a CROSS JOIN month_ends m",
+          "subgoal": "metrics",
+          "why": "Every account gets every month end, even one with no subscription."
+        },
+        {
+          "text": "  LEFT JOIN subscription_events e ON e.account_id = a.account_id AND e.event_date <= m.month_end GROUP BY a.account_id, m.month_end)  -- one row per account and month end",
+          "subgoal": "source_grain",
+          "why": "The balance is every change up to the month end; LEFT JOIN keeps the zeros."
+        },
+        {
+          "text": ", compared AS (SELECT account_id, month_end, mrr, LAG(mrr) OVER (PARTITION BY account_id ORDER BY month_end) AS prev_mrr,",
+          "subgoal": "metrics",
+          "why": "The month end before, within the same account."
+        },
+        {
+          "text": "  MAX(mrr) OVER (PARTITION BY account_id ORDER BY month_end ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS best_before FROM account_mrr)  -- one row per account and month end",
+          "subgoal": "metrics",
+          "why": "Above 0 when the account had MRR at any earlier month end."
+        },
+        {
+          "text": "SELECT account_id, month_end, CASE WHEN prev_mrr = 0 AND mrr > 0 AND best_before > 0 THEN 'reactivation' WHEN prev_mrr = 0 AND mrr > 0 THEN 'new' WHEN prev_mrr > 0 AND mrr = 0 THEN 'churn' WHEN mrr > prev_mrr THEN 'expansion' WHEN mrr < prev_mrr THEN 'contraction' ELSE 'flat' END AS movement",
+          "subgoal": "metrics",
+          "why": "Reactivation is tested before new, and churn before contraction."
+        },
+        {
+          "text": "FROM compared WHERE month_end >= DATE '2025-01-31'",
+          "subgoal": "row_filter",
+          "why": "Keep 2025 only after the window has seen 2024."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-PAT-10-E1-01",
+    "EX-SQL-PAT-10-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-PAT-10-E1-03",
+    "EX-SQL-PAT-10-E1-04",
+    "EX-SQL-PAT-10-E2-01",
+    "EX-SQL-PAT-10-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-PAT-10-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-PAT-10-E1-06",
+    "EX-SQL-PAT-10-E1-07",
+    "EX-SQL-PAT-10-E2-03",
+    "EX-SQL-PAT-10-E2-04",
+    "EX-SQL-PAT-10-E2-05",
+    "EX-SQL-PAT-10-E2-06",
+    "EX-SQL-PAT-10-E3-01",
+    "EX-SQL-PAT-10-E3-02",
+    "EX-SQL-PAT-10-E2-31",
+    "EX-SQL-PAT-10-E2-32",
+    "EX-SQL-PAT-10-E1-42",
+    "EX-SQL-PAT-10-E2-41",
+    "EX-SQL-PAT-10-E1-43"
+  ],
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "why_clause": {
+    "clause": "SELECT account_id, month_end, CASE WHEN prev_mrr = 0 AND mrr > 0 AND best_before > 0 THEN 'reactivation' WHEN prev_mrr = 0 AND mrr > 0 THEN 'new' WHEN prev_mrr > 0 AND mrr = 0 THEN 'churn' WHEN mrr > prev_mrr THEN 'expansion' WHEN mrr < prev_mrr THEN 'contraction' ELSE 'flat' END AS movement",
+    "stem": "Why does the reactivation branch come before the new branch?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Both match an account going from 0 to above 0, and CASE takes the first true branch, so the history test must come first."
+      },
+      {
+        "id": "b",
+        "text": "Because reactivations are more common than new accounts, so testing them first is faster."
+      },
+      {
+        "id": "c",
+        "text": "Because a new account has a missing prev_mrr, which only the second branch can handle."
+      },
+      {
+        "id": "d",
+        "text": "The order does not matter: CASE checks every branch and keeps the most specific one."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "A returning account and a brand new one both go from 0 to above 0, so the plain new test is also true for a comeback. CASE stops at the first true WHEN, so the narrower test, with the history check, must come first; put the other way round, every comeback is booked as new."
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "case_id": "CASE-SAAS-03",
+  "kind": "inbox",
+  "level": 6,
+  "world": "SAAS",
+  "company_id": "ledgerloop",
+  "schema": "ledgerloop",
+  "title": "MRR movements bridge",
+  "persona": {
+    "name": "Griet",
+    "role": "Revenue operations lead"
+  },
+  "brief": {
+    "decision": "How the board deck explains why MRR grew by less than the sales team booked from July to September 2025",
+    "deadline": "The board deck, due on Monday"
+  },
+  "data_needed": [
+    "mrr_monthly",
+    "subscription_events"
+  ],
+  "expected_output": {
+    "columns": [
+      "month",
+      "starting_mrr",
+      "new_mrr",
+      "expansion_mrr",
+      "reactivation_mrr",
+      "contraction_mrr",
+      "churn_mrr",
+      "ending_mrr"
+    ],
+    "grain": "one row per month from July to September 2025",
+    "sort": [
+      {
+        "column": "month",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "prompt": "Griet, the revenue operations lead, is building an MRR bridge that compares each account's MRR at the end of a month with its MRR at the end of the month before, from mrr_monthly. mrr_monthly starts in January 2024 and has no row for an account in a month without MRR. An account had no MRR at the end of June 2025 and has MRR at the end of July 2025. Before you write any SQL, how should its July MRR count in the bridge?",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-03:CP1",
+      "options": [
+        {
+          "oid": "o332a2ad",
+          "text": "As new MRR, because the account had no MRR at the end of June 2025 and so counts as new to LedgerLoop in July."
+        },
+        {
+          "oid": "o8533ed9",
+          "text": "As new MRR if the account has a subscription event of type new dated in July, and as reactivation MRR otherwise."
+        },
+        {
+          "oid": "o4baf8be",
+          "text": "As expansion MRR, measured against its MRR at the end of the last month before July in which it had any."
+        },
+        {
+          "oid": "oee50c13",
+          "text": "As reactivation MRR if the account has any row in mrr_monthly before July 2025, and as new MRR if it has no row before."
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "prompt": "Griet first wants to know how many accounts came back in the quarter. subscription_events holds one row per change in a subscription's MRR, and event_type reactivation marks a churned account's later subscription. How many different accounts have an event of type reactivation dated from 2025-07-01 to 2025-09-30, both days included? Type a whole number.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-SAAS-03:CP2",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "accounts"
+      },
+      "truth_key": "CASE-SAAS-03:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Griet's question.",
+      "credits_concepts": [
+        "SQL-PAT-10",
+        "SQL-PAT-04",
+        "SQL-JOIN-05",
+        "SQL-JOIN-02",
+        "SQL-CTE-01",
+        "SQL-AGG-04"
+      ],
+      "item_id": "EX-CASE-SAAS-03"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Griet's headline for the board: how much of what sales booked did churn and contraction take back? Use mrr_monthly, which holds one row per account and month with the account's MRR in euros on the month's last day, all at one fixed rate; an account with no row had 0 MRR that month. For each month from July to September 2025, compare each account's MRR at the end of the month with its MRR at the end of the month before. An account with 0 before and MRR now brings new MRR, all of its MRR now, when it has a subscription event of type new dated in that month; otherwise it is a reactivation, which is left out here. An account with MRR in both months brings expansion MRR when its MRR rose, by the rise, and contraction when it fell, by the fall. An account with MRR before and 0 now is churn, by all of its MRR before. Over the three months together, what is 100 times (the churn plus the contraction) divided by (the new MRR plus the expansion MRR)? Type the percentage rounded to 1 decimal, for example 12.5.",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-03:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-SAAS-03:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "prompt": "Griet's bridge for July to September 2025 shows new and expansion MRR well above churn and contraction in every month, and only a little reactivation MRR. Nothing else has been checked yet. Griet asks: what should the board deck say about why MRR grew by less than the sales team booked?",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-03:CP5",
+      "options": [
+        {
+          "oid": "o0f3dfdd",
+          "text": "Churn and contraction took back part of what sales booked: name the larger one, and find the accounts behind it."
+        },
+        {
+          "oid": "o5bf30e9",
+          "text": "Sales must sign more new accounts, because new MRR is the only movement that can close the gap with what was booked."
+        },
+        {
+          "oid": "o0fd1e39",
+          "text": "The gap needs no slide of its own: MRR grew in every month, so churn and contraction are not a problem worth showing."
+        },
+        {
+          "oid": "o629841c",
+          "text": "The Starter price rise caused the lost MRR, so the deck should recommend taking the price back down to stop the churn."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "prompt": "Write 2 to 4 sentences for Griet's board deck: the headline number, which movement took back the most, one caveat and one next step.",
+      "credits_concepts": []
+    }
+  ],
+  "model_plan": "Metric formula: starting_mrr and ending_mrr, the total MRR at the end of the month before and of the month; new_mrr and reactivation_mrr, the MRR now of the accounts that had 0 before, split by a subscription event of type new in the month; expansion_mrr and contraction_mrr, the change of the accounts with MRR in both months; churn_mrr, minus the MRR before of the accounts with 0 now.\nOutput grain: one row per month from July to September 2025.\nTables and keys: mrr_monthly as a spine of every account and month from June to September 2025, 0 where an account has no row, each month beside the same account's month before; subscription_events for the new events, on account_id and the event's month.\nFilters: months from 2025-06-01 to 2025-09-01, June only as July's starting point; events of type new.\nEdge cases: a churned account has no row, so without the spine its churn disappears; an account coming back is reactivation, never new, even when mrr_monthly holds no earlier row for it; contraction and churn are negative, and starting_mrr plus the five movements equals ending_mrr to the cent.\nExpected row count: 3",
+  "model_answer_template": "From July to September 2025, churn and contraction took back {CP4} percent of the new and expansion MRR that LedgerLoop booked, which is why MRR grew by less than sales signed, while {CP2} accounts came back and added a little reactivation MRR. Churn was the larger of the two losses in every month, so the gap is a retention problem more than an acquisition one. The bridge compares month-end positions only, so it hides an account that left and came back within one month, and it does not say why accounts left. Next, list the accounts behind each month's churn by segment and plan, and check their support tickets and failed payments before the deck names a cause.",
+  "follow_up_question": "Which segments lost the most MRR to churn and contraction from July to September 2025?",
+  "data_source": {
+    "label": "Fictional, generated data: LedgerLoop",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-04",
+    "SQL-PAT-10"
+  ],
+  "metric_ids": [
+    "MET-SAAS-01",
+    "MET-SAAS-02"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

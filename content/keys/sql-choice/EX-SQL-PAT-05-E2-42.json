@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-05-E2-42",
+  "item_version": 1,
+  "correct_oid": "o9e79efa",
+  "explanation": "COUNT(*) counts every invoice in the group, whatever its status, so SMB has 500. The two filtered counts list only paid and open, so the uncollectible invoice is in no column of its own: paid plus open is 499, one short of the total. A filtered COUNT gives 0, never a missing value, for Enterprise's open invoices. A column list written by hand needs every value, or a check that the columns add up to the total.",
+  "solver": {
+    "prompt_hash": "2e051e4b93c89c49",
+    "grader_version": "choice.3",
+    "chosen": "o9e79efa",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.774Z"
+  }
+}

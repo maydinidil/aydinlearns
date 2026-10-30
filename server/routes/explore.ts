@@ -3,7 +3,8 @@
 // alone for the run.
 //
 // GET  /api/explore: the dataset picker's data (S6-24): the fictional companies' schemas the build holds (voltmarkt, voltmarkt_raw,
-//   mailvora, mailvora_raw), then every registry dataset (content/datasets/registry.json) with its label, licence, source and links,
+//   mailvora, mailvora_raw, and since sprint 8 ledgerloop, ledgerloop_raw: S8-23), then every registry dataset
+//   (content/datasets/registry.json) with its label, licence, source and links,
 //   each schema marked prepared or not, and the prep command while any is not; plus the notes of every schema that can be chosen,
 //   whatever their level. Edge schemas (hidden test data) are never offered. Reads only.
 // POST /api/explore/run: { schema, sql }. A schema not in the picker's list is refused with 400 before the runner; with none, Voltmarkt.
@@ -35,6 +36,7 @@ export const NOT_LISTED = 'Choose a dataset from the list.';
 const COMPANIES = [
   { id: 'voltmarkt', name: 'Voltmarkt', clean: 'voltmarkt', raw: 'voltmarkt_raw' },
   { id: 'mailvora', name: 'Mailvora', clean: 'mailvora', raw: 'mailvora_raw' },
+  { id: 'ledgerloop', name: 'LedgerLoop', clean: 'ledgerloop', raw: 'ledgerloop_raw' },   // sprint 8 (S8-23)
 ] as const;
 /** Hidden test data: never offered, whatever a registry record names. */
 const EDGE = /_edge(_|$)/;

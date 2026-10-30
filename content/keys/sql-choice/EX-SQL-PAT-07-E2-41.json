@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-07-E2-41",
+  "item_version": 1,
+  "correct_oid": "o97ae027",
+  "explanation": "The right query starts from each user's first upload, keeps only the matches at or after it, and counts each user once. Without the time condition a user who matched only before uploading still counts; COUNT(*) counts every match event instead of users; and counting every user with a match ignores whether the user uploaded at all.",
+  "solver": {
+    "prompt_hash": "2e5dd5f8a9e2c92d",
+    "grader_version": "choice.3",
+    "chosen": "o97ae027",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.788Z"
+  }
+}

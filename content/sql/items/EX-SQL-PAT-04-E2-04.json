@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-PAT-04-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "moving_average",
+    "sales",
+    "calendar"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-moving-average-spine",
+  "template_params": {
+    "table": "sales",
+    "spine": "calendar",
+    "window_days": 7
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each day from 7 to 14 March 2025, what was store NL-01's average daily net revenue over the 7 days ending that day, that day included? Order dates are UTC days, and a day with no sales counts as 0 in the average. Round to 2 decimals. Return two columns, in this order: day and avg_7d_eur. Return one row for each day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "avg_7d_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_7d_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, fill every day from 1 March with its revenue or 0, then average the 7 rows ending on each day.",
+    "Without a row for each day, 7 rows can stretch over more than 7 days; and a missing day must count as 0, not be skipped by AVG."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 760,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 761,
+      "to": 807,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 808,
+      "to": 819,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 820,
+      "to": 850,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "With one row per day, 0 on days without sales, a frame of 7 rows is exactly 7 days, so the average is over the right days."
+}

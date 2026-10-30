@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name,\n  SUM(CASE WHEN quarter(order_date) = 1 THEN units ELSE 0 END) AS q1_units,\n  SUM(CASE WHEN quarter(order_date) = 2 THEN units ELSE 0 END) AS q2_units,\n  SUM(CASE WHEN quarter(order_date) = 3 THEN units ELSE 0 END) AS q3_units,\n  SUM(CASE WHEN quarter(order_date) = 4 THEN units ELSE 0 END) AS q4_units\nFROM sales\nWHERE parent_category = 'Audio'\n  AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY category_name",
+  "alternatives": [
+    "SELECT category_name, COALESCE(q1, 0) AS q1_units, COALESCE(q2, 0) AS q2_units, COALESCE(q3, 0) AS q3_units, COALESCE(q4, 0) AS q4_units\nFROM (\n  -- one row per Audio order line of 2025\n  SELECT category_name, quarter(order_date) AS qtr, units\n  FROM sales\n  WHERE parent_category = 'Audio'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n) AS s\nPIVOT (SUM(units) FOR qtr IN (1 AS q1, 2 AS q2, 3 AS q3, 4 AS q4) GROUP BY category_name)",
+    "SELECT category_name,\n  COALESCE(SUM(units) FILTER (WHERE quarter(order_date) = 1), 0) AS q1_units,\n  COALESCE(SUM(units) FILTER (WHERE quarter(order_date) = 2), 0) AS q2_units,\n  COALESCE(SUM(units) FILTER (WHERE quarter(order_date) = 3), 0) AS q3_units,\n  COALESCE(SUM(units) FILTER (WHERE quarter(order_date) = 4), 0) AS q4_units\nFROM sales\nWHERE parent_category = 'Audio'\n  AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY category_name"
+  ],
+  "other_way": {
+    "sql": "SELECT category_name, COALESCE(q1, 0) AS q1_units, COALESCE(q2, 0) AS q2_units, COALESCE(q3, 0) AS q3_units, COALESCE(q4, 0) AS q4_units\nFROM (\n  -- one row per Audio order line of 2025\n  SELECT category_name, quarter(order_date) AS qtr, units\n  FROM sales\n  WHERE parent_category = 'Audio'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n) AS s\nPIVOT (SUM(units) FOR qtr IN (1 AS q1, 2 AS q2, 3 AS q3, 4 AS q4) GROUP BY category_name)",
+    "tradeoff": "PIVOT with an IN list of the quarters writes the columns for you, but it is DuckDB only and still needs COALESCE for 0."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT category_name, SUM(CASE WHEN quarter(order_date) = 1 THEN units END) AS q1_units, SUM(CASE WHEN quarter(order_date) = 2 THEN units END) AS q2_units, SUM(CASE WHEN quarter(order_date) = 3 THEN units END) AS q3_units, SUM(CASE WHEN quarter(order_date) = 4 THEN units END) AS q4_units FROM sales WHERE parent_category = 'Audio'   AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY category_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT category_name, SUM(CASE WHEN quarter(order_date) = 1 THEN units ELSE 0 END) AS q1_units, SUM(CASE WHEN quarter(order_date) = 2 THEN units ELSE 0 END) AS q2_units, SUM(CASE WHEN quarter(order_date) = 3 THEN units ELSE 0 END) AS q3_units, SUM(CASE WHEN quarter(order_date) = 4 THEN units ELSE 0 END) AS q4_units FROM sales WHERE parent_category = 'Audio'   AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY category_name, channel"
+    }
+  ],
+  "hint3_partial": "SELECT category_name,\n  SUM(CASE WHEN quarter(order_date) = 1 THEN units ELSE 0 END) AS q1_units,\n  SUM(CASE WHEN ___ THEN units ELSE 0 END) AS q2_units,\n  SUM(CASE WHEN quarter(order_date) = 3 THEN units ELSE 0 END) AS q3_units,\n  SUM(CASE WHEN quarter(order_date) = 4 THEN units ELSE 0 END) AS q4_units\nFROM sales\nWHERE parent_category = 'Audio'\n  AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY category_name",
+  "solver": {
+    "prompt_hash": "b1b1bf6cf4186655",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT category_name,\n  COALESCE(SUM(units) FILTER (WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'), 0) AS q1_units,\n  COALESCE(SUM(units) FILTER (WHERE order_date BETWEEN DATE '2025-04-01' AND DATE '2025-06-30'), 0) AS q2_units,\n  COALESCE(SUM(units) FILTER (WHERE order_date BETWEEN DATE '2025-07-01' AND DATE '2025-09-30'), 0) AS q3_units,\n  COALESCE(SUM(units) FILTER (WHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31'), 0) AS q4_units\nFROM sales\nWHERE parent_category = 'Audio' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY category_name\n",
+    "at": "2026-10-28T14:57:05.913Z"
+  }
+}

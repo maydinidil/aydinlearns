@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-PAT-06-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "cohort_size",
+    "accounts"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-cohort-sizes",
+  "template_params": {
+    "table": "accounts",
+    "cohort_date": "created_at",
+    "period": "2024-2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How big is each monthly cohort of new accounts? An account's cohort month is the month of its created_at (Brussels local time). Take the cohorts from January 2024 to December 2025: an account created before 2024 belongs to none of them. Return two columns, in this order: cohort_month, the first day of the month, and accounts, the number of accounts in that cohort. Return one row for each cohort month that has at least one account. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "accounts",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per cohort month"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the table that holds one row per account with its created_at.",
+    "Keep the accounts created in 2024 and 2025, then group them by the first day of their created month and count each group."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 97,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 98,
+      "to": 111,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 112,
+      "to": 212,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 213,
+      "to": 267,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each account sits in the month of its own created_at, so accounts created before 2024 stay out of every 2024 cohort."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E1-02",
+  "item_version": 1,
+  "reference_sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n), compared AS (\n  -- one row per month of 2025, with the month before\n  SELECT month, spend_eur, LAG(spend_eur) OVER (ORDER BY month) AS prev_spend_eur\n  FROM monthly\n)\nSELECT month, spend_eur,\n  ROUND(100.0 * (spend_eur - prev_spend_eur) / prev_spend_eur, 1) AS change_pct\nFROM compared",
+  "alternatives": [
+    "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n)\nSELECT m.month, m.spend_eur,\n  ROUND(100.0 * (m.spend_eur - p.spend_eur) / p.spend_eur, 1) AS change_pct\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 MONTH",
+    "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n)\nSELECT month, spend_eur,\n  ROUND(100.0 * spend_eur / LAG(spend_eur) OVER (ORDER BY month) - 100, 1) AS change_pct\nFROM monthly"
+  ],
+  "other_way": {
+    "sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n)\nSELECT m.month, m.spend_eur,\n  ROUND(100.0 * (m.spend_eur - p.spend_eur) / p.spend_eur, 1) AS change_pct\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 MONTH",
+    "tradeoff": "A self-join on the month before gives the same percentage without a window, but it reads the monthly totals twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n) SELECT month, spend_eur, ROUND(100.0 * (spend_eur - LAG(spend_eur) OVER (ORDER BY month)) / spend_eur, 1) AS change_pct FROM monthly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n) SELECT month, spend_eur, ROUND((spend_eur - LAG(spend_eur) OVER (ORDER BY month)) / LAG(spend_eur) OVER (ORDER BY month), 1) AS change_pct FROM monthly"
+    }
+  ],
+  "hint3_partial": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', spend_date) AS DATE)\n), compared AS (\n  -- one row per month of 2025, with the month before\n  SELECT month, spend_eur, LAG(spend_eur) OVER (ORDER BY month) AS prev_spend_eur\n  FROM monthly\n)\nSELECT month, spend_eur,\n  ROUND(100.0 * (spend_eur - prev_spend_eur) / ___, 1) AS change_pct\nFROM compared",
+  "solver": {
+    "prompt_hash": "0ec487b3792505a1",
+    "schema_version": "9292abbb642a",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH m AS (\n  SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY 1\n), c AS (\n  SELECT month, spend_eur, LAG(spend_eur) OVER (ORDER BY month) AS prev\n  FROM m\n)\nSELECT month, spend_eur, ROUND(100.0 * (spend_eur - prev) / prev, 1) AS change_pct\nFROM c\n",
+    "at": "2026-10-28T14:57:01.965Z"
+  }
+}

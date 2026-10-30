@@ -1,0 +1,45 @@
+{
+  "item_id": "EX-CASE-SAAS-02",
+  "item_version": 1,
+  "reference_sql": "WITH accounts_at_start AS (\n  -- one row per account and month from February to September 2025: the account had MRR on the last day of the month before\n  SELECT account_id,\n         CAST(month + INTERVAL 1 MONTH AS DATE) AS month\n  FROM mrr_monthly\n  WHERE month >= DATE '2025-01-01'\n    AND month <= DATE '2025-08-01'\n)\nSELECT s.month,\n       COUNT(*) AS accounts_at_start,\n       SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) AS churned_accounts,\n       ROUND(100.0 * SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) / COUNT(*), 1) AS logo_churn_pct\nFROM accounts_at_start AS s\nLEFT JOIN mrr_monthly AS m\n  ON m.account_id = s.account_id\n AND m.month = s.month\nGROUP BY s.month\nORDER BY s.month",
+  "alternatives": [
+    "WITH next_rows AS (\n  -- one row per account and month with MRR, with the account's next month that has MRR\n  SELECT account_id,\n         month AS start_month,\n         LEAD(month) OVER (PARTITION BY account_id ORDER BY month) AS next_month_with_mrr\n  FROM mrr_monthly\n),\nflagged AS (\n  -- one row per account and month from February to September 2025 that the account started with MRR\n  SELECT CAST(start_month + INTERVAL 1 MONTH AS DATE) AS churn_month,\n         CASE WHEN next_month_with_mrr IS NULL\n                OR next_month_with_mrr <> CAST(start_month + INTERVAL 1 MONTH AS DATE) THEN 1 ELSE 0 END AS churned\n  FROM next_rows\n  WHERE start_month >= DATE '2025-01-01'\n    AND start_month <= DATE '2025-08-01'\n)\nSELECT churn_month AS month,\n       COUNT(*) AS accounts_at_start,\n       SUM(churned) AS churned_accounts,\n       ROUND(100.0 * SUM(churned) / COUNT(*), 1) AS logo_churn_pct\nFROM flagged\nGROUP BY churn_month\nORDER BY churn_month",
+    "WITH accounts_at_start AS (\n  -- one row per account and month from February to September 2025: the account had MRR on the last day of the month before\n  SELECT b.account_id,\n         CAST(b.month + INTERVAL 1 MONTH AS DATE) AS month\n  FROM mrr_monthly AS b\n  WHERE b.month BETWEEN DATE '2025-01-01' AND DATE '2025-08-01'\n),\nflagged AS (\n  -- one row per account and month, flagged 1 when the account has no MRR on the month's last day\n  SELECT s.month,\n         CASE WHEN NOT EXISTS (SELECT 1 FROM mrr_monthly AS m WHERE m.account_id = s.account_id AND m.month = s.month)\n              THEN 1 ELSE 0 END AS churned\n  FROM accounts_at_start AS s\n)\nSELECT month,\n       COUNT(*) AS accounts_at_start,\n       SUM(churned) AS churned_accounts,\n       ROUND(100.0 * SUM(churned) / COUNT(*), 1) AS logo_churn_pct\nFROM flagged\nGROUP BY month\nORDER BY month",
+    "WITH accounts_at_start AS (\n  -- one row per account and month from February to September 2025: the account had MRR on the last day of the month before\n  SELECT account_id,\n         CAST(month + INTERVAL 1 MONTH AS DATE) AS month\n  FROM mrr_monthly\n  WHERE month >= DATE '2025-01-01'\n    AND month < DATE '2025-09-01'\n)\nSELECT s.month,\n       COUNT(*) AS accounts_at_start,\n       COUNT(*) FILTER (WHERE m.account_id IS NULL) AS churned_accounts,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE m.account_id IS NULL) / COUNT(*), 1) AS logo_churn_pct\nFROM accounts_at_start AS s\nLEFT JOIN mrr_monthly AS m\n  ON m.account_id = s.account_id\n AND m.month = s.month\nGROUP BY s.month\nORDER BY s.month"
+  ],
+  "other_way": {
+    "sql": "WITH next_rows AS (\n  -- one row per account and month with MRR, with the account's next month that has MRR\n  SELECT account_id,\n         month AS start_month,\n         LEAD(month) OVER (PARTITION BY account_id ORDER BY month) AS next_month_with_mrr\n  FROM mrr_monthly\n),\nflagged AS (\n  -- one row per account and month from February to September 2025 that the account started with MRR\n  SELECT CAST(start_month + INTERVAL 1 MONTH AS DATE) AS churn_month,\n         CASE WHEN next_month_with_mrr IS NULL\n                OR next_month_with_mrr <> CAST(start_month + INTERVAL 1 MONTH AS DATE) THEN 1 ELSE 0 END AS churned\n  FROM next_rows\n  WHERE start_month >= DATE '2025-01-01'\n    AND start_month <= DATE '2025-08-01'\n)\nSELECT churn_month AS month,\n       COUNT(*) AS accounts_at_start,\n       SUM(churned) AS churned_accounts,\n       ROUND(100.0 * SUM(churned) / COUNT(*), 1) AS logo_churn_pct\nFROM flagged\nGROUP BY churn_month\nORDER BY churn_month",
+    "tradeoff": "LEAD finds each account's next month with MRR in one pass, but the test for a gap must still compare it with the month after."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH accounts_at_start AS (\n  SELECT account_id, CAST(month + INTERVAL 1 MONTH AS DATE) AS month\n  FROM mrr_monthly\n  WHERE month >= DATE '2025-01-01' AND month <= DATE '2025-08-01'\n)\nSELECT s.month,\n       COUNT(*) AS accounts_at_start,\n       SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) AS churned_accounts,\n       ROUND(100.0 * SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) / COUNT(*), 1) AS logo_churn_pct\nFROM accounts_at_start AS s\nJOIN mrr_monthly AS m\n  ON m.account_id = s.account_id\n AND m.month = s.month\nGROUP BY s.month\nORDER BY s.month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH accounts_at_start AS (\n  SELECT account_id, CAST(month + INTERVAL 1 MONTH AS DATE) AS month\n  FROM mrr_monthly\n  WHERE month >= DATE '2025-01-01' AND month <= DATE '2025-08-01'\n),\naccounts_at_end AS (\n  SELECT month, COUNT(*) AS n_end\n  FROM mrr_monthly\n  GROUP BY month\n)\nSELECT s.month,\n       COUNT(*) AS accounts_at_start,\n       SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) AS churned_accounts,\n       ROUND(100.0 * SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) / MAX(e.n_end), 1) AS logo_churn_pct\nFROM accounts_at_start AS s\nLEFT JOIN mrr_monthly AS m\n  ON m.account_id = s.account_id\n AND m.month = s.month\nJOIN accounts_at_end AS e ON e.month = s.month\nGROUP BY s.month\nORDER BY s.month"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH accounts_at_start AS (\n  SELECT account_id, CAST(month + INTERVAL 1 MONTH AS DATE) AS month\n  FROM mrr_monthly\n  WHERE month >= DATE '2025-01-01' AND month <= DATE '2025-08-01'\n)\nSELECT s.month,\n       COUNT(*) AS accounts_at_start,\n       SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) AS churned_accounts,\n       ROUND(1.0 * SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) / COUNT(*), 1) AS logo_churn_pct\nFROM accounts_at_start AS s\nLEFT JOIN mrr_monthly AS m\n  ON m.account_id = s.account_id\n AND m.month = s.month\nGROUP BY s.month\nORDER BY s.month"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH accounts_at_start AS (\n  SELECT account_id, CAST(month + INTERVAL 1 MONTH AS DATE) AS month\n  FROM mrr_monthly\n  WHERE month >= DATE '2025-01-01' AND month < DATE '2025-08-01'\n)\nSELECT s.month,\n       COUNT(*) AS accounts_at_start,\n       SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) AS churned_accounts,\n       ROUND(100.0 * SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) / COUNT(*), 1) AS logo_churn_pct\nFROM accounts_at_start AS s\nLEFT JOIN mrr_monthly AS m\n  ON m.account_id = s.account_id\n AND m.month = s.month\nGROUP BY s.month\nORDER BY s.month"
+    }
+  ],
+  "hint3_partial": "WITH accounts_at_start AS (\n  -- one row per account and month from February to September 2025: the account had MRR on the last day of the month before\n  SELECT account_id,\n         CAST(month + INTERVAL 1 MONTH AS DATE) AS month\n  FROM mrr_monthly\n  WHERE month >= DATE '2025-01-01'\n    AND month <= DATE '2025-08-01'\n)\nSELECT s.month,\n       COUNT(*) AS accounts_at_start,\n       SUM(CASE WHEN ___ THEN 1 ELSE 0 END) AS churned_accounts,\n       ROUND(100.0 * SUM(CASE WHEN m.account_id IS NULL THEN 1 ELSE 0 END) / COUNT(*), 1) AS logo_churn_pct\nFROM accounts_at_start AS s\n___ JOIN mrr_monthly AS m\n  ON m.account_id = s.account_id\n AND m.month = s.month\nGROUP BY s.month\nORDER BY s.month",
+  "solver": {
+    "prompt_hash": "963d03d18956fb76",
+    "schema_version": "299c09096be7",
+    "dataset_version": "59aa492c652892ff",
+    "grader_version": "8a.1",
+    "query": "WITH months AS (\n  SELECT CAST(unnest(generate_series(DATE '2025-02-01', DATE '2025-09-01', INTERVAL 1 MONTH)) AS DATE) AS month\n)\nSELECT m.month,\n       COUNT(*) AS accounts_at_start,\n       COUNT(*) FILTER (WHERE cur.account_id IS NULL) AS churned_accounts,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE cur.account_id IS NULL) / COUNT(*), 1) AS logo_churn_pct\nFROM months m\nJOIN mrr_monthly p ON p.month = CAST(m.month - INTERVAL 1 MONTH AS DATE)\nLEFT JOIN mrr_monthly cur ON cur.account_id = p.account_id AND cur.month = m.month\nGROUP BY m.month\nORDER BY m.month\n",
+    "at": "2026-10-29T22:26:56.082Z"
+  }
+}

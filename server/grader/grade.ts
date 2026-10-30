@@ -39,7 +39,13 @@ export { INT_DIVISION_NOTE } from './portability.ts';
 // PARTITION BY or ORDER BY diagnoses ERR-SYN-08, not ERR-SYN-01; such a query was an engine error and still is. S7D-06: the order check
 // leaves NULL position free per sort key, not only for all keys at once (composeOrderSql), so an order can only move from fail to pass.
 // S7D-09 changes where the integer division control runs, not what it compares or any grade.
-export const GRADER_VERSION = '7d.1';
+// 8a.1 (sprint 8, Task A1): four changes. S8-08 and S8-C06 (ERRATA E-209): ERR-LOG-44 to ERR-LOG-51, level 6's funnel, period, cohort
+// and MRR mistakes, have feedback, so a key's plant tagged with one diagnoses it with its own text, not ERR-LOG-00's; level 6's keys
+// plant them. S8-09 and S8-C07: a graded query that uses DuckDB's PIVOT (the form with an IN list, which the gate passes as one
+// SELECT) carries the PIVOT note in portability_notes, and one that uses UNPIVOT (also one SELECT) carries the UNPIVOT note. S8-C08: ERR-LOG-18's feedback no longer says the rows are right, as a ranking or
+// LIMIT in the wrong direction picks other rows. Outcomes, diagnosis IDs, the partial score and the logged checks are graded exactly as
+// 7d.1 did; only the feedback text shown with ERR-LOG-18 and the new IDs changes.
+export const GRADER_VERSION = '8a.1';
 const DIFF_LIMIT = 10;
 const KEY_FAILED = 'This exercise could not be checked. Please report it.';
 /** `schemaNotes` give the columns of the item's tables to the portability lint; without them it gives only the `==` note. */

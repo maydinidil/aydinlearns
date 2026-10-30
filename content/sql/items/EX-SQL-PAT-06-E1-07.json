@@ -1,0 +1,147 @@
+{
+  "id": "EX-SQL-PAT-06-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "month_offset",
+    "spine",
+    "activation"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-one-cohort-spine",
+  "template_params": {
+    "cohort": "2025-09",
+    "activity": "activation event",
+    "offsets": "0-3"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For the users who signed up in September 2025, how many were active in each of their first four months? signup_ts and event_ts are UTC instants, so read months in UTC. A user is active in a month with at least one activation event of any kind. The month offset counts calendar months from September 2025: 0 for September itself, up to 3 for December. The as-of date is 5 January 2026, so every month up to December 2025 has ended. A month with no active user shows 0. Return two columns, in this order: month_offset and active_users. Return one row for each month offset from 0 to 3. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_offset",
+        "type_class": "numeric"
+      },
+      {
+        "name": "active_users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_offset",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "active_users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_offset"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list each September user once for every calendar month in which the user had an activation event.",
+    "Count each user once per month, and start from a list of the four offsets so that a month with no activity still shows up with 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 87,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 90,
+      "to": 116,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 126,
+      "to": 226,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 229,
+      "to": 295,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 298,
+      "to": 410,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 413,
+      "to": 468,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 469,
+      "to": 558,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 559,
+      "to": 582,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each user counts once per calendar month, and the list of offsets 0 to 3 keeps a month with no activity at 0."
+}

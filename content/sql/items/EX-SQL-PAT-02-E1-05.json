@@ -1,0 +1,153 @@
+{
+  "id": "EX-SQL-PAT-02-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "row_number",
+    "tie_break",
+    "competitor_prices"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-latest-per-key",
+  "template_params": {
+    "table": "competitor_prices",
+    "key": "product",
+    "scope": "Audio"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Pricing wants the most recent competitor price seen for each product in the Audio parent category. observed_ts holds UTC time. Use each product's latest check, exactly one per product. When two checks of a product tie on observed_ts, the one whose competitor comes first alphabetically is kept. Return four columns, in this order: product_id, competitor, observed_ts and price_eur, from that check. Return one row for each Audio product with a competitor check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each Audio product's checks from the latest down and keep the first.",
+    "The numbering restarts for each product; the stated tie-break is its last sort key."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 69,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 70,
+      "to": 244,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 245,
+      "to": 375,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 376,
+      "to": 411,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 414,
+      "to": 467,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 468,
+      "to": 479,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 480,
+      "to": 492,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Numbering each product's checks from the latest, with the competitor's name as the tie-break, and keeping number 1 leaves one latest check per product."
+}

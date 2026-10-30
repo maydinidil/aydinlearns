@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-PAT-03-E2-06",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "month_to_date",
+    "partial_period",
+    "sales"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-month-to-date",
+  "template_params": {
+    "table": "sales",
+    "period": "month to date"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "A manager checks December 2025 so far on the morning of 15 December 2025, so December's orders run from 1 to 14 December (order dates are UTC days). Compare them with the same days of November, 1 to 14 November 2025, for each parent category. The 1st and the 14th are both included in each period. Return four columns, in this order: parent_category, nov_revenue_eur, dec_revenue_eur and change_eur, December's net revenue minus November's. Return one row for each parent category with sales in either period (a parent category with sales in neither is left out); a period with no sales shows 0. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "nov_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "dec_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "nov_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "dec_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each parent category's revenue for 1 to 14 December and for the same 14 days of November.",
+    "December has only 14 days so far; compare it with 14 days of November, not the whole month, or the drop is only the missing days."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 279,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 280,
+      "to": 513,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 514,
+      "to": 524,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 525,
+      "to": 654,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 655,
+      "to": 679,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "December so far holds 14 days, so the fair comparison is the same 14 days of November; a whole November would make December look lower."
+}

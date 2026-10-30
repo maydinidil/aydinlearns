@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-SAAS-04",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM mrr_monthly AS s\nLEFT JOIN mrr_monthly AS e\n  ON e.account_id = s.account_id AND e.month = DATE '2025-09-01'\nWHERE s.month = DATE '2024-09-01'\n  AND e.account_id IS NULL",
+    "CP4": "WITH base AS (\n  -- one row per account with MRR in September 2024\n  SELECT s.mrr_eur AS start_mrr, COALESCE(e.mrr_eur, 0) AS end_mrr\n  FROM mrr_monthly AS s\n  LEFT JOIN mrr_monthly AS e\n    ON e.account_id = s.account_id AND e.month = DATE '2025-09-01'\n  WHERE s.month = DATE '2024-09-01'\n)\nSELECT ROUND(100.0 * SUM(CASE WHEN end_mrr < start_mrr THEN end_mrr ELSE start_mrr END) / SUM(start_mrr), 1) FROM base"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o0a51c0a",
+      "explanation": "Retention follows the accounts that paid in September 2024, so one that left counts as 0; starting from September 2025's accounts drops the churned ones and inflates both figures."
+    },
+    "CP5": {
+      "correct_oid": "ofcc063d",
+      "explanation": "An NRR above 100 means expansion outweighed churn and contraction in a fixed base, not that no account left; new accounts are in neither figure, and GRR shows what stays without expansion."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "33afaa5e70f97943",
+      "key_hash": "d1509280089946f1",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "d0960c8d3f31a23a",
+      "key_hash": "3c3e6a744744c0a5",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "67cbe9e68e3d15ea",
+      "key_hash": "f6d2fe8dcccb3771",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "31fa9e1af56170c2",
+      "key_hash": "05a95f8845981fe7",
+      "at": "2026-10-29T22:26:59.071Z"
+    }
+  }
+}

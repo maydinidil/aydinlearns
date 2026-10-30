@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-08-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT event_id, user_id, event_ts,\n  epoch(event_ts) - epoch(LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id)) AS gap_seconds\nFROM app_events\nWHERE event_ts >= TIMESTAMPTZ '2025-10-26 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2025-10-27 00:00:00+00'",
+  "alternatives": [
+    "WITH day_events AS (\n  -- one row per app event on 26 October 2025 (UTC)\n  SELECT event_id, user_id, event_ts\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-26 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-10-27 00:00:00+00'\n)\nSELECT e.event_id, e.user_id, e.event_ts,\n  epoch(e.event_ts) - epoch((SELECT MAX(p.event_ts) FROM day_events p\n    WHERE p.user_id = e.user_id AND p.event_ts < e.event_ts)) AS gap_seconds\nFROM day_events e",
+    "SELECT event_id, user_id, event_ts,\n  date_diff('second', LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id), event_ts) AS gap_seconds\nFROM app_events\nWHERE event_ts >= TIMESTAMPTZ '2025-10-26 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2025-10-27 00:00:00+00'"
+  ],
+  "other_way": {
+    "sql": "WITH day_events AS (\n  -- one row per app event on 26 October 2025 (UTC)\n  SELECT event_id, user_id, event_ts\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-26 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-10-27 00:00:00+00'\n)\nSELECT e.event_id, e.user_id, e.event_ts,\n  epoch(e.event_ts) - epoch((SELECT MAX(p.event_ts) FROM day_events p\n    WHERE p.user_id = e.user_id AND p.event_ts < e.event_ts)) AS gap_seconds\nFROM day_events e",
+    "tradeoff": "A subquery that finds the user's latest earlier event works too, but it searches the day again for every event."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT event_id, user_id, event_ts, date_diff('minute', LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id), event_ts) AS gap_seconds FROM app_events WHERE event_ts >= TIMESTAMPTZ '2025-10-26 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-10-27 00:00:00+00'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT event_id, user_id, event_ts, epoch(event_ts) - epoch(LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts DESC, event_id DESC)) AS gap_seconds FROM app_events WHERE event_ts >= TIMESTAMPTZ '2025-10-26 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-10-27 00:00:00+00'"
+    }
+  ],
+  "hint3_partial": "SELECT event_id, user_id, event_ts,\n  epoch(event_ts) - epoch(LAG(event_ts) OVER (PARTITION BY ___ ORDER BY ___)) AS gap_seconds\nFROM app_events\nWHERE event_ts >= TIMESTAMPTZ '2025-10-26 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2025-10-27 00:00:00+00'",
+  "solver": {
+    "prompt_hash": "5c37ed340ba9fd78",
+    "schema_version": "c66411aea2e3",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT event_id, user_id, event_ts, epoch(event_ts - LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id)) AS gap_seconds FROM app_events WHERE event_ts >= TIMESTAMPTZ '2025-10-26 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-10-27 00:00:00+00'\n",
+    "at": "2026-10-28T14:57:09.186Z"
+  }
+}

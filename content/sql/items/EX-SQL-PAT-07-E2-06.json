@@ -1,0 +1,187 @@
+{
+  "id": "EX-SQL-PAT-07-E2-06",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "step_rate",
+    "overall_rate",
+    "leads",
+    "opportunities"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-lead-rates-by-source",
+  "template_params": {
+    "funnel": "lead, opportunity, won",
+    "unit": "contact",
+    "period": "2025",
+    "by": "source"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How does each lead source convert through the 2025 sales funnel? Take the leads created in 2025 (created_at, Brussels local time); a contact counts under every source it had a 2025 lead from. A contact is one email address, compared exactly as stored. A contact counts as with_opportunity when one of its leads from that source has an opportunity, and as won when one of those opportunities is won. The steps need no date order: an opportunity counts whenever it was created, and a won one whenever it closed, even in a later year. Return seven columns, in this order: source, contacts, with_opportunity, won (each a number of contacts), opportunity_rate (with_opportunity over contacts), win_rate (won over with_opportunity) and overall_rate (won over contacts), each rate a fraction between 0 and 1; win_rate is missing for a source with no contact with an opportunity. Return one row for each source. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "contacts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "with_opportunity",
+        "type_class": "numeric"
+      },
+      {
+        "name": "won",
+        "type_class": "numeric"
+      },
+      {
+        "name": "opportunity_rate",
+        "type_class": "numeric"
+      },
+      {
+        "name": "win_rate",
+        "type_class": "numeric"
+      },
+      {
+        "name": "overall_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "contacts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "with_opportunity",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "won",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "opportunity_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "win_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "overall_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "source"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step rates over the step right before each one, and the overall rate over all contacts.",
+    "Count distinct emails at each step; divide the won contacts by the contacts with an opportunity, with NULLIF so a source with none shows missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 92,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 95,
+      "to": 147,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 150,
+      "to": 215,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 218,
+      "to": 322,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 325,
+      "to": 922,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 923,
+      "to": 938,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 939,
+      "to": 954,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Each step rate divides by the step right before it, the overall rate by all contacts, and distinct emails keep a contact with two leads from counting twice."
+}

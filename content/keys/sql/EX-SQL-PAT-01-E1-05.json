@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n),\nranked AS (  -- one row per account\n  SELECT segment, account_id, mrr_eur,\n         RANK() OVER (PARTITION BY segment ORDER BY mrr_eur DESC) AS rnk\n  FROM account_mrr\n)\nSELECT segment, account_id, mrr_eur\nFROM ranked\nWHERE rnk = 1",
+  "alternatives": [
+    "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n)\nSELECT am.segment, am.account_id, am.mrr_eur\nFROM account_mrr am\nWHERE am.mrr_eur = (SELECT MAX(am2.mrr_eur) FROM account_mrr am2 WHERE am2.segment = am.segment)",
+    "SELECT t.segment, t.account_id, t.mrr_eur\nFROM (\n  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur,\n         RANK() OVER (PARTITION BY a.segment ORDER BY SUM(e.mrr_delta_local * f.eur_per_unit) DESC) AS rnk\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n) AS t\nWHERE t.rnk = 1"
+  ],
+  "other_way": {
+    "sql": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n)\nSELECT am.segment, am.account_id, am.mrr_eur\nFROM account_mrr am\nWHERE am.mrr_eur = (SELECT MAX(am2.mrr_eur) FROM account_mrr am2 WHERE am2.segment = am.segment)",
+    "tradeoff": "Matching each account to its segment's highest MRR keeps every tied account with no window, but reads the step twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n), ranked AS (SELECT segment, account_id, mrr_eur, ROW_NUMBER() OVER (PARTITION BY segment ORDER BY mrr_eur DESC, account_id) AS rnk FROM account_mrr) SELECT segment, account_id, mrr_eur FROM ranked WHERE rnk = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n), ranked AS (SELECT segment, account_id, mrr_eur, RANK() OVER (ORDER BY mrr_eur DESC) AS rnk FROM account_mrr) SELECT segment, account_id, mrr_eur FROM ranked WHERE rnk = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n), ranked AS (SELECT segment, account_id, mrr_eur, RANK() OVER (PARTITION BY segment ORDER BY mrr_eur) AS rnk FROM account_mrr) SELECT segment, account_id, mrr_eur FROM ranked WHERE rnk = 1"
+    }
+  ],
+  "hint3_partial": "WITH account_mrr AS (  -- one row per account\n  SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_date <= DATE '2025-12-31'\n  GROUP BY a.segment, a.account_id\n),\nranked AS (  -- one row per account\n  SELECT segment, account_id, mrr_eur,\n         ___() OVER (PARTITION BY segment ORDER BY mrr_eur DESC) AS rnk\n  FROM account_mrr\n)\nSELECT segment, account_id, mrr_eur\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "267ac6611226c4d9",
+    "schema_version": "cd69b2dffbc0",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH m AS (SELECT a.segment, a.account_id, SUM(e.mrr_delta_local * f.eur_per_unit) AS mrr_eur FROM subscription_events e JOIN subscriptions s ON s.subscription_id = e.subscription_id JOIN accounts a ON a.account_id = s.account_id JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31' WHERE e.event_date <= DATE '2025-12-31' GROUP BY a.segment, a.account_id),\nr AS (SELECT segment, account_id, mrr_eur, RANK() OVER (PARTITION BY segment ORDER BY mrr_eur DESC) AS mrr_place FROM m)\nSELECT segment, account_id, mrr_eur FROM r WHERE mrr_place <= 1\n",
+    "at": "2026-10-28T14:56:58.860Z"
+  }
+}

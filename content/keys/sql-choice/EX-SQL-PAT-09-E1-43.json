@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-09-E1-43",
+  "item_version": 1,
+  "correct_oid": "ofcc910c",
+  "explanation": "order_lines.promo_id holds the promotion each line carries, the deeper one when two overlap. promotion_products only says which products a promotion covers, so a product in two overlapping promotions matches both; promotions holds the dates and the discount; the sales view has no promotion column.",
+  "solver": {
+    "prompt_hash": "bca83ae091e82af3",
+    "grader_version": "choice.3",
+    "chosen": "ofcc910c",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.806Z"
+  }
+}

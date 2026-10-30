@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-PAT-02-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "history_table",
+    "price_history"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-latest-version",
+  "template_params": {
+    "table": "price_history",
+    "key": "product",
+    "scope": "Headphones"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "What is the latest price version of each product in the Headphones category: the price_history row with the latest valid_from? valid_from never repeats within a product, so two versions of a product cannot tie. Return three columns, in this order: product_id, valid_from and list_price_eur, from that version. Return one row for each Headphones product with a price version. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each Headphones product's latest valid_from, then keep the price_history row that has it.",
+    "The latest version is picked by its date, never by the highest price."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 62,
+      "to": 112,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 113,
+      "to": 133,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 134,
+      "to": 155,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 158,
+      "to": 212,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 213,
+      "to": 412,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 413,
+      "to": 449,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each product's latest valid_from, joined back to price_history, picks the one current version; valid_from is unique within a product, so no tie-break is needed."
+}

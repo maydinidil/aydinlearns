@@ -8,6 +8,11 @@ not read `logs/` or `tutor-eval/`, and must not download or delete outside the r
 This is the only list of open owner tasks (D119, sprint 7d). The roadmap's "Owner tasks by timing"
 keeps the history.
 
+## For sprint 8
+
+Nothing left. Both downloads are done (2026-10-27). Maven Toy Store's licence line was read from its page by Claude at
+Aydin's request on 2026-10-29: "License: Public Domain", with "Source: Maven Analytics" (S8-16, ERRATA E-213).
+
 ## Before studying more
 
 | Task | Steps | What it closes |

@@ -1,0 +1,172 @@
+{
+  "id": "EX-SQL-PAT-08-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "lag",
+    "activation_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-multi-session-days",
+  "template_params": {
+    "table": "activation_events",
+    "from": "2025-10-01",
+    "to": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Which Mailvora users came back for a second activation session on the same day? Look at the UTC days from 1 October to 31 December 2025 and count each user's session starts on each day, working the gaps out over each user's whole history. A user's first activation event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant. When two events of a user share a moment, take them in event_name order, A to Z. Return three columns, in this order: user_id, event_day (the UTC date) and sessions, the number of sessions that started that day. Return one row for each user and day with 2 or more session starts. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "event_day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "event_day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "user_id",
+      "event_day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, flag the session starts over the whole history, then count them per user and UTC day.",
+    "The 2 or more test runs on the groups, so it belongs after the grouping."
+  ],
+  "subgoals": [
+    {
+      "from": 49,
+      "to": 76,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 77,
+      "to": 163,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 164,
+      "to": 188,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 239,
+      "to": 266,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 267,
+      "to": 375,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 376,
+      "to": 387,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 390,
+      "to": 471,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 472,
+      "to": 484,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 485,
+      "to": 593,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 594,
+      "to": 634,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 635,
+      "to": 663,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Each session start is flagged once, so summing the flags per user and day counts that day's sessions, and HAVING keeps the repeat days."
+}

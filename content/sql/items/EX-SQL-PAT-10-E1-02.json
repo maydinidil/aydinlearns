@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-PAT-10-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "balance",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-mrr-on-date",
+  "template_params": {
+    "table": "subscription_events",
+    "date": "2025-06-30"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "What was LedgerLoop's MRR on 30 June 2025, in each currency? MRR comes from subscription_events: a subscription's MRR on a date is the sum of its mrr_delta_local with event_date on or before that date, in its subscriptions.currency. Every event counts, opening events included, because the opening events hold the MRR that existed on 1 January 2024. Return two columns, in this order: currency and mrr_local. Return one row for each currency. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "currency",
+        "type_class": "text"
+      },
+      {
+        "name": "mrr_local",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per currency"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "currency",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_local",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "currency"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up every event up to and including 30 June 2025, per currency.",
+    "The MRR on a date is a running balance: every change on or before that day counts, including the opening ones."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 54,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 55,
+      "to": 81,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 82,
+      "to": 143,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 144,
+      "to": 183,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 184,
+      "to": 203,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Summing every change up to the date gives the balance on that date, and subscriptions.mrr_local only holds today's value."
+}

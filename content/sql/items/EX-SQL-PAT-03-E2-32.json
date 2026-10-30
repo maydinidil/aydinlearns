@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-PAT-03-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "month_to_date",
+    "partial_period",
+    "support_tickets",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-fix-partial-month",
+  "template_params": {
+    "table": "support_tickets",
+    "period": "month to date"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: support wants December 2025 so far, the tickets opened from 1 to 15 December, against the same days of November 2025, 1 to 15 November. opened_at holds Brussels time, and both days are included in each period. Return four columns, in this order: category, nov_tickets, dec_tickets and change_tickets, December's count minus November's. Return one row for each category with a ticket in either period; a period with no tickets shows 0. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category",
+        "type_class": "text"
+      },
+      {
+        "name": "nov_tickets",
+        "type_class": "numeric"
+      },
+      {
+        "name": "dec_tickets",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_tickets",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "nov_tickets",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "dec_tickets",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "change_tickets",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the November period: does it cover the same days as December so far?",
+    "December so far is 15 days; a whole November has 30, so its count is bigger only because it is longer."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 352,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 353,
+      "to": 373,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 374,
+      "to": 575,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 576,
+      "to": 593,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT category,\n  COUNT(*) FILTER (WHERE opened_at < TIMESTAMP '2025-12-01 00:00:00') AS nov_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00') AS dec_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00')\n    - COUNT(*) FILTER (WHERE opened_at < TIMESTAMP '2025-12-01 00:00:00') AS change_tickets\nFROM support_tickets\nWHERE (opened_at >= TIMESTAMP '2025-11-01 00:00:00' AND opened_at < TIMESTAMP '2025-12-01 00:00:00')\n   OR (opened_at >= TIMESTAMP '2025-12-01 00:00:00' AND opened_at < TIMESTAMP '2025-12-16 00:00:00')\nGROUP BY category",
+  "starter_error_id": "ERR-LOG-48",
+  "time_target_ms": 240000,
+  "why_this_works": "Both periods now hold the same 15 days, so the change shows a real difference and not the 15 days December has not had yet."
+}

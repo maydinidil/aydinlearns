@@ -1,0 +1,95 @@
+{
+  "schema": "ledgerloop_edge_cases",
+  "mirrors": "ledgerloop",
+  "family": "saas",
+  "contains": [
+    "MRR that falls in March 2025 and in August 2025, when accounts churn",
+    "accounts that bill in CHF and in GBP beside EUR, converted at the 31 December 2025 rate while the month-end rates move",
+    "an account with MRR at the end of December 2024 only, which churns in January 2025",
+    "logo churn in March, May and August 2025 from different numbers of accounts at the start, and no churn in the other months from February to September 2025",
+    "an account created in January 2025 that churns in March 2025 and comes back in June 2025 on a new subscription",
+    "an account that churns on 17 June 2025 and comes back on 28 June 2025, so it has MRR at both month ends",
+    "new, expansion, contraction, churn and reactivation MRR from July to September 2025",
+    "an account that churned in January 2024 and comes back in August 2025, so its first month in mrr_monthly is a comeback, not new",
+    "accounts of each segment with MRR in September 2024, some of them with none in September 2025",
+    "accounts that end September 2025 above their September 2024 MRR, beside accounts of the same segment that lose MRR",
+    "an account created before October 2024 with no MRR in September 2024, and accounts that start after September 2024",
+    "new accounts in January, February, March, May, July, August and September 2025, each created after the first day of its month",
+    "a cohort account that churns in August 2025, and cohorts of July to September 2025 whose month 6 comes after December 2025",
+    "cost of revenue, paid media and other sales and marketing costs in every month, the shared rows included",
+    "lead sources with leads in the first half of 2025 and no paid media spend: organic, outbound and partner",
+    "lead sources with leads in the first half of 2025 and no won deal, one of them with spend",
+    "a lead created in June 2025 whose opportunity is created on 1 July and won on 15 July 2025",
+    "leads with no opportunity, two of them with the same email, and an opportunity that is still open",
+    "leads created before and after the first half of 2025"
+  ],
+  "tables": {
+    "accounts": [
+      "an account created in January 2025 that churns in March 2025 and comes back in June 2025 on a new subscription",
+      "an account that churned in January 2024 and comes back in August 2025, so its first month in mrr_monthly is a comeback, not new",
+      "accounts of each segment with MRR in September 2024, some of them with none in September 2025",
+      "accounts that end September 2025 above their September 2024 MRR, beside accounts of the same segment that lose MRR",
+      "an account created before October 2024 with no MRR in September 2024, and accounts that start after September 2024",
+      "new accounts in January, February, March, May, July, August and September 2025, each created after the first day of its month",
+      "a cohort account that churns in August 2025, and cohorts of July to September 2025 whose month 6 comes after December 2025"
+    ],
+    "subscriptions": [
+      "accounts that bill in CHF and in GBP beside EUR, converted at the 31 December 2025 rate while the month-end rates move",
+      "an account with MRR at the end of December 2024 only, which churns in January 2025",
+      "an account created in January 2025 that churns in March 2025 and comes back in June 2025 on a new subscription",
+      "an account that churns on 17 June 2025 and comes back on 28 June 2025, so it has MRR at both month ends",
+      "an account that churned in January 2024 and comes back in August 2025, so its first month in mrr_monthly is a comeback, not new"
+    ],
+    "subscription_events": [
+      "MRR that falls in March 2025 and in August 2025, when accounts churn",
+      "an account with MRR at the end of December 2024 only, which churns in January 2025",
+      "logo churn in March, May and August 2025 from different numbers of accounts at the start, and no churn in the other months from February to September 2025",
+      "an account created in January 2025 that churns in March 2025 and comes back in June 2025 on a new subscription",
+      "an account that churns on 17 June 2025 and comes back on 28 June 2025, so it has MRR at both month ends",
+      "new, expansion, contraction, churn and reactivation MRR from July to September 2025",
+      "an account that churned in January 2024 and comes back in August 2025, so its first month in mrr_monthly is a comeback, not new",
+      "accounts that end September 2025 above their September 2024 MRR, beside accounts of the same segment that lose MRR",
+      "a cohort account that churns in August 2025, and cohorts of July to September 2025 whose month 6 comes after December 2025"
+    ],
+    "fx_rates": [
+      "accounts that bill in CHF and in GBP beside EUR, converted at the 31 December 2025 rate while the month-end rates move"
+    ],
+    "mrr_monthly": [
+      "MRR that falls in March 2025 and in August 2025, when accounts churn",
+      "accounts that bill in CHF and in GBP beside EUR, converted at the 31 December 2025 rate while the month-end rates move",
+      "an account with MRR at the end of December 2024 only, which churns in January 2025",
+      "logo churn in March, May and August 2025 from different numbers of accounts at the start, and no churn in the other months from February to September 2025",
+      "an account created in January 2025 that churns in March 2025 and comes back in June 2025 on a new subscription",
+      "an account that churns on 17 June 2025 and comes back on 28 June 2025, so it has MRR at both month ends",
+      "new, expansion, contraction, churn and reactivation MRR from July to September 2025",
+      "an account that churned in January 2024 and comes back in August 2025, so its first month in mrr_monthly is a comeback, not new",
+      "accounts of each segment with MRR in September 2024, some of them with none in September 2025",
+      "accounts that end September 2025 above their September 2024 MRR, beside accounts of the same segment that lose MRR",
+      "an account created before October 2024 with no MRR in September 2024, and accounts that start after September 2024",
+      "a cohort account that churns in August 2025, and cohorts of July to September 2025 whose month 6 comes after December 2025"
+    ],
+    "marketing_spend_monthly": [
+      "cost of revenue, paid media and other sales and marketing costs in every month, the shared rows included",
+      "lead sources with leads in the first half of 2025 and no paid media spend: organic, outbound and partner",
+      "lead sources with leads in the first half of 2025 and no won deal, one of them with spend"
+    ],
+    "cogs_monthly": [
+      "cost of revenue, paid media and other sales and marketing costs in every month, the shared rows included"
+    ],
+    "sm_expense_monthly": [
+      "cost of revenue, paid media and other sales and marketing costs in every month, the shared rows included"
+    ],
+    "leads": [
+      "lead sources with leads in the first half of 2025 and no paid media spend: organic, outbound and partner",
+      "lead sources with leads in the first half of 2025 and no won deal, one of them with spend",
+      "a lead created in June 2025 whose opportunity is created on 1 July and won on 15 July 2025",
+      "leads with no opportunity, two of them with the same email, and an opportunity that is still open",
+      "leads created before and after the first half of 2025"
+    ],
+    "opportunities": [
+      "lead sources with leads in the first half of 2025 and no won deal, one of them with spend",
+      "a lead created in June 2025 whose opportunity is created on 1 July and won on 15 July 2025",
+      "leads with no opportunity, two of them with the same email, and an opportunity that is still open"
+    ]
+  }
+}

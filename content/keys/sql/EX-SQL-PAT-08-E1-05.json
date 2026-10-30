@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-08-E1-05",
+  "item_version": 1,
+  "reference_sql": "WITH gaps AS (\n  -- one row per activation event\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS prev_ts\n  FROM activation_events\n)\nSELECT CAST(event_ts AS DATE) AS session_day, COUNT(*) AS sessions\nFROM gaps\nWHERE (prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes')\n  AND event_ts >= TIMESTAMPTZ '2025-10-13 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2025-10-20 00:00:00+00'\nGROUP BY CAST(event_ts AS DATE)",
+  "alternatives": [
+    "WITH flagged AS (\n  -- one row per activation event\n  SELECT event_ts,\n    CASE WHEN LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) IS NULL\n      OR event_ts - LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM activation_events\n)\nSELECT CAST(event_ts AS DATE) AS session_day, SUM(new_session) AS sessions\nFROM flagged\nWHERE event_ts >= TIMESTAMPTZ '2025-10-13 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2025-10-20 00:00:00+00'\nGROUP BY CAST(event_ts AS DATE)\nHAVING SUM(new_session) > 0",
+    "SELECT CAST(e.event_ts AS DATE) AS session_day, COUNT(*) AS sessions\nFROM activation_events e\nWHERE e.event_ts >= TIMESTAMPTZ '2025-10-13 00:00:00+00'\n  AND e.event_ts < TIMESTAMPTZ '2025-10-20 00:00:00+00'\n  AND NOT EXISTS (\n    SELECT 1 FROM activation_events p\n    WHERE p.user_id = e.user_id\n      AND (p.event_ts < e.event_ts OR (p.event_ts = e.event_ts AND p.event_name < e.event_name))\n      AND p.event_ts >= e.event_ts - INTERVAL '30 minutes'\n  )\nGROUP BY CAST(e.event_ts AS DATE)"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(e.event_ts AS DATE) AS session_day, COUNT(*) AS sessions\nFROM activation_events e\nWHERE e.event_ts >= TIMESTAMPTZ '2025-10-13 00:00:00+00'\n  AND e.event_ts < TIMESTAMPTZ '2025-10-20 00:00:00+00'\n  AND NOT EXISTS (\n    SELECT 1 FROM activation_events p\n    WHERE p.user_id = e.user_id\n      AND (p.event_ts < e.event_ts OR (p.event_ts = e.event_ts AND p.event_name < e.event_name))\n      AND p.event_ts >= e.event_ts - INTERVAL '30 minutes'\n  )\nGROUP BY CAST(e.event_ts AS DATE)",
+    "tradeoff": "NOT EXISTS finds the events with no earlier event of the user in the 30 minutes before, which reads well but runs slower than LAG."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH gaps AS (SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (ORDER BY event_ts, event_name) AS prev_ts FROM activation_events) SELECT CAST(event_ts AS DATE) AS session_day, COUNT(*) AS sessions FROM gaps WHERE (prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes') AND event_ts >= TIMESTAMPTZ '2025-10-13 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-10-20 00:00:00+00' GROUP BY CAST(event_ts AS DATE)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "WITH gaps AS (SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS prev_ts FROM activation_events) SELECT CAST(event_ts AS DATE) AS session_day, COUNT(*) AS sessions FROM gaps WHERE event_ts - prev_ts > INTERVAL '30 minutes' AND event_ts >= TIMESTAMPTZ '2025-10-13 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-10-20 00:00:00+00' GROUP BY CAST(event_ts AS DATE)"
+    }
+  ],
+  "hint3_partial": "WITH gaps AS (\n  -- one row per activation event\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS prev_ts\n  FROM activation_events\n)\nSELECT CAST(event_ts AS DATE) AS session_day, COUNT(*) AS sessions\nFROM gaps\nWHERE (___)\n  AND event_ts >= TIMESTAMPTZ '2025-10-13 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2025-10-20 00:00:00+00'\nGROUP BY CAST(event_ts AS DATE)",
+  "solver": {
+    "prompt_hash": "d70159e986258ad1",
+    "schema_version": "274493673e20",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH f AS (SELECT user_id, event_ts, event_name, CASE WHEN LAG(event_ts) OVER w IS NULL OR event_ts - LAG(event_ts) OVER w > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS ns FROM activation_events WINDOW w AS (PARTITION BY user_id ORDER BY event_ts, event_name)),\ns AS (SELECT *, SUM(ns) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS sn FROM f),\nss AS (SELECT user_id, sn, MIN(event_ts) AS st, COUNT(*) AS n FROM s GROUP BY user_id, sn) SELECT CAST(st AT TIME ZONE 'UTC' AS DATE) AS session_day, COUNT(*) AS sessions FROM ss WHERE st >= TIMESTAMPTZ '2025-10-13 00:00:00+00' AND st < TIMESTAMPTZ '2025-10-20 00:00:00+00' GROUP BY 1\n",
+    "at": "2026-10-28T14:57:09.715Z"
+  }
+}

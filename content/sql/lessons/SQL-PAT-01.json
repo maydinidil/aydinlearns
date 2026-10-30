@@ -1,0 +1,184 @@
+{
+  "concept_id": "SQL-PAT-01",
+  "version": 1,
+  "reading_md": "## Top N per group\n\n\"The 3 best-selling products of each category\" is one of the most asked screening questions. It takes three steps:\n\n1. **Add up first.** Work out the measure at the grain you rank: one row per product, with its revenue for the period. Ranking order lines before adding them up picks the biggest single line, not the best product.\n2. **Number the rows inside each group.** A ranking window with PARTITION BY restarts the numbers in every group, ordered by the measure.\n3. **Keep the first N in an outer query.** The window runs after WHERE, so filter its number in the query that reads the CTE.\n\n```sql\nWITH product_rev AS (  -- one row per product with sales in 2025\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product with sales in 2025\n  SELECT category_name, product_id, revenue,\n         ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id) AS rn\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rn <= 3;\n```\n\n### The tie rule picks the function\n\n- \"Exactly 3 per category; when products tie, the lower product_id comes first\": ROW_NUMBER, with that tie-break as the last sort key.\n- \"Tied products share a place\": RANK. A tie for third keeps a fourth row.\n\nThe wrong one gives the same rows until the data holds a tie at the cutoff, so read the tie rule first.\n\n### Two classic slips\n\n- **One LIMIT for every group.** `ORDER BY revenue DESC LIMIT 3` keeps 3 rows in all, not 3 per category. A window with no PARTITION BY makes the same mistake.\n- **No tie rule.** ROW_NUMBER without a tie-break leaves the pick between tied rows to chance, so the result can change between runs.\n\n### Per group and per period\n\nFor the leader of each category in each quarter, put both in the partition: `PARTITION BY qtr, category_name`. Each pair gets its own numbering.\n\n### Top N plus \"All other\"\n\nCharts often show the top 3 and one row for the rest. Number once, keep `rn <= 3` as rows of their own, add up `rn > 3` per group into an \"All other\" row, and stack the two with UNION ALL.\n\n### Shares need the whole group\n\nA product's share of its category must be worked out before the filter: `SUM(revenue) OVER (PARTITION BY category_name)` in the ranked step sees every product, while a total taken after `rn <= 3` sees only the top 3.",
+  "syntax_md": "```sql\nWITH ranked AS (                                   -- one row per item at the grain you rank\n  SELECT grp, item_id, measure,\n         ROW_NUMBER() OVER (PARTITION BY grp       -- restart in each group\n                            ORDER BY measure DESC, item_id) AS rn  -- order, then the tie-break\n  FROM measured\n)\nSELECT grp, item_id, measure\nFROM ranked\nWHERE rn <= 3;                                     -- keep the first 3 of every group\n```\n\n- Exactly N per group: ROW_NUMBER with the stated tie-break last.\n- Tied rows share a place: RANK, kept where it is N or less.\n- Filter the number in the outer query, never in the WHERE beside the window.",
+  "dialect_note": "DuckDB and BigQuery can filter a window in place with QUALIFY, such as `QUALIFY ROW_NUMBER() OVER (...) <= 3`; PostgreSQL and SQLite have no QUALIFY. A CTE or a derived table with the filter in the outer query runs on all of them, so the keys here use that form.",
+  "worked_examples": [
+    {
+      "title": "The three best-selling products of each category",
+      "prompt": "Which 3 products of each category earned the most net revenue in 2025 (order_date from 1 January to 31 December 2025)? Keep exactly 3 per category; when products tie on revenue, the lower product_id comes first. Return category_name, product_id and revenue.",
+      "clauses": [
+        {
+          "text": "WITH product_rev AS (  -- one row per product with sales in 2025",
+          "subgoal": "source_grain",
+          "why": "The first step adds up before anything is ranked; the comment names its grain."
+        },
+        {
+          "text": "SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue",
+          "subgoal": "metrics",
+          "why": "Each product's 2025 revenue, the measure the ranking sorts by."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "One row per order line."
+        },
+        {
+          "text": "WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'",
+          "subgoal": "row_filter",
+          "why": "Both ends of 2025, the end left open so the last day counts whole."
+        },
+        {
+          "text": "GROUP BY category_name, product_id),",
+          "subgoal": "output_grain",
+          "why": "One row per product, so the ranking compares products, not order lines."
+        },
+        {
+          "text": "ranked AS (  -- one row per product with sales in 2025",
+          "subgoal": "source_grain",
+          "why": "The second step keeps every product and adds its number."
+        },
+        {
+          "text": "SELECT category_name, product_id, revenue, ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id) AS rn",
+          "subgoal": "metrics",
+          "why": "The number restarts in each category, highest revenue first, and product_id splits a tie."
+        },
+        {
+          "text": "FROM product_rev)",
+          "subgoal": "source_grain",
+          "why": "It reads the added-up step."
+        },
+        {
+          "text": "SELECT category_name, product_id, revenue",
+          "subgoal": "metrics",
+          "why": "The columns asked for; rn has done its job."
+        },
+        {
+          "text": "FROM ranked",
+          "subgoal": "source_grain",
+          "why": "The outer query reads the numbered step."
+        },
+        {
+          "text": "WHERE rn <= 3",
+          "subgoal": "row_filter",
+          "why": "The filter runs after the window and keeps 3 per category."
+        }
+      ]
+    },
+    {
+      "title": "Each channel's campaign with the most impressions, ties kept",
+      "prompt": "Which campaign of each channel had the most impressions in 2025 (spend_date from 1 January to 31 December 2025)? Campaigns of a channel that tie for the most share the place. Return channel_name, campaign_id and impressions.",
+      "clauses": [
+        {
+          "text": "WITH campaign_imp AS (  -- one row per campaign with spend in 2025",
+          "subgoal": "source_grain",
+          "why": "Impressions are added up per campaign before anything is ranked."
+        },
+        {
+          "text": "SELECT ch.channel_name, c.campaign_id, SUM(a.impressions) AS impressions",
+          "subgoal": "metrics",
+          "why": "Each campaign's 2025 impressions, with its channel."
+        },
+        {
+          "text": "FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id JOIN channels ch ON ch.channel_id = c.channel_id",
+          "subgoal": "source_grain",
+          "why": "One row per campaign and day, joined to the campaign and its channel."
+        },
+        {
+          "text": "WHERE a.spend_date >= DATE '2025-01-01' AND a.spend_date < DATE '2026-01-01'",
+          "subgoal": "row_filter",
+          "why": "Both ends of 2025."
+        },
+        {
+          "text": "GROUP BY ch.channel_name, c.campaign_id),",
+          "subgoal": "output_grain",
+          "why": "One row per campaign."
+        },
+        {
+          "text": "ranked AS (  -- one row per campaign with spend in 2025",
+          "subgoal": "source_grain",
+          "why": "Every campaign, with its place."
+        },
+        {
+          "text": "SELECT channel_name, campaign_id, impressions, RANK() OVER (PARTITION BY channel_name ORDER BY impressions DESC) AS rnk",
+          "subgoal": "metrics",
+          "why": "RANK gives tied campaigns the same place, so a tie for the top keeps both."
+        },
+        {
+          "text": "FROM campaign_imp)",
+          "subgoal": "source_grain",
+          "why": "It reads the added-up step."
+        },
+        {
+          "text": "SELECT channel_name, campaign_id, impressions",
+          "subgoal": "metrics",
+          "why": "The columns asked for."
+        },
+        {
+          "text": "FROM ranked",
+          "subgoal": "source_grain",
+          "why": "The outer query reads the ranked step."
+        },
+        {
+          "text": "WHERE rnk = 1",
+          "subgoal": "row_filter",
+          "why": "Every campaign in first place, tied ones included."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-PAT-01-E1-01",
+    "EX-SQL-PAT-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-PAT-01-E1-03",
+    "EX-SQL-PAT-01-E1-04",
+    "EX-SQL-PAT-01-E2-01",
+    "EX-SQL-PAT-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-PAT-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-PAT-01-E1-06",
+    "EX-SQL-PAT-01-E1-07",
+    "EX-SQL-PAT-01-E2-03",
+    "EX-SQL-PAT-01-E2-04",
+    "EX-SQL-PAT-01-E2-05",
+    "EX-SQL-PAT-01-E2-06",
+    "EX-SQL-PAT-01-E3-01",
+    "EX-SQL-PAT-01-E3-02",
+    "EX-SQL-PAT-01-E2-31",
+    "EX-SQL-PAT-01-E2-32",
+    "EX-SQL-PAT-01-E1-42",
+    "EX-SQL-PAT-01-E2-41",
+    "EX-SQL-PAT-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "why_clause": {
+    "clause": "SELECT category_name, product_id, revenue, ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id) AS rn",
+    "stem": "Why does the window say PARTITION BY category_name?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So the result comes out grouped and sorted by category."
+      },
+      {
+        "id": "b",
+        "text": "So the numbering starts again at 1 in every category, and rn <= 3 keeps 3 products of each one."
+      },
+      {
+        "id": "c",
+        "text": "Because ROW_NUMBER can only number rows that a GROUP BY has grouped."
+      },
+      {
+        "id": "d",
+        "text": "So two products of a category with the same revenue get the same number."
+      }
+    ],
+    "correct_id": "b",
+    "explanation": "PARTITION BY splits the rows into one window per category, and the numbering restarts in each, so the outer filter keeps the top 3 of every category. Without it the numbers run over all products at once, and rn <= 3 keeps 3 rows in all. The window does not sort the result, ROW_NUMBER needs no GROUP BY, and sharing a number on a tie is what RANK does, not ROW_NUMBER."
+  }
+}

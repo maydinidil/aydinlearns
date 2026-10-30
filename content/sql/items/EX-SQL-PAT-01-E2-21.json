@@ -1,0 +1,176 @@
+{
+  "id": "EX-SQL-PAT-01-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "top_n_per_group",
+    "rank",
+    "ties_share",
+    "sales"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-PAT-01"
+  ],
+  "template_id": "T-PAT-01-top-n-ties-share",
+  "template_params": {
+    "table": "sales",
+    "group": "store",
+    "n": 3,
+    "measure": "units 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Which products make the top 3 of each store by units sold in 2025? Use the sales rows whose order_date falls in 2025 (order_date is a UTC day). Products that tie on units share a place, and the next place skips the places they use, so a tie for third keeps a fourth product. Return four columns, in this order: store_code, product_id, units (the product's 2025 units in that store) and place, its place in the store from 1 for the most units. Return one row for each store and product with a place of 3 or better. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "place",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "place",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code",
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, rank each store's products by their 2025 units with a ranking that lets tied products share a place.",
+    "Return the ranking as place and keep the places of 3 or better in an outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 127,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 128,
+      "to": 140,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 141,
+      "to": 215,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 216,
+      "to": 249,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 253,
+      "to": 317,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 318,
+      "to": 433,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 434,
+      "to": 452,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 455,
+      "to": 498,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 499,
+      "to": 510,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 511,
+      "to": 527,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "RANK gives tied products one place and skips after them, so place <= 3 keeps every product tied into a store's top 3."
+}

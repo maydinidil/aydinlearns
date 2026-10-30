@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-PAT-03-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "month_over_month",
+    "percent_change",
+    "ad_spend_daily"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-mom-pct",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each month from January to December 2025, show Mailvora's total ad spend and how much it changed from the previous calendar month, as a percentage of the previous month's spend (12.5 for 12.5%), rounded to 1 decimal. Spend days are UTC days. Every month of 2025 has spend. Only 2025 counts, so January shows change_pct as missing. Return three columns, in this order: month (the first day of the month), spend_eur and change_pct. Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "change_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total the spend per month, then put the previous month's spend beside each month.",
+    "Divide the difference by the previous month's spend, not this month's, and scale it to a percentage before rounding."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 453,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 454,
+      "to": 478,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 479,
+      "to": 558,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 559,
+      "to": 572,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The earlier month is the base: the difference over last month's spend, times 100, is the percentage change."
+}

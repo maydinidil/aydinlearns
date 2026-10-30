@@ -1,0 +1,170 @@
+{
+  "id": "EX-SQL-PAT-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "top_n_per_group",
+    "row_number",
+    "tie_break",
+    "ad_spend_daily"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-PAT-01"
+  ],
+  "template_id": "T-PAT-01-top-n-per-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "n": 2,
+    "measure": "spend 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Which 2 campaigns of each channel spent the most in 2025? Use the ad_spend_daily rows whose spend_date, a UTC day, falls in 2025; spend is in euros. Keep exactly 2 campaigns per channel, or every campaign when a channel spent on fewer than 2. When campaigns of a channel tie on spend, the campaign_name that comes first alphabetically comes first. Return three columns, in this order: channel_name, campaign_name and spend, the campaign's 2025 spend. Return one row for each campaign kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text"
+      },
+      {
+        "name": "campaign_name",
+        "type_class": "text"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per campaign kept"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the outer query that keeps each channel's first 2 campaigns by the number.",
+    "The number restarts for each channel; compare it in the WHERE of the query that reads the numbered step."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 68,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 69,
+      "to": 133,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 134,
+      "to": 260,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 261,
+      "to": 339,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 340,
+      "to": 383,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 387,
+      "to": 442,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 443,
+      "to": 583,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 584,
+      "to": 605,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 608,
+      "to": 649,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 650,
+      "to": 661,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 662,
+      "to": 675,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 608,
+    "stage2": 488
+  },
+  "faded_shape": "WITH campaign_spend AS (  -- one row per campaign with spend in 2025\n  SELECT ch.channel_name, c.campaign_name, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  JOIN channels ch ON ch.channel_id = c.channel_id\n  WHERE a.spend_date >= DATE '2025-01-01' AND a.spend_date < DATE '2026-01-01'\n  GROUP BY ch.channel_name, c.campaign_name\n),\nranked AS (  -- one row per campaign with spend in 2025\n  SELECT channel_name, campaign_name, spend,\n         ROW_NUMBER() OVER (PARTITION BY channel_name ORDER BY spend DESC, campaign_name) AS rn\n  FROM campaign_spend\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "ROW_NUMBER numbers each channel's campaigns apart, the biggest spender first and the name settling a tie, so rn <= 2 keeps 2 per channel."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-10-E1-42",
+  "item_version": 1,
+  "value": 1656,
+  "explanation": "range runs from 1 February 2025 up to, but not including, 1 February 2026: 12 month starts, each moved back a day to the month end before, from 31 January to 31 December 2025. Every one of the 138 accounts gets all 12 month ends, so 138 times 12 is 1,656 rows, a spine with a row even for a month with no subscription.",
+  "solver": {
+    "prompt_hash": "1dd4132b2db223c4",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "1656",
+    "at": "2026-10-28T14:57:24.812Z"
+  }
+}

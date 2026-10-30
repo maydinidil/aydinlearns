@@ -1,0 +1,123 @@
+{
+  "concept_id": "SQL-PAT-04",
+  "version": 1,
+  "reading_md": "## A full list of dates first\n\nGROUP BY makes groups only from rows that exist. A day with no orders has no row, so it does not show up as 0: it does not show up at all. A chart skips the gap without a sign, an average per day divides by too few days, and LAG reads the wrong neighbour (`ERR-LOG-39`).\n\nThe fix is a **date spine**: a list with one row for every period, which the facts are joined to.\n\n### Where a spine comes from\n\n- **`calendar`** (Voltmarkt): one row per day, with `week_start` and `month_start`. `SELECT DISTINCT month_start` gives the months.\n- **`range()`** makes a list on any schema: `range(DATE '2025-03-01', DATE '2025-03-15', INTERVAL 1 DAY)` gives 1 to 14 March. The end is left out. Its column is called `range` and holds a TIMESTAMP, so cast it to DATE.\n- **`generate_series()`** is the same, but keeps the end.\n- A table that already has every period, such as Mailvora's `budget_monthly` (every paid channel, every month).\n\nMake the spine cover the question's whole period, and no more.\n\n### Join the facts to the spine\n\n```sql\nSELECT d.day, COALESCE(o.orders, 0) AS orders\nFROM days d\nLEFT JOIN daily o ON o.day = d.day\n```\n\n- Start **from the spine** and use **LEFT JOIN**, so every period stays. An inner join drops the periods with no rows again.\n- A period with no facts gets a missing value. **COALESCE(x, 0)** turns it into 0 when the question counts it as 0 (`ERR-LOG-17`).\n- Counting straight off the join? Use `COUNT(o.order_id)`, never `COUNT(*)`: the spine row itself would count as 1.\n\n### Match the grain\n\nAdd the facts up to the spine's grain first (a daily total for a day spine, a weekly total for a week spine). A weekly total joined to a day spine repeats on seven rows (`ERR-LOG-01`), and a spine at another grain than the facts gives rows that mean something else (`ERR-LOG-07`).\n\n### Grids\n\nFor \"every store and every day\", CROSS JOIN the stores to the days, then LEFT JOIN the facts on both columns.\n\n### Moving averages need a spine\n\n`ROWS BETWEEN 6 PRECEDING AND CURRENT ROW` is 7 rows. Over a spine with 0 on days with no rows, 7 rows are 7 days. Without one, 7 rows can stretch over two weeks. Start the spine six days before the first day you report, so that day's window is full, and filter after the window.",
+  "syntax_md": "```sql\nWITH days AS (                                   -- the spine: one row per day\n  SELECT CAST(range AS DATE) AS day\n  FROM range(DATE '2025-03-01', DATE '2025-03-15', INTERVAL 1 DAY)\n), daily AS (                                    -- the facts at the same grain\n  SELECT CAST(order_ts AS DATE) AS day, COUNT(*) AS orders\n  FROM orders\n  GROUP BY CAST(order_ts AS DATE)\n)\nSELECT d.day, COALESCE(o.orders, 0) AS orders  -- missing becomes 0\nFROM days d                                     -- start from the spine\nLEFT JOIN daily o ON o.day = d.day;             -- keep every day\n```\n\n- `range(start, end, step)` leaves out the end; `generate_series` keeps it.\n- On Voltmarkt, `calendar` is a ready day spine; `budget_monthly` is one on Mailvora.\n- Grid: `FROM stores s CROSS JOIN days d LEFT JOIN facts f ON f.store_id = s.store_id AND f.day = d.day`.",
+  "dialect_note": "`range()` and `generate_series()` are DuckDB's; PostgreSQL has `generate_series(start, end, interval)` too, and BigQuery uses `UNNEST(GENERATE_DATE_ARRAY(start, end))`. A calendar table works everywhere, which is why many warehouses keep one.",
+  "worked_examples": [
+    {
+      "title": "Daily orders with zero days",
+      "prompt": "For each day from 15 to 28 February 2025, count Voltmarkt's orders by UTC day. Every day has a row, and a day with no orders shows 0.",
+      "clauses": [
+        {
+          "text": "WITH days AS (SELECT cal_date AS day FROM calendar WHERE cal_date BETWEEN DATE '2025-02-15' AND DATE '2025-02-28')  -- one row per day of the range",
+          "subgoal": "source_grain",
+          "why": "The spine: one row for every day of the range, with or without orders."
+        },
+        {
+          "text": ", daily AS (SELECT CAST(order_ts AS DATE) AS day, COUNT(*) AS orders FROM orders GROUP BY CAST(order_ts AS DATE))  -- one row per day with orders",
+          "subgoal": "source_grain",
+          "why": "The facts added up to the same grain as the spine: one row per day that had orders."
+        },
+        {
+          "text": "SELECT d.day, COALESCE(o.orders, 0) AS orders",
+          "subgoal": "metrics",
+          "why": "A day with no orders gets a missing count from the join; COALESCE shows it as 0, as the question asks."
+        },
+        {
+          "text": "FROM days d",
+          "subgoal": "source_grain",
+          "why": "Start from the spine, so its days decide the rows."
+        },
+        {
+          "text": "LEFT JOIN daily o ON o.day = d.day",
+          "subgoal": "source_grain",
+          "why": "LEFT JOIN keeps every day; an inner join would drop the days with no orders again."
+        }
+      ]
+    },
+    {
+      "title": "Clicks for every budgeted channel and month",
+      "prompt": "For each paid channel and month of 2025 in budget_monthly, show the clicks, with 0 for a month the channel had no spend.",
+      "clauses": [
+        {
+          "text": "WITH clicked AS (SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.clicks) AS clicks FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE))  -- one row per channel and month with spend",
+          "subgoal": "source_grain",
+          "why": "Clicks added up to the spine's grain: one row per channel and month."
+        },
+        {
+          "text": "SELECT b.channel_id, b.month, COALESCE(k.clicks, 0) AS clicks",
+          "subgoal": "metrics",
+          "why": "Every budget row with its clicks, and 0 where the channel had no spend."
+        },
+        {
+          "text": "FROM budget_monthly b",
+          "subgoal": "source_grain",
+          "why": "budget_monthly already has a row for every paid channel and month: it is the spine."
+        },
+        {
+          "text": "LEFT JOIN clicked k ON k.channel_id = b.channel_id AND k.month = b.month",
+          "subgoal": "source_grain",
+          "why": "Match on both columns of the grain, and keep the months with no spend."
+        },
+        {
+          "text": "WHERE b.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
+          "subgoal": "row_filter",
+          "why": "Keep the spine to the period asked, and no more."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-PAT-04-E1-01",
+    "EX-SQL-PAT-04-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-PAT-04-E1-03",
+    "EX-SQL-PAT-04-E1-04",
+    "EX-SQL-PAT-04-E2-01",
+    "EX-SQL-PAT-04-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-PAT-04-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-PAT-04-E1-06",
+    "EX-SQL-PAT-04-E1-07",
+    "EX-SQL-PAT-04-E2-03",
+    "EX-SQL-PAT-04-E2-04",
+    "EX-SQL-PAT-04-E2-05",
+    "EX-SQL-PAT-04-E2-06",
+    "EX-SQL-PAT-04-E3-01",
+    "EX-SQL-PAT-04-E3-02",
+    "EX-SQL-PAT-04-E2-31",
+    "EX-SQL-PAT-04-E1-42",
+    "EX-SQL-PAT-04-E2-41",
+    "EX-SQL-PAT-04-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "why_clause": {
+    "clause": "LEFT JOIN daily o ON o.day = d.day",
+    "stem": "Why does this join start from the days and use LEFT JOIN?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So a day with no orders keeps its row; COALESCE can then show it as 0."
+      },
+      {
+        "id": "b",
+        "text": "Because an inner join would count each order twice."
+      },
+      {
+        "id": "c",
+        "text": "So the result comes out sorted by day."
+      },
+      {
+        "id": "d",
+        "text": "Because COALESCE only works after a LEFT JOIN."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "The spine has every day, and LEFT JOIN keeps each one even when no daily total matches it. An inner join would keep only the days with orders, which is the gap the spine was built to fill. A join does not sort the rows, and COALESCE works on any missing value; here it turns the missing count of a day with no orders into 0."
+  }
+}

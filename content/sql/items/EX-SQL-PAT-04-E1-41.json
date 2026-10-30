@@ -1,0 +1,217 @@
+{
+  "id": "EX-SQL-PAT-04-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "date_spine",
+    "zero_fill",
+    "budget_monthly"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-predict-budget-spine",
+  "template_params": {
+    "table": "ad_spend_daily"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "budget_monthly has a row for YouTube (channel_id 5) in every month. In the first half of 2024, YouTube had spend only in January, February, March and May. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "WITH spend AS (\n  -- one row per month with YouTube spend\n  SELECT CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 5\n  GROUP BY CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT b.month, COALESCE(s.spend_eur, 0) AS spend_eur\nFROM budget_monthly b\nLEFT JOIN spend s ON s.month = b.month\nWHERE b.channel_id = 5\n  AND b.month BETWEEN DATE '2024-01-01' AND DATE '2024-06-01'",
+  "options": [
+    {
+      "oid": "o7b6edcf",
+      "text": "Only the four months with spend",
+      "misconception_id": "ERR-LOG-39",
+      "table": {
+        "columns": [
+          "month",
+          "spend_eur"
+        ],
+        "rows": [
+          [
+            "2024-01-01",
+            "47248.82"
+          ],
+          [
+            "2024-02-01",
+            "19233.65"
+          ],
+          [
+            "2024-03-01",
+            "68911.49"
+          ],
+          [
+            "2024-05-01",
+            "67230.33"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oe7c560d",
+      "text": "All six months, with 0.00 for April and June",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month",
+          "spend_eur"
+        ],
+        "rows": [
+          [
+            "2024-01-01",
+            "47248.82"
+          ],
+          [
+            "2024-02-01",
+            "19233.65"
+          ],
+          [
+            "2024-03-01",
+            "68911.49"
+          ],
+          [
+            "2024-04-01",
+            "0.00"
+          ],
+          [
+            "2024-05-01",
+            "67230.33"
+          ],
+          [
+            "2024-06-01",
+            "0.00"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o66c67bb",
+      "text": "All six months, with a missing spend for April and June",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "month",
+          "spend_eur"
+        ],
+        "rows": [
+          [
+            "2024-01-01",
+            "47248.82"
+          ],
+          [
+            "2024-02-01",
+            "19233.65"
+          ],
+          [
+            "2024-03-01",
+            "68911.49"
+          ],
+          [
+            "2024-04-01",
+            null
+          ],
+          [
+            "2024-05-01",
+            "67230.33"
+          ],
+          [
+            "2024-06-01",
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o7d642c2",
+      "text": "All six months, with April and June repeating the month before",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month",
+          "spend_eur"
+        ],
+        "rows": [
+          [
+            "2024-01-01",
+            "47248.82"
+          ],
+          [
+            "2024-02-01",
+            "19233.65"
+          ],
+          [
+            "2024-03-01",
+            "68911.49"
+          ],
+          [
+            "2024-04-01",
+            "68911.49"
+          ],
+          [
+            "2024-05-01",
+            "67230.33"
+          ],
+          [
+            "2024-06-01",
+            "67230.33"
+          ]
+        ]
+      }
+    }
+  ]
+}

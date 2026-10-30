@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(date_trunc('month', event_ts) AS DATE) AS month,\n  COUNT(*) FILTER (WHERE event_name = 'first_campaign_sent') AS first_campaign_sent,\n  COUNT(*) FILTER (WHERE event_name = 'campaign_sent') AS campaign_sent,\n  COUNT(*) FILTER (WHERE event_name = 'list_imported') AS list_imported,\n  COUNT(*) FILTER (WHERE event_name = 'automation_created') AS automation_created,\n  COUNT(*) FILTER (WHERE event_name = 'form_published') AS form_published\nFROM activation_events\nWHERE event_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY CAST(date_trunc('month', event_ts) AS DATE)",
+  "alternatives": [
+    "SELECT month, first_campaign_sent, campaign_sent, list_imported, automation_created, form_published\nFROM (\n  -- one row per activation event of 2025\n  SELECT CAST(date_trunc('month', event_ts) AS DATE) AS month, event_name\n  FROM activation_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n) AS a\nPIVOT (COUNT(*) FOR event_name IN ('first_campaign_sent', 'campaign_sent', 'list_imported', 'automation_created', 'form_published') GROUP BY month)",
+    "SELECT CAST(date_trunc('month', event_ts) AS DATE) AS month,\n  SUM(CASE WHEN event_name = 'first_campaign_sent' THEN 1 ELSE 0 END) AS first_campaign_sent,\n  SUM(CASE WHEN event_name = 'campaign_sent' THEN 1 ELSE 0 END) AS campaign_sent,\n  SUM(CASE WHEN event_name = 'list_imported' THEN 1 ELSE 0 END) AS list_imported,\n  SUM(CASE WHEN event_name = 'automation_created' THEN 1 ELSE 0 END) AS automation_created,\n  SUM(CASE WHEN event_name = 'form_published' THEN 1 ELSE 0 END) AS form_published\nFROM activation_events\nWHERE event_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY CAST(date_trunc('month', event_ts) AS DATE)"
+  ],
+  "other_way": {
+    "sql": "SELECT month, first_campaign_sent, campaign_sent, list_imported, automation_created, form_published\nFROM (\n  -- one row per activation event of 2025\n  SELECT CAST(date_trunc('month', event_ts) AS DATE) AS month, event_name\n  FROM activation_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n) AS a\nPIVOT (COUNT(*) FOR event_name IN ('first_campaign_sent', 'campaign_sent', 'list_imported', 'automation_created', 'form_published') GROUP BY month)",
+    "tradeoff": "PIVOT with an IN list of the five event names saves typing, but only DuckDB runs it; filtered counts run everywhere."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT CAST(date_trunc('month', event_ts) AS DATE) AS month, SUM(CASE WHEN event_name = 'first_campaign_sent' THEN 1 END) AS first_campaign_sent, SUM(CASE WHEN event_name = 'campaign_sent' THEN 1 END) AS campaign_sent, SUM(CASE WHEN event_name = 'list_imported' THEN 1 END) AS list_imported, SUM(CASE WHEN event_name = 'automation_created' THEN 1 END) AS automation_created, SUM(CASE WHEN event_name = 'form_published' THEN 1 END) AS form_published FROM activation_events WHERE event_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'   AND event_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00' GROUP BY CAST(date_trunc('month', event_ts) AS DATE)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT CAST(date_trunc('month', event_ts) AS DATE) AS month, COUNT(*) FILTER (WHERE event_name = 'first_campaign_sent') AS first_campaign_sent, COUNT(*) FILTER (WHERE event_name = 'campaign_sent') AS campaign_sent, COUNT(*) FILTER (WHERE event_name = 'list_imported') AS list_imported, COUNT(*) FILTER (WHERE event_name = 'automation_created') AS automation_created, COUNT(*) FILTER (WHERE event_name = 'form_published') AS form_published FROM activation_events WHERE event_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'   AND event_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00' GROUP BY CAST(date_trunc('month', event_ts) AS DATE), user_id"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(date_trunc('month', event_ts) AS DATE) AS month,\n  COUNT(*) FILTER (WHERE event_name = 'first_campaign_sent') AS first_campaign_sent,\n  COUNT(*) FILTER (WHERE event_name = 'campaign_sent') AS campaign_sent,\n  COUNT(*) FILTER (WHERE ___) AS list_imported,\n  COUNT(*) FILTER (WHERE event_name = 'automation_created') AS automation_created,\n  COUNT(*) FILTER (WHERE event_name = 'form_published') AS form_published\nFROM activation_events\nWHERE event_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\nGROUP BY CAST(date_trunc('month', event_ts) AS DATE)",
+  "solver": {
+    "prompt_hash": "2586068702415ad9",
+    "schema_version": "274493673e20",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT CAST(date_trunc('month', event_ts AT TIME ZONE 'UTC') AS DATE) AS month,\n  COUNT(*) FILTER (WHERE event_name = 'first_campaign_sent') AS first_campaign_sent,\n  COUNT(*) FILTER (WHERE event_name = 'campaign_sent') AS campaign_sent,\n  COUNT(*) FILTER (WHERE event_name = 'list_imported') AS list_imported,\n  COUNT(*) FILTER (WHERE event_name = 'automation_created') AS automation_created,\n  COUNT(*) FILTER (WHERE event_name = 'form_published') AS form_published\nFROM activation_events\nWHERE (event_ts AT TIME ZONE 'UTC') >= TIMESTAMP '2025-01-01 00:00:00'\n  AND (event_ts AT TIME ZONE 'UTC') < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY 1\n",
+    "at": "2026-10-28T14:57:06.254Z"
+  }
+}

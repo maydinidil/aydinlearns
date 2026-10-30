@@ -1,0 +1,159 @@
+{
+  "id": "EX-SQL-PAT-06-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "month_offset",
+    "long_table",
+    "usage_weekly"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-long-counts",
+  "template_params": {
+    "cohort_date": "created_at",
+    "activity": "usage week",
+    "cohorts": "2025-04 to 2025-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For the accounts created from April to June 2025, how many used the product in each month after joining? An account's cohort month is the month of its created_at (Brussels local time). A usage week counts in the month its week_start falls in; leave out a week that starts before the account's cohort month. The month offset counts calendar months from the cohort month: 0 for the cohort month itself, 1 for the next month, and so on. The as-of date is 1 January 2026, so every month up to December 2025 has ended. Return three columns, in this order: cohort_month (the first day of the month), month_offset and active_accounts, the number of the cohort's accounts with at least one usage week in that month. Return one row for each cohort month and month offset with at least one active account. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric"
+      },
+      {
+        "name": "active_accounts",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "active_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month",
+      "month_offset"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the month offset: the calendar months from the cohort month to the month of the usage week.",
+    "Turn created_at and week_start into the first days of their months, then count the months between them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 55,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 58,
+      "to": 152,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 162,
+      "to": 266,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 269,
+      "to": 337,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 340,
+      "to": 444,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 447,
+      "to": 527,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 528,
+      "to": 539,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 540,
+      "to": 563,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 564,
+      "to": 599,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each usage week lands at the calendar months between its month and the cohort month, and COUNT(DISTINCT) counts each account once per month."
+}

@@ -1,0 +1,120 @@
+{
+  "concept_id": "SQL-PAT-03",
+  "version": 1,
+  "reading_md": "## Comparing a period with another period\n\nManagers ask \"how did this month do?\" A number on its own says little; next to the month before, or the same month last year, it tells a story. The pattern has two steps:\n\n1. **Add up to the period first**: one row per month (or week, or quarter), in a CTE.\n2. **Put the other period beside each row**, then work out the change.\n\n### The previous period: LAG\n\n`LAG(revenue_eur) OVER (ORDER BY month)` reads the row before. That is the month before only when every month has a row. If a month had no orders, the row before is two months back. A full list of periods fixes that (the next lesson, date spines).\n\n### The same period last year: join on the date\n\n`LAG(revenue_eur, 12)` counts twelve rows back, not twelve months. One missing month in the year before shifts every comparison after it (`ERR-LOG-39`). A join on the date cannot shift:\n\n```sql\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR\n```\n\nLEFT JOIN keeps a 2025 month whose 2024 month had no orders, with a missing value. The question decides whether such a month shows missing or 0.\n\n### Direction and scale\n\n- The change is this period minus the earlier one: revenue that goes from 100 to 120 rose by 20.\n- Growth divides by the **earlier** period: `100.0 * (this - last) / last` gives 20.0. Dividing by this period gives 16.7, and the other order gives -20 (`ERR-LOG-49`).\n- 12.5 and 0.125 are the same growth on scales 100 apart; give the scale the question asks for (`ERR-LOG-21`).\n\n### Partial periods and like for like\n\nData stops on the day it is pulled. December so far (1 to 14 December) against all of November looks like a fall that is only the missing days (`ERR-LOG-48`). Compare the same days of both months, or leave the partial month out.\n\nStores work the same way: a store that opened in September 2024 sold for four months that year, so its 2025 \"growth\" is mostly its extra months. A like-for-like comparison keeps only stores open for the whole of both periods.\n\n### WHERE runs before the window\n\nFilter to 2025 before LAG and January has no December to read. Work the comparison out over the wider range in a CTE, then keep the rows you report.",
+  "syntax_md": "```sql\nWITH monthly AS (                               -- source: one row per month\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  GROUP BY order_month\n)\nSELECT m.month, m.revenue_eur,\n  m.revenue_eur - LAG(m.revenue_eur) OVER (ORDER BY m.month) AS change_eur,  -- the row before\n  p.revenue_eur AS revenue_prev_year_eur                                     -- a year before\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR;                   -- found by date\n```\n\n- Change: this period minus the earlier one. Growth in percent: `100.0 * (this - last) / last`.\n- LAG reads the row before; it is the period before only when no period is missing.\n- For last year, join on the date (or on the year minus 1 and the same month number).\n- Compare the same number of days, and the same stores, in both periods.",
+  "dialect_note": "LAG and the self-join are standard SQL. `m.month - INTERVAL 1 YEAR` runs in DuckDB and PostgreSQL; BigQuery writes `DATE_SUB(month, INTERVAL 1 YEAR)`. Matching on the year minus 1 and the same month number works on every engine.",
+  "worked_examples": [
+    {
+      "title": "Month-over-month change in units",
+      "prompt": "For each month of 2025, show the units Voltmarkt sold and the change from the previous calendar month, this month minus last month. Every month of 2025 has orders; January shows a missing change.",
+      "clauses": [
+        {
+          "text": "WITH monthly AS (SELECT order_month AS month, SUM(units) AS units FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY order_month)  -- one row per month of 2025",
+          "subgoal": "source_grain",
+          "why": "Add up to one row per month first; the comparison works on months, not order lines."
+        },
+        {
+          "text": "SELECT month, units,",
+          "subgoal": "metrics",
+          "why": "Every month keeps its own row and total."
+        },
+        {
+          "text": "  units - LAG(units) OVER (ORDER BY month) AS change_units",
+          "subgoal": "metrics",
+          "why": "LAG reads the month before in month order; this month minus it is the change, missing for January."
+        },
+        {
+          "text": "FROM monthly",
+          "subgoal": "source_grain",
+          "why": "One row per month, and every month of 2025 is there, so the row before is the month before."
+        }
+      ]
+    },
+    {
+      "title": "Year over year with a self-join",
+      "prompt": "For each month of 2025 with ad spend, show Mailvora's spend and the spend of the same month of 2024, missing when that month of 2024 had none.",
+      "clauses": [
+        {
+          "text": "WITH monthly AS (SELECT CAST(date_trunc('month', spend_date) AS DATE) AS month, SUM(spend) AS spend_eur FROM ad_spend_daily GROUP BY CAST(date_trunc('month', spend_date) AS DATE))  -- one row per month with spend",
+          "subgoal": "source_grain",
+          "why": "One row per month with spend, over both years, so last year is there to join to."
+        },
+        {
+          "text": "SELECT m.month, m.spend_eur, p.spend_eur AS spend_prev_year_eur",
+          "subgoal": "metrics",
+          "why": "The 2025 month's spend beside the spend of the month it matched a year before."
+        },
+        {
+          "text": "FROM monthly m",
+          "subgoal": "source_grain",
+          "why": "The months being reported."
+        },
+        {
+          "text": "LEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR",
+          "subgoal": "source_grain",
+          "why": "Matched by date, so a missing month cannot shift the series; LEFT keeps a month with no 2024 match."
+        },
+        {
+          "text": "WHERE m.month >= DATE '2025-01-01'",
+          "subgoal": "row_filter",
+          "why": "Report 2025 only; the 2024 rows were needed for the join, not for the output."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-PAT-03-E1-01",
+    "EX-SQL-PAT-03-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-PAT-03-E1-03",
+    "EX-SQL-PAT-03-E1-04",
+    "EX-SQL-PAT-03-E2-01",
+    "EX-SQL-PAT-03-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-PAT-03-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-PAT-03-E1-06",
+    "EX-SQL-PAT-03-E1-07",
+    "EX-SQL-PAT-03-E2-03",
+    "EX-SQL-PAT-03-E2-04",
+    "EX-SQL-PAT-03-E2-05",
+    "EX-SQL-PAT-03-E2-06",
+    "EX-SQL-PAT-03-E3-01",
+    "EX-SQL-PAT-03-E3-02",
+    "EX-SQL-PAT-03-E2-31",
+    "EX-SQL-PAT-03-E2-32",
+    "EX-SQL-PAT-03-E2-33",
+    "EX-SQL-PAT-03-E1-42",
+    "EX-SQL-PAT-03-E2-41",
+    "EX-SQL-PAT-03-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "why_clause": {
+    "clause": "LEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 YEAR",
+    "stem": "Why join on the month minus one year instead of reading LAG(spend_eur, 12)?",
+    "options": [
+      {
+        "id": "a",
+        "text": "LAG 12 counts rows, so one month with no spend makes it read the wrong month; the join finds last year by its date."
+      },
+      {
+        "id": "b",
+        "text": "LAG cannot read more than one row back."
+      },
+      {
+        "id": "c",
+        "text": "The join is faster, and both give the same rows on any data."
+      },
+      {
+        "id": "d",
+        "text": "LAG 12 would count the months of 2025 twice."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "LAG(x, 12) reads twelve rows back, which is twelve months back only when every month has a row. If a month had no spend, twelve rows back lands on another month. The date join matches the exact month a year earlier, and LEFT JOIN keeps a month with no match as missing. LAG can read any number of rows back; the two differ exactly when a month is missing."
+  }
+}

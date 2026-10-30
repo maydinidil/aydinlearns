@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-09-E2-31",
+  "item_version": 2,
+  "reference_sql": "WITH promo AS (\n  -- one row per promotion that started in 2025\n  SELECT promo_id, start_date\n  FROM promotions\n  WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n), during AS (\n  -- one row per promotion that started in 2025\n  SELECT p.promo_id, SUM(s.units) AS units, SUM(s.net_revenue_eur) AS revenue\n  FROM promo p\n  JOIN order_lines ol ON ol.promo_id = p.promo_id\n  JOIN sales s ON s.order_line_id = ol.order_line_id\n  GROUP BY p.promo_id\n)\nSELECT p.promo_id, COALESCE(d.units, 0) AS promo_units, COALESCE(d.revenue, 0) AS promo_revenue\nFROM promo p\nLEFT JOIN during d ON d.promo_id = p.promo_id",
+  "alternatives": [
+    "SELECT p.promo_id, COALESCE(SUM(s.units), 0) AS promo_units, COALESCE(SUM(s.net_revenue_eur), 0) AS promo_revenue\nFROM promotions p\nLEFT JOIN order_lines ol ON ol.promo_id = p.promo_id\nLEFT JOIN sales s ON s.order_line_id = ol.order_line_id\nWHERE p.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY p.promo_id",
+    "SELECT p.promo_id,\n  (SELECT COALESCE(SUM(s.units), 0) FROM order_lines ol JOIN sales s ON s.order_line_id = ol.order_line_id WHERE ol.promo_id = p.promo_id) AS promo_units,\n  (SELECT COALESCE(SUM(s.net_revenue_eur), 0) FROM order_lines ol JOIN sales s ON s.order_line_id = ol.order_line_id WHERE ol.promo_id = p.promo_id) AS promo_revenue\nFROM promotions p\nWHERE p.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'"
+  ],
+  "other_way": {
+    "sql": "SELECT p.promo_id, COALESCE(SUM(s.units), 0) AS promo_units, COALESCE(SUM(s.net_revenue_eur), 0) AS promo_revenue\nFROM promotions p\nLEFT JOIN order_lines ol ON ol.promo_id = p.promo_id\nLEFT JOIN sales s ON s.order_line_id = ol.order_line_id\nWHERE p.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY p.promo_id",
+    "tradeoff": "One query with LEFT JOINs and a GROUP BY gives the same totals without a CTE, which suits a one-off answer."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "WITH promo AS ( SELECT promo_id, start_date FROM promotions WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' ), during AS ( SELECT p.promo_id, SUM(s.units) AS units, SUM(s.net_revenue_eur) AS revenue FROM promo p JOIN promotions pr ON pr.promo_id = p.promo_id JOIN promotion_products pp ON pp.promo_id = p.promo_id JOIN sales s ON s.product_id = pp.product_id AND s.order_date BETWEEN pr.start_date AND pr.end_date GROUP BY p.promo_id ) SELECT p.promo_id, COALESCE(d.units, 0) AS promo_units, COALESCE(d.revenue, 0) AS promo_revenue FROM promo p LEFT JOIN during d ON d.promo_id = p.promo_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH promo AS ( SELECT promo_id, start_date FROM promotions WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' ), during AS ( SELECT p.promo_id, SUM(s.units) AS units, SUM(s.net_revenue_eur) AS revenue FROM promo p JOIN order_lines ol ON ol.promo_id = p.promo_id JOIN sales s ON s.order_line_id = ol.order_line_id GROUP BY p.promo_id, ol.product_id ) SELECT p.promo_id, COALESCE(d.units, 0) AS promo_units, COALESCE(d.revenue, 0) AS promo_revenue FROM promo p LEFT JOIN during d ON d.promo_id = p.promo_id"
+    }
+  ],
+  "hint3_partial": "WITH promo AS (\n  -- one row per promotion that started in 2025\n  SELECT promo_id, start_date\n  FROM promotions\n  WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n), during AS (\n  -- one row per promotion that started in 2025\n  SELECT p.promo_id, SUM(s.units) AS units, SUM(s.net_revenue_eur) AS revenue\n  FROM promo p\n  JOIN order_lines ol ON ___\n  JOIN sales s ON s.order_line_id = ol.order_line_id\n  GROUP BY p.promo_id\n)\nSELECT p.promo_id, COALESCE(d.units, 0) AS promo_units, COALESCE(d.revenue, 0) AS promo_revenue\nFROM promo p\nLEFT JOIN during d ON d.promo_id = p.promo_id",
+  "solver": {
+    "prompt_hash": "98c060493da70808",
+    "schema_version": "3968d380da74",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH promo AS (\n  SELECT promo_id, promo_type, discount_pct, start_date, end_date, end_date - start_date + 1 AS days\n  FROM promotions\n  WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n), dur AS (\n  SELECT p.promo_id, SUM(s.units) AS units, SUM(s.net_revenue_eur) AS rev,\n         SUM(s.net_revenue_eur - s.units * s.unit_cost_eur) AS margin, SUM(ol.line_discount_eur) AS disc\n  FROM promo p\n  JOIN order_lines ol ON ol.promo_id = p.promo_id\n  JOIN sales s ON s.order_line_id = ol.order_line_id\n  GROUP BY p.promo_id\n), base AS (\n  SELECT p.promo_id, SUM(s.units) AS units, SUM(s.net_revenue_eur) AS rev,\n         SUM(s.net_revenue_eur - s.units * s.unit_cost_eur) AS margin\n  FROM promo p\n  JOIN promotion_products pp ON pp.promo_id = p.promo_id\n  JOIN sales s ON s.product_id = pp.product_id\n    AND s.order_date BETWEEN p.start_date - (14) AND p.start_date - 1\n  GROUP BY p.promo_id\n), t AS (\n  SELECT p.*, COALESCE(d.units,0) AS pu, COALESCE(b.units,0) AS bu,\n         COALESCE(d.rev,0) AS pr, COALESCE(b.rev,0) AS br,\n         COALESCE(d.margin,0) AS pm, COALESCE(b.margin,0) AS bm, COALESCE(d.disc,0) AS disc\n  FROM promo p\n  LEFT JOIN dur d ON d.promo_id = p.promo_id\n  LEFT JOIN base b ON b.promo_id = p.promo_id\n)\nSELECT promo_id, pu AS promo_units, pr AS promo_revenue FROM t\n",
+    "at": "2026-10-28T16:44:14.615Z"
+  }
+}

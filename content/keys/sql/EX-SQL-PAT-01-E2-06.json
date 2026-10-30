@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-01-E2-06",
+  "item_version": 1,
+  "reference_sql": "WITH store_units AS (  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, SUM(units) AS units\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY store_code, product_id\n),\nranked AS (  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, units,\n         ROW_NUMBER() OVER (PARTITION BY store_code ORDER BY units DESC, product_id) AS rn\n  FROM store_units\n)\nSELECT store_code, product_id, units\nFROM ranked\nWHERE rn = 1",
+  "alternatives": [
+    "WITH store_units AS (  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, SUM(units) AS units\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY store_code, product_id\n),\nbest AS (  -- one row per store with sales in 2025\n  SELECT store_code, MAX(units) AS units\n  FROM store_units\n  GROUP BY store_code\n)\nSELECT su.store_code, MIN(su.product_id) AS product_id, su.units\nFROM store_units su\nJOIN best b ON b.store_code = su.store_code AND b.units = su.units\nGROUP BY su.store_code, su.units",
+    "SELECT t.store_code, t.product_id, t.units\nFROM (\n  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, SUM(units) AS units,\n         ROW_NUMBER() OVER (PARTITION BY store_code ORDER BY SUM(units) DESC, product_id) AS rn\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY store_code, product_id\n) AS t\nWHERE t.rn = 1"
+  ],
+  "other_way": {
+    "sql": "WITH store_units AS (  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, SUM(units) AS units\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY store_code, product_id\n),\nbest AS (  -- one row per store with sales in 2025\n  SELECT store_code, MAX(units) AS units\n  FROM store_units\n  GROUP BY store_code\n)\nSELECT su.store_code, MIN(su.product_id) AS product_id, su.units\nFROM store_units su\nJOIN best b ON b.store_code = su.store_code AND b.units = su.units\nGROUP BY su.store_code, su.units",
+    "tradeoff": "Finding each store's highest units, then the lowest product_id with it, needs no window but takes two grouping steps."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH ranked AS (SELECT store_code, product_id, units, ROW_NUMBER() OVER (PARTITION BY store_code ORDER BY units DESC, product_id) AS rn FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01') SELECT store_code, product_id, units FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH store_units AS (  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, SUM(units) AS units\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY store_code, product_id\n), ranked AS (SELECT store_code, product_id, units, ROW_NUMBER() OVER (ORDER BY units DESC, product_id) AS rn FROM store_units) SELECT store_code, product_id, units FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH store_units AS (  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, SUM(units) AS units\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY store_code, product_id\n), ranked AS (SELECT store_code, product_id, units, RANK() OVER (PARTITION BY store_code ORDER BY units DESC) AS rn FROM store_units) SELECT store_code, product_id, units FROM ranked WHERE rn = 1"
+    }
+  ],
+  "hint3_partial": "WITH store_units AS (  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, SUM(units) AS units\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY store_code, product_id\n),\nranked AS (  -- one row per store and product with sales in 2025\n  SELECT store_code, product_id, units,\n         ROW_NUMBER() OVER (PARTITION BY store_code ORDER BY ___) AS rn\n  FROM store_units\n)\nSELECT store_code, product_id, units\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "9690684aa3b257a3",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH p AS (SELECT store_code, product_id, SUM(units) AS units FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY store_code, product_id),\nr AS (SELECT store_code, product_id, units, ROW_NUMBER() OVER (PARTITION BY store_code ORDER BY units DESC, product_id) AS place FROM p)\nSELECT store_code, product_id, units FROM r WHERE place <= 1\n",
+    "at": "2026-10-28T14:56:59.490Z"
+  }
+}

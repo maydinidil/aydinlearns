@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-PAT-03-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "week_over_week",
+    "lag",
+    "usage_weekly",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-wow-change",
+  "template_params": {
+    "table": "usage_weekly",
+    "period": "week"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each week from the week of 6 October 2025 to the week of 29 December 2025 (week_start is a Monday), show the total reconciliations LedgerLoop's accounts ran and the change from the previous week: this week's total minus last week's. Every week in the range has usage rows. Only these weeks count, so the first week shows change_reconciliations as missing. Return three columns, in this order: week_start, reconciliations and change_reconciliations. Return one row for each week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "reconciliations",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_reconciliations",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "reconciliations",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "change_reconciliations",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total the reconciliations per week, then compare each week with the week before.",
+    "Read last week's total with a window in week order and take it from this week's."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 227,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 228,
+      "to": 263,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 264,
+      "to": 357,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 358,
+      "to": 369,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Every week has a row, so LAG in week order reads the week before, and this week minus that week is the change."
+}

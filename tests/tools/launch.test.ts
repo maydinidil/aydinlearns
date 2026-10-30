@@ -98,7 +98,7 @@ test('the probe tells aydinlearns, another program and nothing apart (aydinlearn
 test('the data step runs when an output the app reads is missing, or pipeline/ is newer (aydinlearns F6, F9)', async () => {
   const d = await folder();
   try {
-    assert.deepEqual([...DATA_OUTPUTS], ['data/course.duckdb', 'data/manifest.json', 'data/schema-notes.json', 'data/truth/voltmarkt.json', 'data/truth/mailvora.json', 'data/truth/checkpoints.json']);
+    assert.deepEqual([...DATA_OUTPUTS], ['data/course.duckdb', 'data/manifest.json', 'data/schema-notes.json', 'data/truth/voltmarkt.json', 'data/truth/mailvora.json', 'data/truth/ledgerloop.json', 'data/truth/checkpoints.json']);
     await mkdir(join(d, 'pipeline'), { recursive: true });
     await mkdir(join(d, 'data/truth'), { recursive: true });
     await writeFile(join(d, 'pipeline', 'build.py'), 'x');

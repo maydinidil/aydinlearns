@@ -1,0 +1,248 @@
+{
+  "id": "EX-SQL-PAT-10-E2-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "bridge",
+    "fx"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-mrr-bridge-month",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025,
+    "fx_date": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Build the 2025 MRR bridge in euros. For each month of 2025, give opening MRR (the MRR at the end of the month before: every event dated before the month's first day, opening events included), the new, expansion, reactivation, contraction and churn MRR of the events dated in the month, and closing MRR (every event dated up to the month's last day). Contraction and churn keep their negative sign, so opening plus the five movements is closing before rounding; after each amount is rounded on its own, the two can differ by a cent. Each event's event_type names its movement (new, expansion, contraction, churn or reactivation); a reactivation is an account coming back after it churned, never new MRR. Leave out the opening events: they carry the MRR subscriptions already had when the data starts on 1 January 2024. Convert every amount to euros at one fixed rate, that of 31 December 2025: multiply by fx_rates.eur_per_unit for the subscription's currency on 2025-12-31. A movement with no event that month shows 0. Round every amount to 2 decimals with ROUND. Return eight columns, in this order: month_start, opening_mrr, new_mrr, expansion_mrr, reactivation_mrr, contraction_mrr, churn_mrr and closing_mrr. Return one row for each month of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "opening_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churn_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "closing_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "opening_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "churn_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "closing_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write one conditional sum per movement, each for the events dated in the month.",
+    "Every movement column needs the event in the month and of its own type; opening and closing use the date alone."
+  ],
+  "subgoals": [
+    {
+      "from": 48,
+      "to": 160,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 226,
+      "to": 308,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 309,
+      "to": 337,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 338,
+      "to": 401,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 402,
+      "to": 482,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 485,
+      "to": 506,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 507,
+      "to": 604,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 605,
+      "to": 724,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 725,
+      "to": 856,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 857,
+      "to": 994,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 995,
+      "to": 1130,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1131,
+      "to": 1254,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1255,
+      "to": 1296,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1297,
+      "to": 1310,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1311,
+      "to": 1381,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1382,
+      "to": 1404,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 605,
+    "stage2": 605
+  },
+  "faded_shape": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month_start\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), events_eur AS (\n  -- one row per subscription event, in euros\n  SELECT e.event_type, e.event_date, e.mrr_delta_local * f.eur_per_unit AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n)\nSELECT m.month_start,\n  ROUND(SUM(CASE WHEN x.event_date < m.month_start THEN x.mrr_eur ELSE 0 END), 2) AS opening_mrr,\n",
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Before rounding, opening plus each movement of the month gives closing, and one fixed rate keeps the euro bridge adding up month after month.",
+  "faded_suffix": "\nFROM months m\nJOIN events_eur x ON x.event_date < m.month_start + INTERVAL '1 month'\nGROUP BY m.month_start"
+}

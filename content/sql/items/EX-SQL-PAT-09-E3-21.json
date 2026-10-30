@@ -1,0 +1,229 @@
+{
+  "id": "EX-SQL-PAT-09-E3-21",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "uplift",
+    "discount",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-uplift-by-discount",
+  "template_params": {
+    "table": "order_lines",
+    "baseline": "same_length",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Do deeper discounts lift sales more? For each discount_pct, take the promotions with that discount that started in 2025 (start_date from 1 January to 31 December 2025), work out each one's units on promotion and baseline units, and add them up per discount. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0. Then give uplift_pct, the summed promotion units minus the summed baseline units, as a percentage of the summed baseline units, rounded to 1 decimal with ROUND (12.5 for 12.5%), or missing when the summed baseline units are 0. Return five columns, in this order: discount_pct, promotions, promo_units, baseline_units and uplift_pct. Return one row for each discount_pct among those promotions. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promotions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "uplift_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promotions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "uplift_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "discount_pct"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add each discount's promotion and baseline units, then work the percentage out from the two sums.",
+    "Count the promotions per discount too, and divide the summed difference by the summed baseline."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 142,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 143,
+      "to": 160,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 161,
+      "to": 227,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 291,
+      "to": 337,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 338,
+      "to": 352,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 353,
+      "to": 402,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 403,
+      "to": 424,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 490,
+      "to": 532,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 533,
+      "to": 547,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 548,
+      "to": 604,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 605,
+      "to": 651,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 652,
+      "to": 708,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 709,
+      "to": 730,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 733,
+      "to": 868,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 869,
+      "to": 997,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 998,
+      "to": 1010,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1011,
+      "to": 1056,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1057,
+      "to": 1104,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1105,
+      "to": 1128,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Summing per discount before dividing weighs every unit once, so the uplift of each discount level is comparable."
+}

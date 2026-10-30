@@ -34,6 +34,8 @@ BEFORE_SPRINT7 = json.loads((pathlib.Path(__file__).resolve().parent / "manifest
 # (mailvora_edge_clean: pipeline/tests/test_mailvora_edge_clean.py), so Part 1's are the objects of this snapshot.
 BEFORE_SPRINT7B = json.loads((pathlib.Path(__file__).resolve().parent / "manifest_before_sprint7b.json").read_text(encoding="utf-8"))["tables"]
 VOLTMARKT_VIEWS = {"sales", "competitor_price_weekly", "weekly_units"}
+# Sprint 8 Part 2 (S8-15, E-212): voltmarkt's tables that show from level 6, after this level 5 edge schema was built.
+LEVEL6_TABLES = {"inventory_chain_daily"}
 # The span of voltmarkt_edge_win: its calendar holds every day of it, and its orders fall in every month of it but April.
 VM_SPAN = (dt.date(2025, 1, 1), dt.date(2025, 6, 30))
 
@@ -113,7 +115,9 @@ class EdgeWin(unittest.TestCase):
         for edge, source in ((VM, "voltmarkt"), (MV, "mailvora")):
             tables, views = self.names(edge)
             with self.subTest(schema=edge):
-                self.assertEqual((tables, views), self.names(source), f"{edge} has {source}'s table and view names")
+                source_tables, source_views = self.names(source)
+                # Sprint 8 Part 2 (S8-15): voltmarkt's inventory_chain_daily shows from level 6, so no level 5 item's panel shows it.
+                self.assertEqual((tables, views), (source_tables - LEVEL6_TABLES, source_views), f"{edge} has {source}'s table and view names")
                 for t in tables | views:
                     self.assertEqual(self.columns(edge, t), self.columns(source, t), f"{edge}.{t} mirrors {source}.{t}")
         self.assertEqual(self.names(VM)[1], VOLTMARKT_VIEWS, "the build's three views, over the edge's own tables")
@@ -133,7 +137,7 @@ class EdgeWin(unittest.TestCase):
         moved = sorted(name for name, entry in BEFORE_SPRINT7.items() if self.manifest["tables"].get(name) != entry)
         self.assertEqual(moved, [], "objects built before sprint 7 whose rows or hash changed")
         added = sorted((set(self.manifest["tables"]) & set(BEFORE_SPRINT7B)) - set(BEFORE_SPRINT7))
-        expected = sorted([f"{VM}.{t}" for t in set().union(*self.names("voltmarkt"))]
+        expected = sorted([f"{VM}.{t}" for t in set().union(*self.names("voltmarkt")) - LEVEL6_TABLES]
                           + [f"{MV}.{t}" for t in set().union(*self.names("mailvora"))])
         self.assertEqual(added, expected, "only the two window edge schemas are new")
         self.assertEqual(len(added), 16 + 11)

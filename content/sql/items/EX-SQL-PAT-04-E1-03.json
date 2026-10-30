@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-PAT-04-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "zero_fill",
+    "sales",
+    "calendar"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-day-spine-store",
+  "template_params": {
+    "table": "sales",
+    "spine": "calendar"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each day from 1 to 10 March 2025, how many units did store NL-01 sell? Order dates are UTC days. Every day of the range has a row, and a day with no sales shows 0. Return two columns, in this order: day and units. Return one row for each day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per day, 1 to 10 March 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the final query: every day from the list of days, with its units or 0.",
+    "Keep every day even when the store sold nothing that day, and turn the missing total into 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 397,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 398,
+      "to": 441,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 442,
+      "to": 453,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 454,
+      "to": 488,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 398,
+    "stage2": 176
+  },
+  "faded_shape": "WITH days AS (\n  -- one row per day, 1 to 10 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n  GROUP BY order_date\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Starting from the days and joining the sales with LEFT JOIN keeps a day with no sales, and COALESCE turns its missing total into 0."
+}

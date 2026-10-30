@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-08-E1-02",
+  "item_version": 1,
+  "reference_sql": "WITH gaps AS (\n  -- one row per activation event on 14 October 2025 (UTC)\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS prev_ts\n  FROM activation_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-14 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-10-15 00:00:00+00'\n)\nSELECT user_id, event_ts, event_name,\n  CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\nFROM gaps",
+  "alternatives": [
+    "SELECT user_id, event_ts, event_name,\n  CASE WHEN LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) IS NULL\n    OR epoch(event_ts) - epoch(LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name)) > 1800 THEN 1 ELSE 0 END AS new_session\nFROM activation_events\nWHERE event_ts >= TIMESTAMPTZ '2025-10-14 00:00:00+00'\n  AND event_ts < TIMESTAMPTZ '2025-10-15 00:00:00+00'",
+    "WITH gaps AS (\n  -- one row per activation event on 14 October 2025 (UTC)\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS prev_ts\n  FROM activation_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-14 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-10-15 00:00:00+00'\n)\nSELECT user_id, event_ts, event_name,\n  CASE WHEN event_ts - prev_ts <= INTERVAL '30 minutes' THEN 0 ELSE 1 END AS new_session\nFROM gaps"
+  ],
+  "other_way": {
+    "sql": "WITH gaps AS (\n  -- one row per activation event on 14 October 2025 (UTC)\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS prev_ts\n  FROM activation_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-14 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-10-15 00:00:00+00'\n)\nSELECT user_id, event_ts, event_name,\n  CASE WHEN event_ts - prev_ts <= INTERVAL '30 minutes' THEN 0 ELSE 1 END AS new_session\nFROM gaps",
+    "tradeoff": "Asking when an event stays in the session and calling everything else new also works, since a missing gap is never 30 minutes or less."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "WITH gaps AS (SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS prev_ts FROM activation_events WHERE event_ts >= TIMESTAMPTZ '2025-10-14 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-10-15 00:00:00+00') SELECT user_id, event_ts, event_name, CASE WHEN event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session FROM gaps"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH gaps AS (SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (ORDER BY event_ts, event_name) AS prev_ts FROM activation_events WHERE event_ts >= TIMESTAMPTZ '2025-10-14 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-10-15 00:00:00+00') SELECT user_id, event_ts, event_name, CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session FROM gaps"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-34",
+      "sql": "WITH gaps AS (SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS prev_ts FROM activation_events WHERE event_ts >= TIMESTAMPTZ '2025-10-14 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-10-15 00:00:00+00') SELECT user_id, event_ts, event_name, CASE WHEN prev_ts IS NULL OR epoch(event_ts) - epoch(prev_ts) > 30 THEN 1 ELSE 0 END AS new_session FROM gaps"
+    }
+  ],
+  "hint3_partial": "WITH gaps AS (\n  -- one row per activation event on 14 October 2025 (UTC)\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS prev_ts\n  FROM activation_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-14 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-10-15 00:00:00+00'\n)\nSELECT user_id, event_ts, event_name,\n  CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > ___ THEN 1 ELSE 0 END AS new_session\nFROM gaps",
+  "solver": {
+    "prompt_hash": "89723d418206e0fe",
+    "schema_version": "274493673e20",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT user_id, event_ts, event_name, CASE WHEN LAG(event_ts) OVER w IS NULL OR event_ts - LAG(event_ts) OVER w > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session FROM activation_events WHERE event_ts >= TIMESTAMPTZ '2025-10-14 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-10-15 00:00:00+00' WINDOW w AS (PARTITION BY user_id ORDER BY event_ts, event_name)\n",
+    "at": "2026-10-28T14:57:09.210Z"
+  }
+}

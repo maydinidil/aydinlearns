@@ -1,0 +1,97 @@
+{
+  "id": "EX-SQL-PAT-03-E2-42",
+  "version": 2,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "year_over_year",
+    "mrr",
+    "month_end"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-choose-yoy-month-end",
+  "template_params": {
+    "table": "subscription_events"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each month end of 2025, finance wants LedgerLoop's MRR from subscriptions billed in euros (currency EUR) next to the MRR at the end of the same month of 2024. A subscription's MRR on a date is the sum of its subscription_events.mrr_delta_local with event_date on or before that date. Which query returns one row for each month end of 2025, with the columns month_end, mrr_eur and mrr_prev_year_eur?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oe29a5bd",
+      "text": "WITH month_ends AS (\n  -- one row per month end of 2024 and 2025 (fx_rates holds every day)\n  SELECT MAX(rate_date) AS month_end\n  FROM fx_rates\n  GROUP BY date_trunc('month', rate_date)\n), mrr AS (\n  -- one row per month end\n  SELECT m.month_end, SUM(e.mrr_delta_local) AS mrr_eur\n  FROM month_ends m\n  JOIN subscription_events e ON e.event_date <= m.month_end\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  WHERE s.currency = 'EUR'\n  GROUP BY m.month_end\n)\nSELECT m.month_end, m.mrr_eur, p.mrr_eur AS mrr_prev_year_eur\nFROM mrr m\nJOIN mrr p ON p.month_end = m.month_end - INTERVAL 1 YEAR\nWHERE m.month_end >= DATE '2025-01-31'",
+      "misconception_id": "ERR-LOG-12"
+    },
+    {
+      "oid": "ob12e27b",
+      "text": "WITH month_ends AS (\n  -- one row per month end of 2024 and 2025 (fx_rates holds every day)\n  SELECT MAX(rate_date) AS month_end\n  FROM fx_rates\n  GROUP BY date_trunc('month', rate_date)\n), mrr AS (\n  -- one row per month end\n  SELECT m.month_end, SUM(e.mrr_delta_local) AS mrr_eur\n  FROM month_ends m\n  JOIN subscription_events e ON e.event_date <= m.month_end\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  WHERE s.currency = 'EUR'\n  GROUP BY m.month_end\n)\nSELECT m.month_end, m.mrr_eur, p.mrr_eur AS mrr_prev_year_eur\nFROM mrr m\nJOIN mrr p ON year(p.month_end) = year(m.month_end) - 1 AND month(p.month_end) = month(m.month_end)\nWHERE m.month_end >= DATE '2025-01-31'",
+      "misconception_id": null
+    },
+    {
+      "oid": "oe05a33f",
+      "text": "WITH month_ends AS (\n  -- one row per month end of 2024 and 2025 (fx_rates holds every day)\n  SELECT MAX(rate_date) AS month_end\n  FROM fx_rates\n  GROUP BY date_trunc('month', rate_date)\n), mrr AS (\n  -- one row per month end\n  SELECT m.month_end, SUM(e.mrr_delta_local) AS mrr_eur\n  FROM month_ends m\n  JOIN subscription_events e ON e.event_date <= m.month_end\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  WHERE s.currency = 'EUR'\n  GROUP BY m.month_end\n), compared AS (\n  -- one row per month end\n  SELECT month_end, mrr_eur, LAG(mrr_eur) OVER (ORDER BY month_end) AS mrr_prev_year_eur\n  FROM mrr\n)\nSELECT month_end, mrr_eur, mrr_prev_year_eur\nFROM compared\nWHERE month_end >= DATE '2025-01-31'",
+      "misconception_id": "ERR-LOG-39"
+    },
+    {
+      "oid": "o7de91ec",
+      "text": "WITH month_ends AS (\n  -- one row per month end, December 2024 to December 2025 (fx_rates holds every day)\n  SELECT MAX(rate_date) AS month_end\n  FROM fx_rates\n  WHERE rate_date >= DATE '2024-12-01'\n  GROUP BY date_trunc('month', rate_date)\n), mrr AS (\n  -- one row per month end\n  SELECT m.month_end, SUM(e.mrr_delta_local) AS mrr_eur\n  FROM month_ends m\n  JOIN subscription_events e ON e.event_date <= m.month_end\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  WHERE s.currency = 'EUR'\n  GROUP BY m.month_end\n), compared AS (\n  -- one row per month end\n  SELECT month_end, mrr_eur, LAG(mrr_eur, 12) OVER (ORDER BY month_end) AS mrr_prev_year_eur\n  FROM mrr\n)\nSELECT month_end, mrr_eur, mrr_prev_year_eur\nFROM compared\nWHERE month_end >= DATE '2025-01-31'",
+      "misconception_id": "ERR-LOG-39"
+    }
+  ]
+}

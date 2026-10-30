@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-PAT-04-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "zero_fill",
+    "ad_spend_daily",
+    "range"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-day-spine-campaign",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "spine": "range"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each day from 1 to 14 March 2025, how many clicks did the campaign with utm_campaign 'nb_email_marketing_software_2025' get? Spend days are UTC days. Every day of the range has a row, and a day with no spend shows 0 clicks. Return two columns, in this order: day and clicks. Return one row for each day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per day, 1 to 14 March 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, make a list of every day from 1 to 14 March, then attach the campaign's clicks to it.",
+    "range() with a one-day step makes the days; keep every day in the join and show 0 where the campaign did not spend."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 501,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 502,
+      "to": 547,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 548,
+      "to": 559,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 560,
+      "to": 594,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "range() gives every day a row, the LEFT JOIN keeps the days the campaign skipped, and COALESCE shows their clicks as 0."
+}

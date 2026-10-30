@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-07-E1-07",
+  "item_version": 2,
+  "reference_sql": "WITH lead_steps AS (  -- one row per lead created in the period, with its opportunity if any\n  SELECT l.email, l.source, o.opportunity_id, o.is_won\n  FROM leads l\n  LEFT JOIN opportunities o ON o.lead_id = l.lead_id\n  WHERE l.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND l.created_at < TIMESTAMP '2025-01-01 00:00:00'\n)\nSELECT source,\n       COUNT(DISTINCT email) AS contacts,\n       COUNT(DISTINCT CASE WHEN opportunity_id IS NOT NULL THEN email END) AS with_opportunity,\n       COUNT(DISTINCT CASE WHEN is_won THEN email END) AS won\nFROM lead_steps\nGROUP BY source",
+  "alternatives": [
+    "SELECT l.source,\n       COUNT(DISTINCT l.email) AS contacts,\n       COUNT(DISTINCT CASE WHEN o.opportunity_id IS NOT NULL THEN l.email END) AS with_opportunity,\n       COUNT(DISTINCT l.email) FILTER (WHERE o.is_won) AS won\nFROM leads l\nLEFT JOIN opportunities o ON o.lead_id = l.lead_id\nWHERE date_part('year', l.created_at) = 2024\nGROUP BY l.source",
+    "SELECT source, COUNT(*) AS contacts, SUM(has_opportunity) AS with_opportunity, SUM(has_won) AS won\nFROM (  -- one row per source and email with a 2024 lead, 1 or 0 for each later step\n  SELECT l.source, l.email,\n         MAX(CASE WHEN o.opportunity_id IS NOT NULL THEN 1 ELSE 0 END) AS has_opportunity,\n         MAX(CASE WHEN o.is_won THEN 1 ELSE 0 END) AS has_won\n  FROM leads l\n  LEFT JOIN opportunities o ON o.lead_id = l.lead_id\n  WHERE l.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND l.created_at < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY l.source, l.email\n) AS contacts\nGROUP BY source"
+  ],
+  "other_way": {
+    "sql": "SELECT source, COUNT(*) AS contacts, SUM(has_opportunity) AS with_opportunity, SUM(has_won) AS won\nFROM (  -- one row per source and email with a 2024 lead, 1 or 0 for each later step\n  SELECT l.source, l.email,\n         MAX(CASE WHEN o.opportunity_id IS NOT NULL THEN 1 ELSE 0 END) AS has_opportunity,\n         MAX(CASE WHEN o.is_won THEN 1 ELSE 0 END) AS has_won\n  FROM leads l\n  LEFT JOIN opportunities o ON o.lead_id = l.lead_id\n  WHERE l.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND l.created_at < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY l.source, l.email\n) AS contacts\nGROUP BY source",
+    "tradeoff": "One row per source and email with 0 or 1 flags makes each step a plain sum, at the cost of one extra step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT l.source, COUNT(*) AS contacts, COUNT(o.opportunity_id) AS with_opportunity, COUNT(CASE WHEN o.is_won THEN 1 END) AS won FROM leads l LEFT JOIN opportunities o ON o.lead_id = l.lead_id WHERE l.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND l.created_at < TIMESTAMP '2025-01-01 00:00:00' GROUP BY l.source"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH lead_steps AS (  -- one row per lead created in the period, with its opportunity if any\n  SELECT l.email, l.source, o.opportunity_id, o.is_won\n  FROM leads l\n  JOIN opportunities o ON o.lead_id = l.lead_id\n  WHERE l.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND l.created_at < TIMESTAMP '2025-01-01 00:00:00'\n)\nSELECT source,\n       COUNT(DISTINCT email) AS contacts,\n       COUNT(DISTINCT CASE WHEN opportunity_id IS NOT NULL THEN email END) AS with_opportunity,\n       COUNT(DISTINCT CASE WHEN is_won THEN email END) AS won\nFROM lead_steps\nGROUP BY source"
+    }
+  ],
+  "hint3_partial": "WITH lead_steps AS (  -- one row per lead created in the period, with its opportunity if any\n  SELECT l.email, l.source, o.opportunity_id, o.is_won\n  FROM leads l\n  LEFT JOIN opportunities o ON o.lead_id = l.lead_id\n  WHERE l.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND l.created_at < TIMESTAMP '2025-01-01 00:00:00'\n)\nSELECT source,\n       COUNT(DISTINCT email) AS contacts,\n       COUNT(DISTINCT CASE WHEN opportunity_id IS NOT NULL THEN email END) AS with_opportunity,\n       ___ AS won\nFROM lead_steps\nGROUP BY source",
+  "solver": {
+    "prompt_hash": "942f8a40ddefc837",
+    "schema_version": "f5bc2ff52ecf",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT l.source,\n       COUNT(DISTINCT l.email) AS contacts,\n       COUNT(DISTINCT CASE WHEN o.opportunity_id IS NOT NULL THEN l.email END) AS with_opportunity,\n       COUNT(DISTINCT CASE WHEN o.is_won THEN l.email END) AS won\nFROM leads l\nLEFT JOIN opportunities o ON o.lead_id = l.lead_id\nWHERE l.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND l.created_at < TIMESTAMP '2025-01-01 00:00:00'\nGROUP BY l.source\n",
+    "at": "2026-10-28T16:44:11.815Z"
+  }
+}

@@ -1,0 +1,222 @@
+{
+  "id": "EX-CASE-REAL-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "case",
+    "inbox",
+    "retail",
+    "real_data",
+    "olist",
+    "cohort",
+    "repeat_purchase",
+    "date_spine",
+    "orders",
+    "customers"
+  ],
+  "level": 6,
+  "source_ids": [
+    "03:DS-RETAIL-01",
+    "ERRATA:E-214"
+  ],
+  "verified": true,
+  "as_of": "2026-10-29",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-CASE-REAL-03-repeat-buyers-by-first-order-month",
+  "template_params": {
+    "cohort_date": "first delivered order",
+    "cohorts": "2017-01 to 2017-12",
+    "return_until": "2018-08-31",
+    "person": "customer_unique_id",
+    "month_with_no_new_customer": "kept"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "olist",
+  "schema": "olist",
+  "edge_schema": "olist_edge",
+  "prompt": "Ruben, the pricing analytics manager, sets this take-home task on Olist's public data of orders from Brazilian marketplaces, to judge whether a discount on a customer's second order is worth testing. Ruben asks: of the people who placed their first delivered order in each month of 2017, how many came back for another one? Count only orders whose order_status is delivered, for the first order and for the later one alike. Every order has its own customer_id, so follow a person by customer_unique_id in customers, and count each person once. A person's first delivered order is the earliest one over all of the person's orders in the data, 2016 included, and its month is the person's cohort month. Read each order's day and month from order_purchase_timestamp as the data records it, with no time zone change. A person came back when the person placed another delivered order on a later day than the first one, up to and including 31 August 2018; a second order on the same day as the first does not count. Return one row for each month of 2017, January to December, including a month in which no one placed a first delivered order, with four columns in this order: cohort_month, the first day of the month; cohort_customers, the people whose first delivered order was placed in that month; repeat_customers, those of them who came back; and repeat_pct, 100 times repeat_customers divided by cohort_customers, rounded to 2 decimals. A month with no such person shows 0 for both counts and a missing repeat_pct. Sort by cohort_month from oldest to newest.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "cohort_customers",
+        "type_class": "numeric"
+      },
+      {
+        "name": "repeat_customers",
+        "type_class": "numeric"
+      },
+      {
+        "name": "repeat_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "cohort_month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "cohort_customers",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "repeat_customers",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "repeat_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each person's first delivered order day, following people by customer_unique_id rather than by customer_id.",
+    "Start the last step from a list of the twelve months of 2017 and attach the people to it, so a month with no new customer keeps its row."
+  ],
+  "subgoals": [
+    {
+      "from": 107,
+      "to": 198,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 201,
+      "to": 272,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 275,
+      "to": 309,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 389,
+      "to": 443,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 446,
+      "to": 460,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 463,
+      "to": 490,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 623,
+      "to": 842,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 845,
+      "to": 930,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 933,
+      "to": 1011,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1014,
+      "to": 1056,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1105,
+      "to": 1155,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1158,
+      "to": 1242,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1245,
+      "to": 1511,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1512,
+      "to": 1585,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1586,
+      "to": 1609,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1610,
+      "to": 1633,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Following people by customer_unique_id and dating each one by the first delivered order puts every person in one month, and the list of months keeps a month with no new customer."
+}

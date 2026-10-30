@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT a.segment,\n  COUNT(*) FILTER (WHERE s.billing_period = 'monthly') AS monthly_subs,\n  COUNT(*) FILTER (WHERE s.billing_period = 'annual') AS annual_subs\nFROM subscriptions s\nJOIN accounts a ON a.account_id = s.account_id\nWHERE s.start_date <= DATE '2025-12-31'\n  AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31')\nGROUP BY a.segment",
+  "alternatives": [
+    "SELECT segment, monthly AS monthly_subs, annual AS annual_subs\nFROM (\n  -- one row per subscription running on 31 December 2025\n  SELECT a.segment, s.billing_period\n  FROM subscriptions s\n  JOIN accounts a ON a.account_id = s.account_id\n  WHERE s.start_date <= DATE '2025-12-31'\n    AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31')\n) AS r\nPIVOT (COUNT(*) FOR billing_period IN ('monthly', 'annual') GROUP BY segment)",
+    "SELECT a.segment,\n  SUM(CASE WHEN s.billing_period = 'monthly' THEN 1 ELSE 0 END) AS monthly_subs,\n  SUM(CASE WHEN s.billing_period = 'annual' THEN 1 ELSE 0 END) AS annual_subs\nFROM subscriptions s\nJOIN accounts a ON a.account_id = s.account_id\nWHERE s.start_date <= DATE '2025-12-31'\n  AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31')\nGROUP BY a.segment"
+  ],
+  "other_way": {
+    "sql": "SELECT segment, monthly AS monthly_subs, annual AS annual_subs\nFROM (\n  -- one row per subscription running on 31 December 2025\n  SELECT a.segment, s.billing_period\n  FROM subscriptions s\n  JOIN accounts a ON a.account_id = s.account_id\n  WHERE s.start_date <= DATE '2025-12-31'\n    AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31')\n) AS r\nPIVOT (COUNT(*) FOR billing_period IN ('monthly', 'annual') GROUP BY segment)",
+    "tradeoff": "PIVOT with an IN list turns the two billing periods into columns in one clause, but it runs on DuckDB only."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT a.segment, SUM(CASE WHEN s.billing_period = 'monthly' THEN 1 END) AS monthly_subs, SUM(CASE WHEN s.billing_period = 'annual' THEN 1 END) AS annual_subs FROM subscriptions s JOIN accounts a ON a.account_id = s.account_id WHERE s.start_date <= DATE '2025-12-31'   AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31') GROUP BY a.segment"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT a.segment, COUNT(s.billing_period = 'monthly') AS monthly_subs, COUNT(s.billing_period = 'annual') AS annual_subs FROM subscriptions s JOIN accounts a ON a.account_id = s.account_id WHERE s.start_date <= DATE '2025-12-31'   AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31') GROUP BY a.segment"
+    }
+  ],
+  "hint3_partial": "SELECT a.segment,\n  COUNT(*) FILTER (WHERE s.billing_period = 'monthly') AS monthly_subs,\n  ___ AS annual_subs\nFROM subscriptions s\nJOIN accounts a ON a.account_id = s.account_id\nWHERE s.start_date <= DATE '2025-12-31'\n  AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31')\nGROUP BY a.segment",
+  "solver": {
+    "prompt_hash": "ec2df6490e24b955",
+    "schema_version": "1a656b279d78",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT a.segment,\n  COUNT(*) FILTER (WHERE s.billing_period = 'monthly') AS monthly_subs,\n  COUNT(*) FILTER (WHERE s.billing_period = 'annual') AS annual_subs\nFROM subscriptions s\nJOIN accounts a ON a.account_id = s.account_id\nWHERE s.start_date <= DATE '2025-12-31' AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31')\nGROUP BY a.segment\n",
+    "at": "2026-10-28T14:57:05.699Z"
+  }
+}

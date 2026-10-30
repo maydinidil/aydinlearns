@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-PAT-10-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "reactivation",
+    "fx"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-reactivations-quarter",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025,
+    "fx_date": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Customer Success wants credit for won-back accounts. For each quarter of 2025 (event_date from 1 January to 31 December 2025) with a reactivation, how many accounts came back and how much MRR they brought, in euros rounded to 2 decimals with ROUND? Each event's event_type names its movement (new, expansion, contraction, churn or reactivation); a reactivation is an account coming back after it churned, never new MRR. Leave out the opening events: they carry the MRR subscriptions already had when the data starts on 1 January 2024. Convert every amount to euros at one fixed rate, that of 31 December 2025: multiply by fx_rates.eur_per_unit for the subscription's currency on 2025-12-31. Count an account once per quarter. Return three columns, in this order: quarter_start (the first day of the quarter), accounts and reactivation_mrr. Return one row for each such quarter. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "quarter_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "quarter_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "quarter_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the reactivation events of 2025 and group them by quarter.",
+    "Count distinct accounts, and convert each amount at the fixed rate before adding it up."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 116,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 117,
+      "to": 188,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 189,
+      "to": 215,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 216,
+      "to": 277,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 278,
+      "to": 356,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 357,
+      "to": 392,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 393,
+      "to": 459,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 460,
+      "to": 518,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Only reactivation events are won-back accounts, so new business never inflates Customer Success's credit."
+}

@@ -1,0 +1,201 @@
+{
+  "id": "EX-CASE-DAILY-L6-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "case",
+    "daily",
+    "marketing",
+    "cohort",
+    "retention",
+    "first_payment",
+    "payments",
+    "subscriptions"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-CASE-DAILY-L6-month-3-retention-by-first-payment",
+  "template_params": {
+    "cohort_date": "first payment not refunded",
+    "cohorts": "2025-01 to 2025-06",
+    "offset": "calendar months",
+    "month": 3,
+    "clock": "UTC",
+    "as_of": "2026-01-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Siobhán, the lifecycle marketing manager, is timing a lifecycle email for new paying users and asks how many of each month's new paying users were still paying three months later. Use only the payments that were not refunded, and read each paid_at in UTC, so every month is a UTC calendar month. A user's cohort month is the month of the user's first such payment, over all of the user's subscriptions; take the cohort months from January to June 2025. Count months as calendar months, month 0 being the cohort month itself, so month 3 of the January 2025 cohort is April 2025. A user is retained when the user has at least one such payment in month 3. The data runs to the as-of date of 5 January 2026, so every month 3 here has ended. Return one row for each of those cohort months that has at least one user, with four columns in this order: cohort_month, the first day of the cohort month; cohort_users, the users of that cohort; retained_m3_users, the users of that cohort who are retained; and retention_m3_pct, 100 times retained_m3_users divided by cohort_users, rounded to 1 decimal. Sort by cohort_month from oldest to newest.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "cohort_users",
+        "type_class": "numeric"
+      },
+      {
+        "name": "retained_m3_users",
+        "type_class": "numeric"
+      },
+      {
+        "name": "retention_m3_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "cohort_month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "cohort_users",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "retained_m3_users",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "retention_m3_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each user's first month with a payment that was not refunded, over all of the user's subscriptions.",
+    "Match each user's payments on the user and on the month three calendar months after the first one, and count each user only once."
+  ],
+  "subgoals": [
+    {
+      "from": 106,
+      "to": 181,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 184,
+      "to": 269,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 272,
+      "to": 292,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 376,
+      "to": 422,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 425,
+      "to": 443,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 446,
+      "to": 462,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 555,
+      "to": 580,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 583,
+      "to": 727,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 730,
+      "to": 904,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 905,
+      "to": 971,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 972,
+      "to": 1054,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1055,
+      "to": 1078,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1079,
+      "to": 1102,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The cohort comes from each user's first month with a payment, and month 3 is three calendar months after it, so day counts and plan changes never move a user."
+}

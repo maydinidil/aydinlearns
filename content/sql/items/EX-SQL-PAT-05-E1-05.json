@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-PAT-05-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "invoices"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-month-by-status",
+  "template_params": {
+    "table": "invoices",
+    "columns": "status"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each month of 2025, by invoice_date, how many LedgerLoop invoices are paid, how many uncollectible and how many open (invoices.status)? Return four columns, in this order: month (the first day of the month), paid, uncollectible and open. A status with no invoices in a month shows 0. Return one row for each month of 2025 with invoices. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric"
+      },
+      {
+        "name": "uncollectible",
+        "type_class": "numeric"
+      },
+      {
+        "name": "open",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "uncollectible",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "open",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the invoices by month and count each status in its own column.",
+    "A count that keeps only one status per column gives 0 for a status a month did not have."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 64,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 65,
+      "to": 234,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 235,
+      "to": 248,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 249,
+      "to": 315,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 316,
+      "to": 372,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each status gets a filtered count, so every month is one row with three counts, and a status with no invoice shows 0."
+}

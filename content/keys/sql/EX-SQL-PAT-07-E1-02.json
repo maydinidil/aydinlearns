@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-07-E1-02",
+  "item_version": 1,
+  "reference_sql": "WITH user_steps AS (  -- one row per user with app events, 1 or 0 for each step\n  SELECT user_id,\n         MAX(CASE WHEN event_name = 'upload_statement' THEN 1 ELSE 0 END) AS did_upload,\n         MAX(CASE WHEN event_name = 'match_transaction' THEN 1 ELSE 0 END) AS did_match,\n         MAX(CASE WHEN event_name = 'export_report' THEN 1 ELSE 0 END) AS did_export\n  FROM app_events\n  GROUP BY user_id\n)\nSELECT SUM(did_upload) AS uploaded,\n       SUM(did_upload * did_match) AS matched,\n       SUM(did_upload * did_match * did_export) AS exported\nFROM user_steps",
+  "alternatives": [
+    "SELECT COUNT(DISTINCT CASE WHEN e.event_name = 'upload_statement' THEN e.user_id END) AS uploaded,\n       COUNT(DISTINCT CASE WHEN e.event_name = 'match_transaction' AND EXISTS (SELECT 1 FROM app_events x WHERE x.user_id = e.user_id AND x.event_name = 'upload_statement') THEN e.user_id END) AS matched,\n       COUNT(DISTINCT CASE WHEN e.event_name = 'export_report' AND EXISTS (SELECT 1 FROM app_events x WHERE x.user_id = e.user_id AND x.event_name = 'upload_statement')\n                            AND EXISTS (SELECT 1 FROM app_events x WHERE x.user_id = e.user_id AND x.event_name = 'match_transaction') THEN e.user_id END) AS exported\nFROM app_events e",
+    "WITH up AS (  -- one row per user who uploaded a statement\n  SELECT DISTINCT user_id FROM app_events WHERE event_name = 'upload_statement'\n),\nmt AS (  -- one row per user who matched a transaction\n  SELECT DISTINCT user_id FROM app_events WHERE event_name = 'match_transaction'\n),\nex AS (  -- one row per user who exported a report\n  SELECT DISTINCT user_id FROM app_events WHERE event_name = 'export_report'\n)\nSELECT COUNT(u.user_id) AS uploaded,\n       COUNT(m.user_id) AS matched,\n       COUNT(x.user_id) AS exported\nFROM up u\nLEFT JOIN mt m ON m.user_id = u.user_id\nLEFT JOIN ex x ON x.user_id = m.user_id"
+  ],
+  "other_way": {
+    "sql": "WITH up AS (  -- one row per user who uploaded a statement\n  SELECT DISTINCT user_id FROM app_events WHERE event_name = 'upload_statement'\n),\nmt AS (  -- one row per user who matched a transaction\n  SELECT DISTINCT user_id FROM app_events WHERE event_name = 'match_transaction'\n),\nex AS (  -- one row per user who exported a report\n  SELECT DISTINCT user_id FROM app_events WHERE event_name = 'export_report'\n)\nSELECT COUNT(u.user_id) AS uploaded,\n       COUNT(m.user_id) AS matched,\n       COUNT(x.user_id) AS exported\nFROM up u\nLEFT JOIN mt m ON m.user_id = u.user_id\nLEFT JOIN ex x ON x.user_id = m.user_id",
+    "tradeoff": "One list of users per step joined together reads like the funnel itself, but each step needs its own step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-44",
+      "sql": "WITH user_steps AS (  -- one row per user with app events, 1 or 0 for each step\n  SELECT user_id,\n         MAX(CASE WHEN event_name = 'upload_statement' THEN 1 ELSE 0 END) AS did_upload,\n         MAX(CASE WHEN event_name = 'match_transaction' THEN 1 ELSE 0 END) AS did_match,\n         MAX(CASE WHEN event_name = 'export_report' THEN 1 ELSE 0 END) AS did_export\n  FROM app_events\n  GROUP BY user_id\n)\nSELECT SUM(did_upload) AS uploaded,\n       SUM(did_match) AS matched,\n       SUM(did_export) AS exported\nFROM user_steps"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) FILTER (WHERE e.event_name = 'upload_statement') AS uploaded, COUNT(*) FILTER (WHERE e.event_name = 'match_transaction') AS matched, COUNT(*) FILTER (WHERE e.event_name = 'export_report') AS exported FROM app_events e"
+    }
+  ],
+  "hint3_partial": "WITH user_steps AS (  -- one row per user with app events, 1 or 0 for each step\n  SELECT user_id,\n         MAX(CASE WHEN event_name = 'upload_statement' THEN 1 ELSE 0 END) AS did_upload,\n         MAX(CASE WHEN event_name = 'match_transaction' THEN 1 ELSE 0 END) AS did_match,\n         MAX(CASE WHEN event_name = 'export_report' THEN 1 ELSE 0 END) AS did_export\n  FROM app_events\n  GROUP BY user_id\n)\nSELECT SUM(did_upload) AS uploaded,\n       ___ AS matched,\n       ___ AS exported\nFROM user_steps",
+  "solver": {
+    "prompt_hash": "5b398db77863a7d3",
+    "schema_version": "c66411aea2e3",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH s AS (\n  SELECT user_id,\n         bool_or(event_name = 'upload_statement') AS up,\n         bool_or(event_name = 'match_transaction') AS mt,\n         bool_or(event_name = 'export_report') AS ex\n  FROM app_events GROUP BY user_id\n)\nSELECT COUNT(*) FILTER (WHERE up) AS uploaded,\n       COUNT(*) FILTER (WHERE up AND mt) AS matched,\n       COUNT(*) FILTER (WHERE up AND mt AND ex) AS exported\nFROM s\n",
+    "at": "2026-10-28T14:57:07.931Z"
+  }
+}

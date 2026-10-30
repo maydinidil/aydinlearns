@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-08-E1-06",
+  "item_version": 1,
+  "reference_sql": "WITH gaps AS (\n  -- one row per app event\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT event_name AS landing_event, COUNT(*) AS sessions\nFROM gaps\nWHERE prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes'\nGROUP BY event_name",
+  "alternatives": [
+    "WITH gaps AS (\n  -- one row per app event\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n), flagged AS (\n  -- one row per app event\n  SELECT user_id, event_ts, event_name,\n    CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM gaps\n)\nSELECT event_name AS landing_event, SUM(new_session) AS sessions\nFROM flagged\nGROUP BY event_name\nHAVING SUM(new_session) > 0",
+    "SELECT e.event_name AS landing_event, COUNT(*) AS sessions\nFROM app_events e\nWHERE NOT EXISTS (\n  SELECT 1 FROM app_events p\n  WHERE p.user_id = e.user_id\n    AND (p.event_ts < e.event_ts OR (p.event_ts = e.event_ts AND p.event_id < e.event_id))\n    AND p.event_ts >= e.event_ts - INTERVAL '30 minutes'\n)\nGROUP BY e.event_name"
+  ],
+  "other_way": {
+    "sql": "SELECT e.event_name AS landing_event, COUNT(*) AS sessions\nFROM app_events e\nWHERE NOT EXISTS (\n  SELECT 1 FROM app_events p\n  WHERE p.user_id = e.user_id\n    AND (p.event_ts < e.event_ts OR (p.event_ts = e.event_ts AND p.event_id < e.event_id))\n    AND p.event_ts >= e.event_ts - INTERVAL '30 minutes'\n)\nGROUP BY e.event_name",
+    "tradeoff": "NOT EXISTS keeps the events with no earlier event of the user in the 30 minutes before, which reads well but runs slower than LAG."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH gaps AS ( SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (ORDER BY event_ts, event_id) AS prev_ts FROM app_events ) SELECT event_name AS landing_event, COUNT(*) AS sessions FROM gaps WHERE prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' GROUP BY event_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "WITH gaps AS ( SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts FROM app_events ) SELECT event_name AS landing_event, COUNT(*) AS sessions FROM gaps WHERE event_ts - prev_ts > INTERVAL '30 minutes' GROUP BY event_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-34",
+      "sql": "WITH gaps AS ( SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts FROM app_events ) SELECT event_name AS landing_event, COUNT(*) AS sessions FROM gaps WHERE prev_ts IS NULL OR epoch(event_ts) - epoch(prev_ts) > 30 GROUP BY event_name"
+    }
+  ],
+  "hint3_partial": "WITH gaps AS (\n  -- one row per app event\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT event_name AS landing_event, COUNT(*) AS sessions\nFROM gaps\nWHERE ___\nGROUP BY event_name",
+  "solver": {
+    "prompt_hash": "9fa1d653935a88bb",
+    "schema_version": "c66411aea2e3",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH f AS (SELECT event_name, CASE WHEN LAG(event_ts) OVER w IS NULL OR event_ts - LAG(event_ts) OVER w > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS ns FROM app_events WINDOW w AS (PARTITION BY user_id ORDER BY event_ts, event_id)) SELECT event_name AS landing_event, COUNT(*) AS sessions FROM f WHERE ns = 1 GROUP BY event_name\n",
+    "at": "2026-10-28T14:57:09.903Z"
+  }
+}

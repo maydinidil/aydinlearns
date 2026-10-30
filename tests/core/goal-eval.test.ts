@@ -277,3 +277,36 @@ test('S5A-18: every goal in content/goals.json belongs to at least one section',
   const { goals } = JSON.parse(await readFile('content/goals.json', 'utf8')) as { goals: Goal[] };
   for (const g of goals) assert.ok((['sql', 'ga4', 'methodology'] as const).some((s) => goalInSection(g, s)), g.id);
 });
+
+// ---- Sprint 8 Part 2 (Task B2): case_solved with a world (S8-18, S8-C27) -------------------------------------------------
+const saasCase = (n: number, over: Partial<GoalView['casesSolved'][number]> = {}): GoalView['casesSolved'][number] =>
+  ({ case_id: `CASE-SAAS-${n}`, level: 6, exported: false, real: false, world: 'SAAS', kind: 'inbox', ...over });
+const SAAS_GOAL = goal('G-SQL-LEVEL-6', '2026-12-23', [{ kind: 'case_solved', world: 'SAAS', count: 5 }]);
+test('S8-18 case_solved with a world: five solved SaaS inbox cases meet it, four do not', () => {
+  const five = [1, 2, 3, 4, 5].map((n) => saasCase(n));
+  assert.deepEqual(evaluateGoal(SAAS_GOAL, view({}, { casesSolved: five })).criteria[0], { label: 'SaaS cases solved', met: true, available: true, done: 5, total: 5 });
+  assert.deepEqual(evaluateGoal(SAAS_GOAL, view({}, { casesSolved: five.slice(1) })).criteria[0], { label: 'SaaS cases solved', met: false, available: true, done: 4, total: 5 });
+});
+test('S8-C27: the level 6 opener (world SAAS) never counts; a PRICE case never counts', () => {
+  const four = [1, 2, 3, 4].map((n) => saasCase(n));
+  const opener = saasCase(0, { case_id: 'CASE-LEDGER-L6', kind: 'opener' });
+  assert.equal(evaluateGoal(SAAS_GOAL, view({}, { casesSolved: [opener, ...four] })).criteria[0]!.done, 4);
+  assert.equal(evaluateGoal(SAAS_GOAL, view({}, { casesSolved: [...four, saasCase(9, { world: 'PRICE', case_id: 'CASE-PRICE-01' })] })).criteria[0]!.done, 4);
+  assert.equal(evaluateGoal(SAAS_GOAL, view({}, { casesSolved: [...four, saasCase(8, { kind: 'daily' })] })).criteria[0]!.done, 4, 'a daily case is not an inbox case');
+});
+test('S8-18: a criterion with no world reads as before and counts every solved case, openers included', () => {
+  const any = goal('G-ANY', '2026-11-06', [{ kind: 'case_solved', count: 3 }]);
+  const solved = [saasCase(0, { kind: 'opener' }), saasCase(1), saasCase(2, { world: 'PRICE' })];
+  assert.deepEqual(evaluateGoal(any, view({}, { casesSolved: solved })).criteria[0], { label: '3 cases solved', met: true, available: true, done: 3, total: 3 });
+});
+test('S8-18: goalCriterionProblems accepts a world of CASE_WORLDS only, and the core list matches schemas/case.ts', async () => {
+  assert.deepEqual(goalCriterionProblems({ kind: 'case_solved', world: 'SAAS', count: 5 }), []);
+  assert.match(goalCriterionProblems({ kind: 'case_solved', world: 'MOON', count: 5 }).join(), /world/);
+  const { CASE_WORLDS } = await import('../../schemas/case.ts');
+  const { GOAL_CASE_WORLDS } = await import('../../core/goals.ts');
+  assert.deepEqual([...GOAL_CASE_WORLDS], [...CASE_WORLDS]);
+});
+test('S8-18: G-SQL-LEVEL-6 in goals.json names the SaaS criterion after its concept_state criterion', async () => {
+  const g = JSON.parse(await readFile('content/goals.json', 'utf8')).goals.find((x: { id: string }) => x.id === 'G-SQL-LEVEL-6');
+  assert.deepEqual(g.criteria, [{ kind: 'concept_state', section: 'sql', level: 6, state: 'practised' }, { kind: 'case_solved', world: 'SAAS', count: 5 }]);
+});

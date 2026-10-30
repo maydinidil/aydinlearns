@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-08-E2-05",
+  "item_version": 1,
+  "reference_sql": "WITH gaps AS (\n  -- one row per app event\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT CAST(timezone('Europe/Brussels', event_ts) AS DATE) AS brussels_day, COUNT(*) AS sessions\nFROM gaps\nWHERE (prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes')\n  AND CAST(timezone('Europe/Brussels', event_ts) AS DATE) BETWEEN DATE '2025-10-20' AND DATE '2025-10-26'\nGROUP BY CAST(timezone('Europe/Brussels', event_ts) AS DATE)",
+  "alternatives": [
+    "WITH gaps AS (\n  -- one row per app event\n  SELECT user_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n), flagged AS (\n  -- one row per app event\n  SELECT user_id, event_ts,\n    CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM gaps\n)\nSELECT CAST(timezone('Europe/Brussels', event_ts) AS DATE) AS brussels_day, SUM(new_session) AS sessions\nFROM flagged\nWHERE CAST(timezone('Europe/Brussels', event_ts) AS DATE) BETWEEN DATE '2025-10-20' AND DATE '2025-10-26'\nGROUP BY CAST(timezone('Europe/Brussels', event_ts) AS DATE)\nHAVING SUM(new_session) > 0",
+    "SELECT CAST(timezone('Europe/Brussels', e.event_ts) AS DATE) AS brussels_day, COUNT(*) AS sessions\nFROM app_events e\nWHERE e.event_ts >= TIMESTAMPTZ '2025-10-19 22:00:00+00'\n  AND e.event_ts < TIMESTAMPTZ '2025-10-26 23:00:00+00'\n  AND NOT EXISTS (\n    SELECT 1 FROM app_events p\n    WHERE p.user_id = e.user_id\n      AND (p.event_ts < e.event_ts OR (p.event_ts = e.event_ts AND p.event_id < e.event_id))\n      AND p.event_ts >= e.event_ts - INTERVAL '30 minutes'\n  )\nGROUP BY CAST(timezone('Europe/Brussels', e.event_ts) AS DATE)"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(timezone('Europe/Brussels', e.event_ts) AS DATE) AS brussels_day, COUNT(*) AS sessions\nFROM app_events e\nWHERE e.event_ts >= TIMESTAMPTZ '2025-10-19 22:00:00+00'\n  AND e.event_ts < TIMESTAMPTZ '2025-10-26 23:00:00+00'\n  AND NOT EXISTS (\n    SELECT 1 FROM app_events p\n    WHERE p.user_id = e.user_id\n      AND (p.event_ts < e.event_ts OR (p.event_ts = e.event_ts AND p.event_id < e.event_id))\n      AND p.event_ts >= e.event_ts - INTERVAL '30 minutes'\n  )\nGROUP BY CAST(timezone('Europe/Brussels', e.event_ts) AS DATE)",
+    "tradeoff": "Filtering the week by its UTC bounds and testing for a recent earlier event with NOT EXISTS works, but those bounds are easy to get wrong."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH gaps AS ( SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (ORDER BY event_ts, event_id) AS prev_ts FROM app_events ) SELECT CAST(timezone('Europe/Brussels', event_ts) AS DATE) AS brussels_day, COUNT(*) AS sessions FROM gaps WHERE (prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes') AND CAST(timezone('Europe/Brussels', event_ts) AS DATE) BETWEEN DATE '2025-10-20' AND DATE '2025-10-26' GROUP BY CAST(timezone('Europe/Brussels', event_ts) AS DATE)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "WITH gaps AS ( SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts FROM app_events ) SELECT CAST(timezone('Europe/Brussels', event_ts) AS DATE) AS brussels_day, COUNT(*) AS sessions FROM gaps WHERE event_ts - prev_ts > INTERVAL '30 minutes' AND CAST(timezone('Europe/Brussels', event_ts) AS DATE) BETWEEN DATE '2025-10-20' AND DATE '2025-10-26' GROUP BY CAST(timezone('Europe/Brussels', event_ts) AS DATE)"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-34",
+      "sql": "WITH gaps AS ( SELECT user_id, event_ts, event_name, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts FROM app_events ) SELECT CAST(timezone('Europe/Brussels', event_ts) AS DATE) AS brussels_day, COUNT(*) AS sessions FROM gaps WHERE (prev_ts IS NULL OR epoch(event_ts) - epoch(prev_ts) > 30) AND CAST(timezone('Europe/Brussels', event_ts) AS DATE) BETWEEN DATE '2025-10-20' AND DATE '2025-10-26' GROUP BY CAST(timezone('Europe/Brussels', event_ts) AS DATE)"
+    }
+  ],
+  "hint3_partial": "WITH gaps AS (\n  -- one row per app event\n  SELECT user_id, event_ts, event_name,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n)\nSELECT CAST(___ AS DATE) AS brussels_day, COUNT(*) AS sessions\nFROM gaps\nWHERE (prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes')\n  AND ___\nGROUP BY 1",
+  "solver": {
+    "prompt_hash": "c5d14fbc2d7645c6",
+    "schema_version": "c66411aea2e3",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH f AS (SELECT event_id, user_id, account_id, event_ts, event_name, CASE WHEN LAG(event_ts) OVER w IS NULL OR event_ts - LAG(event_ts) OVER w > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS ns FROM app_events WINDOW w AS (PARTITION BY user_id ORDER BY event_ts, event_id)),\ns AS (SELECT *, SUM(ns) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS sn FROM f),\nss AS (SELECT user_id, account_id, sn, MIN(event_ts) AS st, MAX(event_ts) AS en, COUNT(*) AS n FROM s GROUP BY user_id, account_id, sn) SELECT CAST(st AT TIME ZONE 'Europe/Brussels' AS DATE) AS brussels_day, COUNT(*) AS sessions FROM ss WHERE CAST(st AT TIME ZONE 'Europe/Brussels' AS DATE) BETWEEN DATE '2025-10-20' AND DATE '2025-10-26' GROUP BY 1\n",
+    "at": "2026-10-28T14:57:11.789Z"
+  }
+}

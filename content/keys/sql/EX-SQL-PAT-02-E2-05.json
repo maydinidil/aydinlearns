@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-02-E2-05",
+  "item_version": 1,
+  "reference_sql": "WITH numbered AS (  -- one row per expansion row of 2025 as it arrived\n  SELECT date_trunc('month', event_date) AS event_month,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n)\nSELECT event_month, COUNT(*) AS rows_arrived, COUNT(*) FILTER (WHERE copy_no = 1) AS events\nFROM numbered\nGROUP BY event_month",
+  "alternatives": [
+    "WITH arrived AS (  -- one row per month of 2025 with an expansion row\n  SELECT date_trunc('month', event_date) AS event_month, COUNT(*) AS rows_arrived\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n  GROUP BY date_trunc('month', event_date)\n),\nevents AS (  -- one row per expansion event of 2025\n  SELECT DISTINCT subscription_id, event_type, event_date, mrr_delta_local\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n)\nSELECT a.event_month, a.rows_arrived, COUNT(*) AS events\nFROM arrived a\nJOIN events e ON date_trunc('month', e.event_date) = a.event_month\nGROUP BY a.event_month, a.rows_arrived",
+    "SELECT t.event_month, COUNT(*) AS rows_arrived, SUM(CASE WHEN t.copy_no = 1 THEN 1 ELSE 0 END) AS events\nFROM (\n  -- one row per expansion row of 2025 as it arrived\n  SELECT date_trunc('month', event_date) AS event_month,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n) AS t\nGROUP BY t.event_month"
+  ],
+  "other_way": {
+    "sql": "WITH arrived AS (  -- one row per month of 2025 with an expansion row\n  SELECT date_trunc('month', event_date) AS event_month, COUNT(*) AS rows_arrived\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n  GROUP BY date_trunc('month', event_date)\n),\nevents AS (  -- one row per expansion event of 2025\n  SELECT DISTINCT subscription_id, event_type, event_date, mrr_delta_local\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n)\nSELECT a.event_month, a.rows_arrived, COUNT(*) AS events\nFROM arrived a\nJOIN events e ON date_trunc('month', e.event_date) = a.event_month\nGROUP BY a.event_month, a.rows_arrived",
+    "tradeoff": "DISTINCT over the four event columns counts each event once too, but it cannot say which copy it kept."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-36",
+      "sql": "WITH arrived AS (SELECT date_trunc('month', event_date) AS event_month, COUNT(*) AS rows_arrived FROM subscription_events WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01' GROUP BY date_trunc('month', event_date)), events AS (SELECT DISTINCT subscription_id, event_type, event_date, mrr_delta_local, recorded_at FROM subscription_events WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01') SELECT a.event_month, a.rows_arrived, COUNT(*) AS events FROM arrived a JOIN events e ON date_trunc('month', e.event_date) = a.event_month GROUP BY a.event_month, a.rows_arrived"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH numbered AS (  -- one row per expansion row of 2025 as it arrived\n  SELECT event_date AS event_month,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n)\nSELECT event_month, COUNT(*) AS rows_arrived, COUNT(*) FILTER (WHERE copy_no = 1) AS events FROM numbered GROUP BY event_month"
+    }
+  ],
+  "hint3_partial": "WITH numbered AS (  -- one row per expansion row of 2025 as it arrived\n  SELECT date_trunc('month', event_date) AS event_month,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n  WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n)\nSELECT event_month, COUNT(*) AS rows_arrived, COUNT(*) FILTER (WHERE ___) AS events\nFROM numbered\nGROUP BY event_month",
+  "solver": {
+    "prompt_hash": "37ae2d2df1771399",
+    "schema_version": "3cbf032d825b",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH d AS (SELECT event_date, ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS rn FROM subscription_events WHERE event_type = 'expansion' AND event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01')\nSELECT CAST(date_trunc('month', event_date) AS DATE) AS event_month, COUNT(*) AS rows_arrived, COUNT(*) FILTER (WHERE rn = 1) AS events FROM d GROUP BY 1\n",
+    "at": "2026-10-28T14:57:01.029Z"
+  }
+}

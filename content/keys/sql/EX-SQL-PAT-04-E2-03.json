@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), priorities AS (\n  -- one row per ticket priority\n  SELECT DISTINCT priority\n  FROM support_tickets\n), monthly AS (\n  -- one row per priority and month with tickets\n  SELECT priority, CAST(date_trunc('month', opened_at) AS DATE) AS month, COUNT(*) AS tickets\n  FROM support_tickets\n  WHERE opened_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND opened_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY priority, CAST(date_trunc('month', opened_at) AS DATE)\n)\nSELECT p.priority, m.month, COALESCE(t.tickets, 0) AS tickets\nFROM priorities p\nCROSS JOIN months m\nLEFT JOIN monthly t ON t.priority = p.priority AND t.month = m.month",
+  "alternatives": [
+    "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), priorities AS (\n  -- one row per ticket priority\n  SELECT DISTINCT priority\n  FROM support_tickets\n)\nSELECT p.priority, m.month,\n  (SELECT COUNT(*) FROM support_tickets t\n   WHERE t.priority = p.priority AND CAST(date_trunc('month', t.opened_at) AS DATE) = m.month) AS tickets\nFROM priorities p\nCROSS JOIN months m",
+    "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), priorities AS (\n  -- one row per ticket priority\n  SELECT DISTINCT priority\n  FROM support_tickets\n)\nSELECT p.priority, m.month, COUNT(t.ticket_id) AS tickets\nFROM priorities p\nCROSS JOIN months m\nLEFT JOIN support_tickets t ON t.priority = p.priority AND CAST(date_trunc('month', t.opened_at) AS DATE) = m.month\nGROUP BY p.priority, m.month"
+  ],
+  "other_way": {
+    "sql": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), priorities AS (\n  -- one row per ticket priority\n  SELECT DISTINCT priority\n  FROM support_tickets\n)\nSELECT p.priority, m.month,\n  (SELECT COUNT(*) FROM support_tickets t\n   WHERE t.priority = p.priority AND CAST(date_trunc('month', t.opened_at) AS DATE) = m.month) AS tickets\nFROM priorities p\nCROSS JOIN months m",
+    "tradeoff": "Counting with a subquery for each cell avoids the outer join, but it reads the tickets again for each of the 48 cells."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), priorities AS (\n  -- one row per ticket priority\n  SELECT DISTINCT priority\n  FROM support_tickets\n), monthly AS (\n  -- one row per priority and month with tickets\n  SELECT priority, CAST(date_trunc('month', opened_at) AS DATE) AS month, COUNT(*) AS tickets\n  FROM support_tickets\n  WHERE opened_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND opened_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY priority, CAST(date_trunc('month', opened_at) AS DATE)\n) SELECT priority, month, tickets FROM monthly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), priorities AS (\n  -- one row per ticket priority\n  SELECT DISTINCT priority\n  FROM support_tickets\n), monthly AS (\n  -- one row per priority and month with tickets\n  SELECT priority, CAST(date_trunc('month', opened_at) AS DATE) AS month, COUNT(*) AS tickets\n  FROM support_tickets\n  WHERE opened_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND opened_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY priority, CAST(date_trunc('month', opened_at) AS DATE)\n) SELECT p.priority, m.month, t.tickets FROM priorities p CROSS JOIN months m LEFT JOIN monthly t ON t.priority = p.priority AND t.month = m.month"
+    }
+  ],
+  "hint3_partial": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), priorities AS (\n  -- one row per ticket priority\n  SELECT DISTINCT priority\n  FROM support_tickets\n), monthly AS (\n  -- one row per priority and month with tickets\n  SELECT priority, CAST(date_trunc('month', opened_at) AS DATE) AS month, COUNT(*) AS tickets\n  FROM support_tickets\n  WHERE opened_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND opened_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY priority, CAST(date_trunc('month', opened_at) AS DATE)\n)\nSELECT p.priority, m.month, COALESCE(t.tickets, 0) AS tickets\nFROM priorities p\nCROSS JOIN months m\nLEFT JOIN monthly t ON ___",
+  "solver": {
+    "prompt_hash": "88343b4bfa896210",
+    "schema_version": "663b8e8d8bba",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH months AS (\n  SELECT CAST(d AS DATE) AS month FROM generate_series(DATE '2025-01-01', DATE '2025-12-01', INTERVAL 1 MONTH) t(d)\n), pr AS (\n  SELECT DISTINCT priority FROM support_tickets\n), t AS (\n  SELECT priority, CAST(date_trunc('month', opened_at) AS DATE) AS month, COUNT(*) AS tickets\n  FROM support_tickets\n  WHERE opened_at >= TIMESTAMP '2025-01-01 00:00:00' AND opened_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY 1, 2\n)\nSELECT pr.priority, m.month, COALESCE(t.tickets, 0) AS tickets\nFROM pr CROSS JOIN months m\nLEFT JOIN t ON t.priority = pr.priority AND t.month = m.month\n",
+    "at": "2026-10-28T14:57:05.060Z"
+  }
+}

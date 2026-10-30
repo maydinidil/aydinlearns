@@ -1,0 +1,187 @@
+{
+  "id": "EX-SQL-PAT-07-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "users_per_step",
+    "activation",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-users-per-step-by-month",
+  "template_params": {
+    "funnel": "signup, activation, payment",
+    "period": "2025-04 to 2025-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each signup month from April to June 2025, how many users reached each step of the signup funnel: signed up, activated, paid? A user counts as activated with a first_campaign_sent event, and as paid with at least one payment, refunded or not; a user counts at a step only when the user also reached the step before, at any time. signup_ts is a UTC instant, read in UTC. Return four columns, in this order: signup_month (the first day of the month), signed_up, activated and paid, each a number of users. Return one row for each signup month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "signup_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "signed_up",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per signup month"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "signup_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "signed_up",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "signup_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the three step counts: every user who signed up, the activated users, and the paid users who were also activated.",
+    "Count rows of the joined lists, not events; a paying user counts in the paid column only when the user's activation row is there too."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 44,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 47,
+      "to": 70,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 73,
+      "to": 95,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 98,
+      "to": 138,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 142,
+      "to": 184,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 187,
+      "to": 212,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 215,
+      "to": 294,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 297,
+      "to": 367,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 375,
+      "to": 508,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 509,
+      "to": 605,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 606,
+      "to": 718,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 719,
+      "to": 740,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 375,
+    "stage2": 375
+  },
+  "faded_shape": "WITH act AS (  -- one row per activated user\n  SELECT DISTINCT user_id\n  FROM activation_events\n  WHERE event_name = 'first_campaign_sent'\n),\npay AS (  -- one row per user who has paid\n  SELECT DISTINCT s.user_id\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n)\nSELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS signup_month,\n       ",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The outer joins keep every user who signed up, and the paid count needs the activation row, so a payer who was never activated drops out.",
+  "faded_suffix": "\nFROM signups u\nLEFT JOIN act a ON a.user_id = u.user_id\nLEFT JOIN pay p ON p.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\nGROUP BY signup_month"
+}

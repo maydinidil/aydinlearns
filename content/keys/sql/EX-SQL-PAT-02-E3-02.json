@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-02-E3-02",
+  "item_version": 1,
+  "reference_sql": "WITH visitor_sessions AS (  -- one row per session of a signed-up visitor, up to the signup\n  SELECT s.visitor_id, s.session_id, s.session_start, s.utm_source\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n  WHERE s.session_start <= u.signup_ts\n),\nranked AS (  -- one row per session of a signed-up visitor, up to the signup\n  SELECT visitor_id, utm_source,\n         ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) AS first_no,\n         ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start DESC, session_id) AS last_no\n  FROM visitor_sessions\n)\nSELECT utm_source,\n       COUNT(*) FILTER (WHERE first_no = 1) AS first_touch,\n       COUNT(*) FILTER (WHERE last_no = 1) AS last_touch\nFROM ranked\nWHERE first_no = 1 OR last_no = 1\nGROUP BY utm_source",
+  "alternatives": [
+    "WITH visitor_sessions AS (  -- one row per session of a signed-up visitor, up to the signup\n  SELECT s.visitor_id, s.session_id, s.session_start, s.utm_source\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n  WHERE s.session_start <= u.signup_ts\n),\nfirst_ts AS (  -- one row per signed-up visitor\n  SELECT visitor_id, MIN(session_start) AS first_start, MAX(session_start) AS last_start\n  FROM visitor_sessions\n  GROUP BY visitor_id\n),\npicks AS (  -- one row per signed-up visitor\n  SELECT f.visitor_id,\n         (SELECT MIN(vs.session_id) FROM visitor_sessions vs WHERE vs.visitor_id = f.visitor_id AND vs.session_start = f.first_start) AS first_id,\n         (SELECT MIN(vs.session_id) FROM visitor_sessions vs WHERE vs.visitor_id = f.visitor_id AND vs.session_start = f.last_start) AS last_id\n  FROM first_ts f\n),\ntouches AS (  -- one row per first or last touch of a signed-up visitor\n  SELECT vs.utm_source, 1 AS is_first, 0 AS is_last FROM picks p JOIN visitor_sessions vs ON vs.session_id = p.first_id\n  UNION ALL\n  SELECT vs.utm_source, 0, 1 FROM picks p JOIN visitor_sessions vs ON vs.session_id = p.last_id\n)\nSELECT utm_source, SUM(is_first) AS first_touch, SUM(is_last) AS last_touch\nFROM touches\nGROUP BY utm_source",
+    "WITH visitor_sessions AS (  -- one row per session of a signed-up visitor, up to the signup\n  SELECT s.visitor_id, s.session_id, s.session_start, s.utm_source\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n  WHERE s.session_start <= u.signup_ts\n),\nranked AS (  -- one row per session of a signed-up visitor, up to the signup\n  SELECT visitor_id, utm_source,\n         ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) AS first_no,\n         ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start DESC, session_id) AS last_no\n  FROM visitor_sessions\n)\nSELECT utm_source,\n       SUM(CASE WHEN first_no = 1 THEN 1 ELSE 0 END) AS first_touch,\n       SUM(CASE WHEN last_no = 1 THEN 1 ELSE 0 END) AS last_touch\nFROM ranked\nWHERE first_no = 1 OR last_no = 1\nGROUP BY utm_source"
+  ],
+  "other_way": {
+    "sql": "WITH visitor_sessions AS (  -- one row per session of a signed-up visitor, up to the signup\n  SELECT s.visitor_id, s.session_id, s.session_start, s.utm_source\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n  WHERE s.session_start <= u.signup_ts\n),\nfirst_ts AS (  -- one row per signed-up visitor\n  SELECT visitor_id, MIN(session_start) AS first_start, MAX(session_start) AS last_start\n  FROM visitor_sessions\n  GROUP BY visitor_id\n),\npicks AS (  -- one row per signed-up visitor\n  SELECT f.visitor_id,\n         (SELECT MIN(vs.session_id) FROM visitor_sessions vs WHERE vs.visitor_id = f.visitor_id AND vs.session_start = f.first_start) AS first_id,\n         (SELECT MIN(vs.session_id) FROM visitor_sessions vs WHERE vs.visitor_id = f.visitor_id AND vs.session_start = f.last_start) AS last_id\n  FROM first_ts f\n),\ntouches AS (  -- one row per first or last touch of a signed-up visitor\n  SELECT vs.utm_source, 1 AS is_first, 0 AS is_last FROM picks p JOIN visitor_sessions vs ON vs.session_id = p.first_id\n  UNION ALL\n  SELECT vs.utm_source, 0, 1 FROM picks p JOIN visitor_sessions vs ON vs.session_id = p.last_id\n)\nSELECT utm_source, SUM(is_first) AS first_touch, SUM(is_last) AS last_touch\nFROM touches\nGROUP BY utm_source",
+    "tradeoff": "Picking each visitor's first and last session by times and lowest IDs avoids windows, but it needs four steps and a UNION ALL."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH visitor_sessions AS (SELECT s.visitor_id, s.session_id, s.session_start, s.utm_source FROM sessions s JOIN signups u ON u.visitor_id = s.visitor_id WHERE s.session_start <= u.signup_ts), ranked AS (SELECT visitor_id, utm_source, RANK() OVER (PARTITION BY visitor_id ORDER BY session_start) AS first_no, RANK() OVER (PARTITION BY visitor_id ORDER BY session_start DESC) AS last_no FROM visitor_sessions) SELECT utm_source, COUNT(*) FILTER (WHERE first_no = 1) AS first_touch, COUNT(*) FILTER (WHERE last_no = 1) AS last_touch FROM ranked WHERE first_no = 1 OR last_no = 1 GROUP BY utm_source"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH visitor_sessions AS (SELECT s.visitor_id, s.session_id, s.session_start, s.utm_source FROM sessions s JOIN signups u ON u.visitor_id = s.visitor_id WHERE s.session_start <= u.signup_ts), ranked AS (SELECT visitor_id, utm_source, ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start DESC, session_id) AS first_no, ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) AS last_no FROM visitor_sessions) SELECT utm_source, COUNT(*) FILTER (WHERE first_no = 1) AS first_touch, COUNT(*) FILTER (WHERE last_no = 1) AS last_touch FROM ranked WHERE first_no = 1 OR last_no = 1 GROUP BY utm_source"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH visitor_sessions AS (SELECT s.visitor_id, s.session_id, s.session_start, s.utm_source FROM sessions s JOIN signups u ON u.visitor_id = s.visitor_id WHERE s.session_start <= u.signup_ts) SELECT utm_source, COUNT(*) AS first_touch, COUNT(*) AS last_touch FROM visitor_sessions GROUP BY utm_source"
+    }
+  ],
+  "hint3_partial": "WITH visitor_sessions AS (  -- one row per session of a signed-up visitor, up to the signup\n  SELECT s.visitor_id, s.session_id, s.session_start, s.utm_source\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n  WHERE s.session_start <= u.signup_ts\n),\nranked AS (  -- one row per session of a signed-up visitor, up to the signup\n  SELECT visitor_id, utm_source,\n         ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) AS first_no,\n         ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY ___) AS last_no\n  FROM visitor_sessions\n)\nSELECT utm_source,\n       COUNT(*) FILTER (WHERE ___) AS first_touch,\n       COUNT(*) FILTER (WHERE ___) AS last_touch\nFROM ranked\nWHERE first_no = 1 OR last_no = 1\nGROUP BY utm_source",
+  "solver": {
+    "prompt_hash": "96773fae8401bf05",
+    "schema_version": "8a14021f2dee",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH s AS (SELECT se.visitor_id, se.session_id, se.utm_source, se.session_start FROM sessions se JOIN signups su ON su.visitor_id = se.visitor_id WHERE se.session_start <= su.signup_ts),\nr AS (SELECT utm_source, ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) AS f, ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start DESC, session_id) AS l FROM s)\nSELECT utm_source, COUNT(*) FILTER (WHERE f = 1) AS first_touch, COUNT(*) FILTER (WHERE l = 1) AS last_touch\nFROM r WHERE f = 1 OR l = 1 GROUP BY utm_source\n",
+    "at": "2026-10-28T14:57:01.818Z"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "id": "EX-SQL-PAT-02-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "dedup",
+    "first_per_key",
+    "row_number",
+    "tie_break",
+    "leads"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-PAT-02-choose-one-per-email",
+  "template_params": {
+    "table": "leads",
+    "key": "email",
+    "count_by": "segment"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Which query counts the contacts of each segment, where a contact is an email counted once, under the segment of its earliest lead (the one with the earliest created_at)? When two leads of an email tie on created_at, the lower lead_id is kept. The columns are segment and contacts.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o7ab3f43",
+      "text": "WITH contacts AS (  -- one row per email and segment\n  SELECT DISTINCT email, segment\n  FROM leads\n)\nSELECT segment, COUNT(*) AS contacts\nFROM contacts\nGROUP BY segment",
+      "misconception_id": "ERR-LOG-36"
+    },
+    {
+      "oid": "o3141ed9",
+      "text": "WITH ranked AS (  -- one row per lead\n  SELECT email, segment,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at, lead_id) AS rn\n  FROM leads\n)\nSELECT segment, COUNT(*) AS contacts\nFROM ranked\nWHERE rn = 1\nGROUP BY segment",
+      "misconception_id": null
+    },
+    {
+      "oid": "oeffa224",
+      "text": "WITH ranked AS (  -- one row per lead\n  SELECT email, segment,\n         RANK() OVER (PARTITION BY email ORDER BY created_at) AS rn\n  FROM leads\n)\nSELECT segment, COUNT(*) AS contacts\nFROM ranked\nWHERE rn = 1\nGROUP BY segment",
+      "misconception_id": "ERR-LOG-40"
+    },
+    {
+      "oid": "o2fbd3f8",
+      "text": "WITH ranked AS (  -- one row per lead\n  SELECT email, segment,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at DESC, lead_id) AS rn\n  FROM leads\n)\nSELECT segment, COUNT(*) AS contacts\nFROM ranked\nWHERE rn = 1\nGROUP BY segment",
+      "misconception_id": "ERR-LOG-18"
+    }
+  ]
+}

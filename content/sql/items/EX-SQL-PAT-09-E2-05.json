@@ -1,0 +1,209 @@
+{
+  "id": "EX-SQL-PAT-09-E2-05",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "discount"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-discount-per-extra-unit",
+  "template_params": {
+    "table": "order_lines",
+    "baseline": "same_length",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "How much discount did each extra unit cost? For each promotion that started in 2025 (start_date from 1 January to 31 December 2025), give discount_eur, the line_discount_eur summed over the lines that carry it; extra_units, its units on promotion minus its baseline units; and discount_per_extra_unit, discount_eur divided by extra_units, rounded to 2 decimals with ROUND, or missing when extra_units is 0 or less. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0. Return four columns, in this order: promo_id, discount_eur, extra_units and discount_per_extra_unit. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "discount_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "extra_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "discount_per_extra_unit",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "extra_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "discount_per_extra_unit",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the discount and the units on promotion, then subtract the baseline units to get the extra units.",
+    "Divide only when the extra units are above 0; a CASE with no ELSE leaves the other rows missing."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 128,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 129,
+      "to": 146,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 213,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 277,
+      "to": 362,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 363,
+      "to": 377,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 378,
+      "to": 427,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 428,
+      "to": 449,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 515,
+      "to": 557,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 558,
+      "to": 572,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 573,
+      "to": 629,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 630,
+      "to": 676,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 677,
+      "to": 733,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 734,
+      "to": 755,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 758,
+      "to": 1061,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1062,
+      "to": 1074,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1075,
+      "to": 1120,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1121,
+      "to": 1168,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The discount comes from the lines that carry the promotion and the extra units from a same-length baseline, so their ratio prices each extra unit."
+}

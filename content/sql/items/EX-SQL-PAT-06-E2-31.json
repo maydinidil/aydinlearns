@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-PAT-06-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "month_offset",
+    "activation",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-fix-month-offset",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "activity": "activation event",
+    "cohorts": "2025-04 to 2025-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for the users who signed up from April to June 2025, how many were active in each month after their signup? A user's cohort month is the month of signup_ts, and a user is active in a month with at least one activation event of any kind, by the month of event_ts; both are UTC instants, so read months in UTC. The month offset counts calendar months from the cohort month: 0 for the cohort month itself, 1 for the next month, and so on. The as-of date is 5 January 2026, so every month up to December 2025 has ended. Return three columns, in this order: cohort_month (the first day of the month), month_offset and active_users. Return one row for each cohort month and month offset with at least one active user. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric"
+      },
+      {
+        "name": "active_users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "active_users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month",
+      "month_offset"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check how the month offset is worked out: the question counts calendar months.",
+    "Days divided by 30 drift away from the calendar; compare the first days of the two months instead."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 229,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 230,
+      "to": 294,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 295,
+      "to": 407,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 408,
+      "to": 443,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT CAST(date_trunc('month', u.signup_ts) AS DATE) AS cohort_month,\n       date_diff('day', u.signup_ts, e.event_ts) // 30 AS month_offset,\n       COUNT(DISTINCT u.user_id) AS active_users\nFROM signups u\nJOIN activation_events e ON e.user_id = u.user_id\nWHERE u.signup_ts >= TIMESTAMPTZ '2025-04-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\nGROUP BY cohort_month, month_offset",
+  "time_target_ms": 180000,
+  "why_this_works": "Comparing the first days of the two months counts calendar months, so 15 September to 14 October is month 1, not month 0.",
+  "starter_error_id": "ERR-LOG-46"
+}

@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-PAT-07-E1-04",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "users_per_step",
+    "leads",
+    "opportunities"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-lead-funnel-counts",
+  "template_params": {
+    "funnel": "lead, opportunity, won",
+    "unit": "contact",
+    "period": "2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How many contacts reached each step of the 2025 sales funnel? Take the leads created in 2025 (created_at, Brussels local time). A contact is one email address, compared exactly as stored. A contact counts as with_opportunity when one of those leads has an opportunity, and as won when one of those opportunities is won. The steps need no date order: an opportunity counts whenever it was created, and a won one whenever it closed, even in a later year. Return three columns, in this order: contacts, with_opportunity and won, each a number of contacts. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "contacts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "with_opportunity",
+        "type_class": "numeric"
+      },
+      {
+        "name": "won",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row for the whole funnel"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "contacts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "with_opportunity",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "won",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the three step counts as numbers of distinct email addresses.",
+    "A contact can have two leads, so count distinct emails, and keep only the emails whose lead has an opportunity, or a won one, for the later steps."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 92,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 95,
+      "to": 137,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 140,
+      "to": 205,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 208,
+      "to": 312,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 315,
+      "to": 321,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 329,
+      "to": 521,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 522,
+      "to": 537,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 329,
+    "stage2": 329
+  },
+  "faded_shape": "WITH lead_steps AS (  -- one row per lead created in the period, with its opportunity if any\n  SELECT l.email, o.opportunity_id, o.is_won\n  FROM leads l\n  LEFT JOIN opportunities o ON o.lead_id = l.lead_id\n  WHERE l.created_at >= TIMESTAMP '2025-01-01 00:00:00' AND l.created_at < TIMESTAMP '2026-01-01 00:00:00'\n)\nSELECT\n       ",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Counting distinct emails counts contacts, not leads, and the LEFT JOIN keeps the contacts whose leads never became an opportunity.",
+  "faded_suffix": "\nFROM lead_steps"
+}

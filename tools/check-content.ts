@@ -19,7 +19,8 @@
 // FIND-01-13's keep-one dedup on raw data when the prompt says which copy is kept (S7-C06). Sprint 7 (Task M1) adds C54, the
 // mocks file and its forms, and C55, the mock cases (S7-08); the held-out mock items take the item checks, and C41 and C50 check the mock
 // cases as they check every case. Sprint 7 Part 2 (Task N1) adds C56, the knowledge pool (S7-10, S7-11, S7-C21), and C46 counts the GA4
-// exam pool without it (server/run.ts ga4ExamPool). Sprint 7c (Task X5, S7C-09) moves C53's reading to tools/rank-cutoffs.ts.
+// exam pool without it (server/run.ts ga4ExamPool). Sprint 7c (Task X5, S7C-09) moves C53's reading to tools/rank-cutoffs.ts. Sprint 8
+// (Task A1) stops C11 flagging PIVOT in the other way of an item at SQL-PAT-05 or later (S8-09), and flags PIVOT_WIDER and UNPIVOT.
 // Usage: node tools/check-content.ts [content-root] [--only C14,C25]   (default: content/, every check)
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -65,8 +66,11 @@ const DISPLAY_CAP = 1000;
 /** The helpers each helper construct allows when the prompt names them (T-01; ruling R19). */
 const HELPER_CONSTRUCTS: Record<string, string[]> = { cast_round: ['ROUND', 'CAST'], coalesce: ['COALESCE'], text_helper: ['LOWER', 'UPPER', 'TRIM'] };
 const CLOCK_OR_RANDOM = /\b(current_date|current_timestamp|current_time|localtimestamp|localtime)\b|\b(now|today|random|gen_random_uuid|uuid|get_current_timestamp|get_current_time|transaction_timestamp)\s*\(/i;
+// S8-09 (sprint 8, Task A1): PIVOT and UNPIVOT are two entries, so the PIVOT exemption in C11 leaves UNPIVOT flagged, and each takes in
+// DuckDB's other name for it (PIVOT_WIDER, PIVOT_LONGER), which the old \b(un)?pivot\b missed.
 const DUCKDB_ONLY: [string, RegExp][] = [
-  ['QUALIFY', /\bqualify\b/i], ['ASOF', /\basof\b/i], ['PIVOT', /\b(un)?pivot\b/i], ['GROUP BY ALL', /\bgroup\s+by\s+all\b/i], ['FROM-first', /^\s*from\b/i],
+  ['QUALIFY', /\bqualify\b/i], ['ASOF', /\basof\b/i], ['PIVOT', /\bpivot(_wider)?\b/i], ['UNPIVOT', /\b(unpivot|pivot_longer)\b/i],
+  ['GROUP BY ALL', /\bgroup\s+by\s+all\b/i], ['FROM-first', /^\s*from\b/i],
 ];
 /** Where a faded shape may stop: just before a clause starts (a join type counts as the start of its JOIN). */
 const CLAUSE_START = /^(select|from|join|left|right|inner|full|cross|on|where|group|having|order|limit)\b/;
@@ -334,12 +338,19 @@ export async function checkItem(item: SqlItem, key: SqlKey, ctx: CheckContext): 
   });
 
   // S7-20 (sprint 7, Task A1): an SQL-WIN-06 key's reference is the portable form and its other way the QUALIFY form, so QUALIFY is
-  // not flagged in that other way, nor in the alternative it repeats (C39). Everything else is flagged as before.
+  // not flagged in that other way, nor in the alternative it repeats (C39). S8-09 (sprint 8, Task A1): keys use conditional aggregation
+  // and PIVOT appears only in an other way, so PIVOT is not flagged in the other way (and the alternative it repeats) of an item at
+  // SQL-PAT-05, where PIVOT is taught, or a later concept. Everything else is flagged as before.
   await check('C11', () => {
-    const qualifyAllowed = (k: string): boolean => item.target_concept_id === 'SQL-WIN-06' && otherWay().some((ow) => sameQuery(ow, k));
+    const isOtherWay = (k: string): boolean => otherWay().some((ow) => sameQuery(ow, k));
+    const orderOf = (id: string): number | undefined => ctx.curriculum.concepts.find((c) => c.id === id)?.order;
+    const pivotOrder = orderOf('SQL-PAT-05');
+    const atPivot = pivotOrder !== undefined && (orderOf(item.target_concept_id) ?? -1) >= pivotOrder;
+    const allowed = (name: string, k: string): boolean =>
+      (name === 'QUALIFY' && item.target_concept_id === 'SQL-WIN-06' && isOtherWay(k)) || (name === 'PIVOT' && atPivot && isOtherWay(k));
     const found = new Set(keys().flatMap((k) => {
       const t = maskSql(k);
-      return DUCKDB_ONLY.filter(([name, re]) => re.test(t) && !(name === 'QUALIFY' && qualifyAllowed(k))).map(([name]) => name);
+      return DUCKDB_ONLY.filter(([name, re]) => re.test(t) && !allowed(name, k)).map(([name]) => name);
     }));
     add('C11', found.size === 0, found.size ? `DuckDB-only syntax: ${[...found].join(', ')}` : '', found.size > 0);
   });
@@ -509,8 +520,8 @@ export async function checkItem(item: SqlItem, key: SqlKey, ctx: CheckContext): 
     add('C40', problems.length === 0, problems.join('; '));
   });
 
-  // C47 (sprint 6, S6-01, Review Focus 2): a raw-data item is on a raw schema (voltmarkt_raw or mailvora_raw) with its clean edge schema, names no
-  // schema and finds the quirk; a clean item's key reads no raw table.
+  // C47 (sprint 6, S6-01, Review Focus 2): a raw-data item is on a raw schema (voltmarkt_raw, mailvora_raw or ledgerloop_raw) with its
+  // clean edge schema, names no schema and finds the quirk; a clean item's key reads no raw table.
   await check('C47', async () => {
     const problems = await rawDataProblems(item, key, ctx.runner);
     add('C47', problems.length === 0, problems.join('; '));
@@ -911,16 +922,20 @@ export async function checkCases(store: ContentStore, options: CaseCheckOptions 
 
 // ---- sprint 6 (Task B3): C47 raw data, C48 level 4 traps, C49 the level 4 drill and the cumulative entry, C50 case solves --------
 
-/** S6-01, S7-C33: a raw schema, the clean schema a raw key must give another result on, and the clean edge schema a raw item uses. */
+/**
+ * S6-01, S7-C33: a raw schema, the clean schema a raw key must give another result on, and the clean edge schema a raw item uses.
+ * Sprint 8 (S8-C14, S8-C15): LedgerLoop's raw items use ledgerloop_edge_clean, never ledgerloop_edge_saas, the clean items' edge.
+ */
 export interface RawSchemaSet { raw: string; clean: string; edge: string }
 export const RAW_SCHEMAS: readonly RawSchemaSet[] = [
   { raw: 'voltmarkt_raw', clean: 'voltmarkt', edge: 'voltmarkt_edge_clean' },
   { raw: 'mailvora_raw', clean: 'mailvora', edge: 'mailvora_edge_clean' },
+  { raw: 'ledgerloop_raw', clean: 'ledgerloop', edge: 'ledgerloop_edge_clean' },
 ];
 /** `<raw schema>.` with or without quotes, in key text with its strings and comments masked. */
 const namesRaw = (sql: string, set: RawSchemaSet): boolean => new RegExp(`(?:\\b${set.raw}|"${set.raw}")\\s*\\.`, 'i').test(sql);
-/** Any Voltmarkt or Mailvora schema written before a dot: a qualified name in a partial query the gate cannot read (hint 3). */
-const NAMES_SCHEMA = /(?:\b(?:voltmarkt|mailvora)[a-z0-9_]*|"(?:voltmarkt|mailvora)[a-z0-9_]*")\s*\./i;
+/** Any Voltmarkt, Mailvora or LedgerLoop schema written before a dot: a qualified name in a partial query the gate cannot read (hint 3). */
+const NAMES_SCHEMA = /(?:\b(?:voltmarkt|mailvora|ledgerloop)[a-z0-9_]*|"(?:voltmarkt|mailvora|ledgerloop)[a-z0-9_]*")\s*\./i;
 
 /** S6-01: an item reads raw data when it says so (`uses_raw`), names a raw schema, or names a raw schema's edge schema. */
 const isRawItem = (item: SqlItem): boolean =>
@@ -938,10 +953,10 @@ async function namesSchema(runner: RunnerClient, schema: string, sql: string): P
 }
 
 /**
- * C47 (S6-01, Review Focus 2) for one item: a raw-data item is on a raw schema (`voltmarkt_raw`, `mailvora_raw`) with that schema's
- * clean edge schema, its key names no schema (graded runs swap unqualified names only), and its reference gives another result on
- * the raw schema's clean schema than on the raw one (the quirk is what it finds). A clean item's key, hint 3 included, reads no raw
- * table of either company. Returns the problems, naming the key's parts, never their text.
+ * C47 (S6-01, Review Focus 2) for one item: a raw-data item is on a raw schema (`voltmarkt_raw`, `mailvora_raw`, `ledgerloop_raw`)
+ * with that schema's clean edge schema, its key names no schema (graded runs swap unqualified names only), and its reference gives
+ * another result on the raw schema's clean schema than on the raw one (the quirk is what it finds). A clean item's key, hint 3
+ * included, reads no raw table of any company. Returns the problems, naming the key's parts, never their text.
  */
 export async function rawDataProblems(item: SqlItem, key: SqlKey, runner: RunnerClient): Promise<string[]> {
   const complete: [string, string][] = [['the reference', key.reference_sql],

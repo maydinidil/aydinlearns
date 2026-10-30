@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-PAT-03-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "month_over_month",
+    "lag",
+    "sales"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-mom-change",
+  "template_params": {
+    "table": "sales",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "How did Voltmarkt's net revenue move from month to month in 2025? For each month from January to December 2025 (order dates are UTC days), show the month's net revenue and the change from the previous calendar month: this month's revenue minus last month's. Every month of 2025 has orders. Only 2025 counts, so January has no previous month and shows change_eur as missing. Return three columns, in this order: month (the first day of the month), revenue_eur and change_eur. Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the net revenue for each month of 2025, then compare each month with the one before.",
+    "Bring last month's revenue onto each row with a window that runs in month order, then subtract it from this month's."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 220,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 221,
+      "to": 247,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 248,
+      "to": 316,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 317,
+      "to": 329,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "LAG in month order brings the previous month's revenue onto each row, so this month minus last month is the change; January has no month before it."
+}

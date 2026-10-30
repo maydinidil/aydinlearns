@@ -5,7 +5,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadDrills, parseDrillFile, parseDrills } from '../../server/drill.ts';
+import { loadDrills, parseDrillFile, parseDrills, sampleDrill, type Seen } from '../../server/drill.ts';
+import type { SqlItem } from '../../schemas/item.ts';
 
 /** S6-19's entry, exactly as the ruling writes it. */
 const CUMULATIVE = { id: 'cumulative-1-4', levels: [1, 2, 3, 4], per_level: 3, minutes: 30, pass_pct: 80, unseen_min_pct: 70, mode: 'screen' };
@@ -70,14 +71,14 @@ test('the level entries keep their rules: a missing level, a repeated level and 
 test('the shipped drills.json: levels 1 to 3 as before, level 4 as Task C1 wrote it with its pool, and S6-19\'s cumulative entry exactly', async () => {
   const raw = JSON.parse(await readFile('content/sql/drills.json', 'utf8')) as { drills: Record<string, unknown>[] };
   const parsed = parseDrillFile(raw);
-  assert.deepEqual(parsed.levels.map((s) => s.level), [1, 2, 3, 4, 5]);
+  assert.deepEqual(parsed.levels.map((s) => s.level), [1, 2, 3, 4, 5, 6]);
   const LEVEL4 = ['SQL-SUBQ-01', 'SQL-SUBQ-02', 'SQL-STR-01', 'SQL-DATE-02', 'SQL-CLEAN-01'];
   const { pool_item_ids: pool4, ...spec4 } = raw.drills.find((d) => d.level === 4) as { pool_item_ids: string[] };
   assert.deepEqual(spec4, { level: 4, questions: 10, minutes: 25, pass_pct: 90, concepts: LEVEL4, unseen_min_pct: 70, mode: 'normal' });
   assert.deepEqual([...pool4].sort(), LEVEL4.flatMap((c) => ['E1-21', 'E1-22', 'E2-21', 'E2-22', 'E3-21', 'E3-22'].map((s) => `EX-${c}-${s}`)).sort());
   assert.deepEqual(parsed.cumulative, [CUMULATIVE]);
   assert.deepEqual(raw.drills.find((d) => d.id === 'cumulative-1-4'), CUMULATIVE, 'the file holds the entry with no other field');
-  assert.deepEqual((await loadDrills()).map((s) => s.level), [1, 2, 3, 4, 5], 'the app\'s loader reads the shipped file and lists the level drills only');
+  assert.deepEqual((await loadDrills()).map((s) => s.level), [1, 2, 3, 4, 5, 6], 'the app\'s loader reads the shipped file and lists the level drills only');
 });
 
 test('S7-19: the shipped drills.json holds the level 5 entry exactly, with the 7 level 5 concepts in order and the 35 drill items Task C1 wrote (5 per concept, S7-19)', async () => {
@@ -92,6 +93,48 @@ test('S7-19: the shipped drills.json holds the level 5 entry exactly, with the 7
   const spec = (await loadDrills()).find((s) => s.level === 5);
   assert.deepEqual(spec, entry, 'the app\'s loader reads it as written');
   assert.deepEqual(parseDrillFile(raw).cumulative, [CUMULATIVE], 'the cumulative drill still spans levels 1 to 4');
+});
+
+/**
+ * F2 seam 3 (M1): a run takes each concept's first unseen item in pool order, so the level 6 pool lists the 50 items in five rows of
+ * one item per concept, each concept's five rotated one place from the concept before, as levels 1 and 2 do: every run mixes E1, E2 and E3.
+ */
+const ROTATION = ['E1-21', 'E2-21', 'E3-21', 'E1-22', 'E2-22'];
+const LEVEL6_POOL = (concepts: readonly string[]): string[] =>
+  Array.from({ length: ROTATION.length }, (_, row) => concepts.map((c, n) => `EX-${c}-${ROTATION[(row + n) % ROTATION.length]}`)).flat();
+
+test('S8-11: the shipped drills.json holds the level 6 entry exactly: 10 questions in 40 minutes at 90%, normal mode, 70% unseen, the 10 level 6 concepts in order and the 50 drill items Task C1 wrote (5 per concept)', async () => {
+  const raw = JSON.parse(await readFile('content/sql/drills.json', 'utf8')) as { drills: Record<string, unknown>[] };
+  const curriculum = JSON.parse(await readFile('content/sql/curriculum.json', 'utf8')) as { concepts: { id: string; level: number }[] };
+  const LEVEL6 = curriculum.concepts.filter((c) => c.level === 6).map((c) => c.id);
+  assert.deepEqual(LEVEL6, ['SQL-PAT-01', 'SQL-PAT-02', 'SQL-PAT-03', 'SQL-PAT-04', 'SQL-PAT-05', 'SQL-PAT-06', 'SQL-PAT-07', 'SQL-PAT-08', 'SQL-PAT-09', 'SQL-PAT-10']);
+  const POOL = LEVEL6_POOL(LEVEL6);
+  assert.deepEqual([...POOL].sort(), LEVEL6.flatMap((c) => ['E1-21', 'E1-22', 'E2-21', 'E2-22', 'E3-21'].map((n) => `EX-${c}-${n}`)).sort(), 'the same 50 items');
+  const entry = { level: 6, questions: 10, minutes: 40, pass_pct: 90, concepts: LEVEL6, unseen_min_pct: 70, mode: 'normal', pool_item_ids: POOL };
+  assert.deepEqual(raw.drills.find((d) => d.level === 6), entry, 'S8-11\'s entry, with no other field');
+  assert.deepEqual(raw.drills.findIndex((d) => d.level === 6), raw.drills.findIndex((d) => d.level === 5) + 1, 'after level 5, before the cumulative entry');
+  const spec = (await loadDrills()).find((s) => s.level === 6);
+  assert.deepEqual(spec, entry, 'the app\'s loader reads it as written');
+  assert.deepEqual(parseDrillFile(raw).cumulative, [CUMULATIVE], 'the cumulative drill still spans levels 1 to 4');
+});
+
+test('F2 seam 3 (M1): five level 6 runs a day apart each mix E1, E2 and E3 (4, 4 and 2), one item per concept, and serve all 50 items once', async () => {
+  const raw = JSON.parse(await readFile('content/sql/drills.json', 'utf8')) as { drills: { level?: number; concepts: string[]; pool_item_ids: string[] }[] };
+  const entry = raw.drills.find((d) => d.level === 6)!;
+  const pool = await Promise.all(entry.pool_item_ids.map(async (id) => JSON.parse(await readFile(`content/sql/items/${id}.json`, 'utf8')) as SqlItem));
+  const seen: Seen[] = [];
+  const start = Date.parse('2026-11-02T09:00:00Z');
+  for (let run = 1; run <= 5; run++) {
+    const now = new Date(start + (run - 1) * 24 * 60 * 60 * 1000);
+    const picks = sampleDrill({ pool, concepts: entry.concepts, questions: 10, seen, now });
+    const bands: Record<string, number> = {};
+    for (const p of picks) bands[p.item.difficulty] = (bands[p.item.difficulty] ?? 0) + 1;
+    assert.deepEqual(bands, { E1: 4, E2: 4, E3: 2 }, `run ${run} mixes the difficulties`);
+    assert.deepEqual(new Set(picks.map((p) => p.concept_id)), new Set(entry.concepts), `run ${run}: one item per concept`);
+    assert.ok(picks.every((p) => !p.repeat_exposure), `run ${run}: every item unseen`);
+    seen.push(...picks.map((p) => ({ item_id: p.item.id, started_at: now.toISOString() })));
+  }
+  assert.equal(new Set(seen.map((s) => s.item_id)).size, 50, 'five runs serve each of the 50 items once');
 });
 
 test('K2 (S6-35): a level or cumulative entry whose mode is not normal or screen stops the file loading, naming the entry; normal and screen load', () => {

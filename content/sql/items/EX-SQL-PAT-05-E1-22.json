@@ -1,0 +1,153 @@
+{
+  "id": "EX-SQL-PAT-05-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "sales",
+    "quarter",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-DATE-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-category-by-quarter",
+  "template_params": {
+    "table": "sales",
+    "columns": "quarter"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each category in the Audio parent category (sales.category_name), how many units did Voltmarkt sell in each quarter of 2025? Order dates are UTC days. Return five columns, in this order: category_name, q1_units, q2_units, q3_units and q4_units. A quarter with no sales shows 0. Return one row for each Audio category with sales in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "q1_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q2_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q3_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q4_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "q1_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "q2_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "q3_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "q4_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the Audio sales of 2025 by category and add the units up in one column per quarter.",
+    "Group by the category alone and give each quarter's sum an ELSE 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 21,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 22,
+      "to": 324,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 325,
+      "to": 335,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 336,
+      "to": 432,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 433,
+      "to": 455,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Four conditional sums put each quarter in its own column, one row per category, with 0 where a quarter sold nothing."
+}

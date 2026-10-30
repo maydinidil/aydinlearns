@@ -1,0 +1,165 @@
+{
+  "case_id": "CASE-SAAS-01",
+  "kind": "inbox",
+  "level": 6,
+  "world": "SAAS",
+  "company_id": "ledgerloop",
+  "schema": "ledgerloop",
+  "title": "MRR, accounts and ARPA by month",
+  "persona": {
+    "name": "Lieselot",
+    "role": "CFO"
+  },
+  "brief": {
+    "decision": "Which MRR, growth, active account and ARPA figures for 2025 go into LedgerLoop's investor update",
+    "deadline": "Lieselot's investor update, due on Friday 9 January 2026"
+  },
+  "data_needed": [
+    "mrr_monthly"
+  ],
+  "expected_output": {
+    "columns": [
+      "month",
+      "mrr_eur",
+      "active_accounts",
+      "arpa_eur",
+      "mrr_growth_pct"
+    ],
+    "grain": "one row per month of 2025, January to December",
+    "sort": [
+      {
+        "column": "month",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "prompt": "Lieselot, the CFO, wants LedgerLoop's MRR and active accounts for each month of 2025. mrr_monthly holds one row per account and month, with the account's MRR in euros on the month's last day, and no row for an account with no MRR then; subscription_events holds one row per change in a subscription's MRR; subscriptions holds each subscription's MRR at its end, or on the as-of date while it runs. Before you write any SQL, which plan gives the MRR and the active accounts of March 2025?",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-01:CP1",
+      "options": [
+        {
+          "oid": "o3c7d883",
+          "text": "Add up the mrr_delta_local of the subscription events dated in March 2025, and count the accounts that have such an event."
+        },
+        {
+          "oid": "o52287b3",
+          "text": "Add up the mrr_local of the subscriptions that started on or before 31 March 2025, and count those subscriptions."
+        },
+        {
+          "oid": "o2849c7a",
+          "text": "Add up mrr_eur over the March 2025 rows of mrr_monthly, and count those rows, one for each account with MRR on 31 March."
+        },
+        {
+          "oid": "o526e80b",
+          "text": "Add up mrr_eur over the March 2025 rows of mrr_monthly, and count every account with a row in any month up to March 2025."
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "prompt": "Before the monthly figures, Lieselot wants the number of different accounts that were customers at the end of at least one month of 2025. mrr_monthly holds one row per account and month, with the account's MRR in euros on the month's last day, and no row for a month in which the account had no MRR. How many different accounts have a row for at least one month from January to December 2025? Type a whole number.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-SAAS-01:CP2",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "accounts"
+      },
+      "truth_key": "CASE-SAAS-01:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Lieselot's question.",
+      "credits_concepts": [
+        "SQL-PAT-03",
+        "SQL-AGG-02",
+        "SQL-TYPE-01"
+      ],
+      "item_id": "EX-CASE-SAAS-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Lieselot's headline for investors: how much did LedgerLoop's MRR grow over 2025? mrr_monthly holds one row per account and month, with the account's MRR in euros on the month's last day, all at one fixed rate. Take the total of mrr_eur over the rows whose month is 2024-12-01 (the MRR on 31 December 2024), and over the rows whose month is 2025-12-01 (the MRR on 31 December 2025). What is 100 times (the 2025 total minus the 2024 total) divided by the 2024 total? Type the percentage rounded to 1 decimal, with a minus sign if MRR fell, for example 4.2 or -4.2.",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-01:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-SAAS-01:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "prompt": "Lieselot's 2025 table shows ARPA rising fastest from February to April 2025, while the number of active accounts fell in each of those months. The Starter plan's list price rose on 1 February 2025. Nothing else has been checked yet. Lieselot asks: can the investor update say that the price rise lifted revenue per account?",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-01:CP5",
+      "options": [
+        {
+          "oid": "o9a39808",
+          "text": "Yes: ARPA rose right after the price rise, so the rise worked, and a similar rise on the other plans would lift ARPA again."
+        },
+        {
+          "oid": "o8687452",
+          "text": "Not yet: ARPA also rises when small accounts leave, and accounts fell in those months, so split price from that mix first."
+        },
+        {
+          "oid": "o60ef0ab",
+          "text": "No: active accounts fell in those months, so the price rise cost LedgerLoop revenue overall and should be reversed soon."
+        },
+        {
+          "oid": "o0b28d93",
+          "text": "Yes: ARPA is MRR divided by active accounts, so any rise in ARPA comes from accounts paying higher prices than before."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "prompt": "Write 2 to 4 sentences for Lieselot's investor update: the headline number, what moved ARPA in 2025, one caveat and one next step.",
+      "credits_concepts": []
+    }
+  ],
+  "model_plan": "Metric formula: mrr_eur, the sum of mrr_eur over a month's rows; active_accounts, the number of those rows; arpa_eur, mrr_eur divided by active_accounts, rounded to 2 decimals; mrr_growth_pct, 100 times (mrr_eur minus the month before's mrr_eur) divided by the month before's, rounded to 1 decimal.\nOutput grain: one row per month of 2025.\nTables and keys: mrr_monthly only, one row per account and month; the months from December 2024 to December 2025 added up, then each month set beside the month before.\nFilters: months from 2024-12-01 to 2025-12-01 while adding up; the output keeps January to December 2025.\nEdge cases: January 2025 is compared with December 2024, so the comparison comes before the 2025 filter; an account with no row in a month counts nowhere that month; the amounts are already in euros at one rate, so nothing is converted again.\nExpected row count: 12",
+  "model_answer_template": "LedgerLoop's MRR grew {CP4} percent over 2025, and {CP2} different accounts had MRR at the end of at least one month of the year, more than were active in any one month. ARPA rose fastest from February to April 2025, just after the Starter price rise, while active accounts fell, so part of that rise is small accounts leaving rather than higher prices. The table cannot split price from mix, so the update should not credit the price rise yet. Next, split each month's MRR change into new, expansion, contraction and churn, and compare the ARPA of the accounts active all year with that of the rest.",
+  "follow_up_question": "Does the rise in ARPA over 2025 mean that the Starter price increase worked?",
+  "data_source": {
+    "label": "Fictional, generated data: LedgerLoop",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "metric_ids": [
+    "MET-SAAS-01",
+    "MET-SAAS-09"
+  ],
+  "find_ids": [
+    "FIND-02-03"
+  ],
+  "uses_raw": false
+}

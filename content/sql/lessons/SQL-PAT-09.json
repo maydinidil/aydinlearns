@@ -1,0 +1,134 @@
+{
+  "concept_id": "SQL-PAT-09",
+  "version": 1,
+  "reading_md": "## Promo uplift: the promotion against a baseline\n\nPricing asks: did the promotion sell more than we would have sold anyway? The answer compares two periods:\n\n- **the promotion:** the units, revenue or margin of the sales made on it;\n- **the baseline:** what the same products sold when nothing special happened, usually the days just before the promotion.\n\nUplift is the promotion minus the baseline, or that difference as a percentage of the baseline. It describes what happened; it does not prove the promotion caused it. A season, a holiday or a competitor can move both periods.\n\n### Same length, first day left out\n\nThe baseline must last as long as the promotion, or the comparison is unfair. A promotion from 7 to 20 April lasts 14 days, because both end days count: `end_date - start_date + 1`. Forget the `+ 1` and the baseline is a day short.\n\nThe baseline ends the day before the promotion starts, so the first promotion day never sits in it. In DuckDB and PostgreSQL a date minus a date is a number of days, so one condition says it all: `p.start_date - s.order_date BETWEEN 1 AND p.days`.\n\nWhen the periods cannot have the same length, compare **per day**: divide each period's units by its own number of days.\n\n### Overlapping promotions\n\nA product can be in two promotions whose dates overlap. Join sales to `promotion_products` and `promotions` by date range and a sale in the overlap matches both, so a total over them counts it twice: the fan-out of level 3. At Voltmarkt each order line records the one promotion it carries in `order_lines.promo_id`, the deeper discount when two overlap. Take a promotion's own sales from that column, and every sale counts once.\n\nThe baseline is a date range on the promotion's products, so there you do join `promotion_products` to `sales`; one promotion at a time, that is safe.\n\n### Revenue is not margin\n\nA 30% discount can lift revenue and still lose money. A line's gross margin is its net revenue minus units times unit cost. Report the margin uplift beside the revenue uplift, and say which one the question asked for.\n\n### A shape that works\n\n1. One row per promotion in a CTE, with its length.\n2. The promotion's units from the lines that carry it.\n3. The baseline from the products' sales in the window before it.\n4. LEFT JOIN both to the promotions and turn a missing total into 0, so a promotion that sold nothing still shows.\n\nA percentage needs care when the baseline is 0: DuckDB divides a decimal by 0 to infinity, so write `NULLIF(baseline, 0)` and let the answer be missing.\n\n### Dates\n\n`sales.order_date` is the UTC day of the order. Use the question's period with both ends written out, and check that the baseline window does not run off the start of the data.",
+  "syntax_md": "```sql\nWITH promo AS (                           -- one row per promotion\n  SELECT promo_id, start_date, end_date - start_date + 1 AS days\n  FROM promotions\n), during AS (                            -- one row per promotion with a sale on it\n  SELECT ol.promo_id, SUM(ol.quantity) AS units\n  FROM order_lines ol                     -- each line carries one promotion\n  GROUP BY ol.promo_id\n), baseline AS (                          -- one row per promotion with a baseline sale\n  SELECT p.promo_id, SUM(s.units) AS units\n  FROM promo p\n  JOIN promotion_products pp ON pp.promo_id = p.promo_id\n  JOIN sales s ON s.product_id = pp.product_id\n    AND p.start_date - s.order_date BETWEEN 1 AND p.days   -- same length, first day out\n  GROUP BY p.promo_id\n)\nSELECT p.promo_id,\n  COALESCE(d.units, 0) - COALESCE(b.units, 0) AS uplift_units\nFROM promo p\nLEFT JOIN during d ON d.promo_id = p.promo_id\nLEFT JOIN baseline b ON b.promo_id = p.promo_id;\n```\n\n- A fixed 14-day baseline: `s.order_date BETWEEN p.start_date - 14 AND p.start_date - 1`.\n- Margin: `SUM(s.net_revenue_eur - s.units * s.unit_cost_eur)`.\n- A percentage: `100.0 * (promo - base) / NULLIF(base, 0)`.",
+  "dialect_note": "A date minus a date gives whole days in DuckDB and PostgreSQL, and a date minus a whole number gives a date. In DuckDB, a date minus a BIGINT column fails with a binder error, so compare `start_date - order_date` with the length instead, or CAST the length to INTEGER. DuckDB divides a decimal by 0 to infinity rather than raising an error, so guard every percentage with NULLIF.",
+  "worked_examples": [
+    {
+      "title": "Units on promotion against the 14 days before",
+      "prompt": "For each promotion that started in 2025, give the units sold on promotion (each line counted for the promotion it carries) and the units its products sold in the 14 days before its first day. Return promo_id, promo_units and baseline_units.",
+      "clauses": [
+        {
+          "text": "WITH promo AS (SELECT promo_id, start_date FROM promotions WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31')  -- one row per promotion that starts in 2025",
+          "subgoal": "source_grain",
+          "why": "One row per promotion: the grain of the answer."
+        },
+        {
+          "text": ", during AS (SELECT ol.promo_id, SUM(ol.quantity) AS units FROM order_lines ol GROUP BY ol.promo_id)  -- one row per promo_id in order_lines",
+          "subgoal": "metrics",
+          "why": "Each line carries one promotion, so a sale in an overlap counts once."
+        },
+        {
+          "text": ", baseline AS (SELECT p.promo_id, SUM(s.units) AS units FROM promo p JOIN promotion_products pp ON pp.promo_id = p.promo_id",
+          "subgoal": "metrics",
+          "why": "The baseline is about the promotion's products, so it goes through the bridge table."
+        },
+        {
+          "text": "  JOIN sales s ON s.product_id = pp.product_id AND s.order_date BETWEEN p.start_date - 14 AND p.start_date - 1 GROUP BY p.promo_id)  -- one row per promotion with sales in the 14 days before it",
+          "subgoal": "row_filter",
+          "why": "The 14 days end the day before the start, so no promotion day is in the baseline."
+        },
+        {
+          "text": "SELECT p.promo_id, COALESCE(d.units, 0) AS promo_units, COALESCE(b.units, 0) AS baseline_units",
+          "subgoal": "metrics",
+          "why": "A period with no sale has no row, so COALESCE shows it as 0."
+        },
+        {
+          "text": "FROM promo p LEFT JOIN during d ON d.promo_id = p.promo_id LEFT JOIN baseline b ON b.promo_id = p.promo_id",
+          "subgoal": "source_grain",
+          "why": "Start from the promotions so every one stays, sales or not."
+        }
+      ]
+    },
+    {
+      "title": "Margin uplift with a baseline of the same length",
+      "prompt": "For each promotion that started in 2025, give the gross margin on promotion minus the gross margin of its products in a baseline as long as the promotion, ending the day before it. Return promo_id and margin_uplift.",
+      "clauses": [
+        {
+          "text": "WITH promo AS (SELECT promo_id, start_date, end_date - start_date + 1 AS days FROM promotions WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31')  -- one row per promotion that starts in 2025",
+          "subgoal": "source_grain",
+          "why": "The length counts both end days, so the baseline can match it."
+        },
+        {
+          "text": ", during AS (SELECT ol.promo_id, SUM(s.net_revenue_eur - s.units * s.unit_cost_eur) AS margin FROM order_lines ol JOIN sales s ON s.order_line_id = ol.order_line_id GROUP BY ol.promo_id)  -- one row per promo_id in order_lines",
+          "subgoal": "metrics",
+          "why": "Margin is revenue minus cost, line by line, on the lines that carry the promotion."
+        },
+        {
+          "text": ", baseline AS (SELECT p.promo_id, SUM(s.net_revenue_eur - s.units * s.unit_cost_eur) AS margin FROM promo p JOIN promotion_products pp ON pp.promo_id = p.promo_id",
+          "subgoal": "metrics",
+          "why": "The same margin formula on the products' sales before the promotion."
+        },
+        {
+          "text": "  JOIN sales s ON s.product_id = pp.product_id AND p.start_date - s.order_date BETWEEN 1 AND p.days GROUP BY p.promo_id)  -- one row per promotion with sales in its baseline days",
+          "subgoal": "row_filter",
+          "why": "1 to days before the start: as long as the promotion, first day left out."
+        },
+        {
+          "text": "SELECT p.promo_id, COALESCE(d.margin, 0) - COALESCE(b.margin, 0) AS margin_uplift",
+          "subgoal": "metrics",
+          "why": "A negative uplift means the discount cost more margin than the extra sales brought."
+        },
+        {
+          "text": "FROM promo p LEFT JOIN during d ON d.promo_id = p.promo_id LEFT JOIN baseline b ON b.promo_id = p.promo_id",
+          "subgoal": "source_grain",
+          "why": "One row per promotion, with both periods joined to it."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-PAT-09-E1-01",
+    "EX-SQL-PAT-09-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-PAT-09-E1-03",
+    "EX-SQL-PAT-09-E1-04",
+    "EX-SQL-PAT-09-E2-01",
+    "EX-SQL-PAT-09-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-PAT-09-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-PAT-09-E1-06",
+    "EX-SQL-PAT-09-E1-07",
+    "EX-SQL-PAT-09-E2-03",
+    "EX-SQL-PAT-09-E2-04",
+    "EX-SQL-PAT-09-E2-05",
+    "EX-SQL-PAT-09-E2-06",
+    "EX-SQL-PAT-09-E3-01",
+    "EX-SQL-PAT-09-E3-02",
+    "EX-SQL-PAT-09-E2-31",
+    "EX-SQL-PAT-09-E2-32",
+    "EX-SQL-PAT-09-E1-42",
+    "EX-SQL-PAT-09-E2-41",
+    "EX-SQL-PAT-09-E1-43"
+  ],
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "why_clause": {
+    "clause": "  JOIN sales s ON s.product_id = pp.product_id AND s.order_date BETWEEN p.start_date - 14 AND p.start_date - 1 GROUP BY p.promo_id)",
+    "stem": "Why does the baseline window end at start_date - 1 and not at start_date?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So the promotion's first day, a discounted day, is not counted as a normal day in the baseline."
+      },
+      {
+        "id": "b",
+        "text": "Because BETWEEN leaves its upper end out, so start_date - 1 is needed to reach start_date."
+      },
+      {
+        "id": "c",
+        "text": "To make the baseline 15 days long, one more than the promotion."
+      },
+      {
+        "id": "d",
+        "text": "Because order_date is in UTC and start_date is in Amsterdam time."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "BETWEEN keeps both ends, so ending at start_date would put the first promotion day, with its discounted sales, into the baseline and shrink the uplift. start_date - 14 to start_date - 1 is exactly the 14 days before."
+  }
+}

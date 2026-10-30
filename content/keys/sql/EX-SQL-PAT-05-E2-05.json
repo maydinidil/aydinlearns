@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT ch.channel_name,\n  SUM(CASE WHEN quarter(a.spend_date) = 1 THEN a.spend ELSE 0 END) AS q1_eur,\n  SUM(CASE WHEN quarter(a.spend_date) = 2 THEN a.spend ELSE 0 END) AS q2_eur,\n  SUM(CASE WHEN quarter(a.spend_date) = 3 THEN a.spend ELSE 0 END) AS q3_eur,\n  SUM(CASE WHEN quarter(a.spend_date) = 4 THEN a.spend ELSE 0 END) AS q4_eur\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nJOIN channels ch ON ch.channel_id = c.channel_id\nWHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY ch.channel_name",
+  "alternatives": [
+    "SELECT channel_name, COALESCE(q1, 0) AS q1_eur, COALESCE(q2, 0) AS q2_eur, COALESCE(q3, 0) AS q3_eur, COALESCE(q4, 0) AS q4_eur\nFROM (\n  -- one row per campaign and day of 2025\n  SELECT ch.channel_name, quarter(a.spend_date) AS qtr, a.spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  JOIN channels ch ON ch.channel_id = c.channel_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n) AS s\nPIVOT (SUM(spend) FOR qtr IN (1 AS q1, 2 AS q2, 3 AS q3, 4 AS q4) GROUP BY channel_name)",
+    "SELECT ch.channel_name,\n  COALESCE(SUM(a.spend) FILTER (WHERE a.spend_date < DATE '2025-04-01'), 0) AS q1_eur,\n  COALESCE(SUM(a.spend) FILTER (WHERE a.spend_date >= DATE '2025-04-01' AND a.spend_date < DATE '2025-07-01'), 0) AS q2_eur,\n  COALESCE(SUM(a.spend) FILTER (WHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date < DATE '2025-10-01'), 0) AS q3_eur,\n  COALESCE(SUM(a.spend) FILTER (WHERE a.spend_date >= DATE '2025-10-01'), 0) AS q4_eur\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nJOIN channels ch ON ch.channel_id = c.channel_id\nWHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY ch.channel_name"
+  ],
+  "other_way": {
+    "sql": "SELECT channel_name, COALESCE(q1, 0) AS q1_eur, COALESCE(q2, 0) AS q2_eur, COALESCE(q3, 0) AS q3_eur, COALESCE(q4, 0) AS q4_eur\nFROM (\n  -- one row per campaign and day of 2025\n  SELECT ch.channel_name, quarter(a.spend_date) AS qtr, a.spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  JOIN channels ch ON ch.channel_id = c.channel_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n) AS s\nPIVOT (SUM(spend) FOR qtr IN (1 AS q1, 2 AS q2, 3 AS q3, 4 AS q4) GROUP BY channel_name)",
+    "tradeoff": "PIVOT with an IN list of the quarters is short, but it is DuckDB only and its sums need COALESCE to show 0."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT ch.channel_name, SUM(CASE WHEN quarter(a.spend_date) = 1 THEN a.spend END) AS q1_eur, SUM(CASE WHEN quarter(a.spend_date) = 2 THEN a.spend END) AS q2_eur, SUM(CASE WHEN quarter(a.spend_date) = 3 THEN a.spend END) AS q3_eur, SUM(CASE WHEN quarter(a.spend_date) = 4 THEN a.spend END) AS q4_eur FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id JOIN channels ch ON ch.channel_id = c.channel_id WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY ch.channel_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT ch.channel_name, SUM(CASE WHEN quarter(a.spend_date) = 1 THEN a.spend ELSE 0 END) AS q1_eur, SUM(CASE WHEN quarter(a.spend_date) = 2 THEN a.spend ELSE 0 END) AS q2_eur, SUM(CASE WHEN quarter(a.spend_date) = 3 THEN a.spend ELSE 0 END) AS q3_eur, SUM(CASE WHEN quarter(a.spend_date) = 4 THEN a.spend ELSE 0 END) AS q4_eur FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id JOIN channels ch ON ch.channel_id = c.channel_id WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY ch.channel_name, c.campaign_id"
+    }
+  ],
+  "hint3_partial": "SELECT ch.channel_name,\n  SUM(CASE WHEN quarter(a.spend_date) = 1 THEN a.spend ELSE 0 END) AS q1_eur,\n  SUM(CASE WHEN quarter(a.spend_date) = 2 THEN a.spend ELSE 0 END) AS q2_eur,\n  SUM(CASE WHEN ___ THEN a.spend ELSE 0 END) AS q3_eur,\n  SUM(CASE WHEN quarter(a.spend_date) = 4 THEN a.spend ELSE 0 END) AS q4_eur\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nJOIN channels ch ON ch.channel_id = c.channel_id\nWHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY ch.channel_name",
+  "solver": {
+    "prompt_hash": "5e10a5183c0f635f",
+    "schema_version": "d1135c7f8f15",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT ch.channel_name,\n  COALESCE(SUM(a.spend) FILTER (WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'), 0) AS q1_eur,\n  COALESCE(SUM(a.spend) FILTER (WHERE a.spend_date BETWEEN DATE '2025-04-01' AND DATE '2025-06-30'), 0) AS q2_eur,\n  COALESCE(SUM(a.spend) FILTER (WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-09-30'), 0) AS q3_eur,\n  COALESCE(SUM(a.spend) FILTER (WHERE a.spend_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31'), 0) AS q4_eur\nFROM ad_spend_daily a\nJOIN campaigns cp ON cp.campaign_id = a.campaign_id\nJOIN channels ch ON ch.channel_id = cp.channel_id\nWHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY ch.channel_name\n",
+    "at": "2026-10-28T14:57:06.137Z"
+  }
+}

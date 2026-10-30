@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-PAT-04-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "moving_average",
+    "ad_spend_daily",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-moving-average-spine",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "spine": "range",
+    "window_days": 7
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each day from 9 to 15 March 2025, what was the average daily spend of the campaign with utm_campaign 'nb_email_marketing_software_2025' over the 7 days ending that day, that day included? Spend days are UTC days. A day with no spend counts as 0, and the window of 9 March reaches back to 3 March. Round to 2 decimals. Return two columns, in this order: day and avg_7d_spend_eur. Return one row for each day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "avg_7d_spend_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_7d_spend_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build every day from 3 to 15 March with the campaign's spend or 0, then average the 7 rows ending on each day.",
+    "The spine starts six days before the first reported day so its window is full, and a day with no spend counts as 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 850,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 851,
+      "to": 909,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 910,
+      "to": 921,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 922,
+      "to": 952,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "With a row for every day from 3 March and 0 for no spend, each 7-row frame is exactly 7 days, so the average is a true 7-day average."
+}

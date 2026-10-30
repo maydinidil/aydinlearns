@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-PAT-02-E1-04",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "first_per_key",
+    "first_touch",
+    "row_number",
+    "tie_break",
+    "sessions"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-PAT-02-first-per-key-counted",
+  "template_params": {
+    "table": "sessions",
+    "key": "visitor",
+    "count_by": "utm_source"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Marketing wants first-touch counts: for each utm_source, how many visitors who signed up had their first session from it? session_start holds UTC instants. A visitor's first session is the one with the earliest session_start, whether it came before or after the visitor signed up; each visitor counts once. When two sessions of a visitor tie on session_start, the lower session_id counts. A first session with a missing utm_source counts in a row of its own, with utm_source missing. Return two columns, in this order: utm_source and visitors. Return one row for each utm_source of some first session. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "utm_source",
+        "type_class": "text"
+      },
+      {
+        "name": "visitors",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per utm_source"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "utm_source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "visitors",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "utm_source"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the outer query: it keeps each visitor's session numbered 1 and counts them by utm_source.",
+    "Filter on the number in the query that reads the CTE, then group what is left."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 67,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 68,
+      "to": 204,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 205,
+      "to": 270,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 273,
+      "to": 312,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 313,
+      "to": 324,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 325,
+      "to": 337,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 338,
+      "to": 357,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 273,
+    "stage2": 105
+  },
+  "faded_shape": "WITH ranked AS (  -- one row per session of a visitor who signed up\n  SELECT s.visitor_id, s.utm_source,\n         ROW_NUMBER() OVER (PARTITION BY s.visitor_id ORDER BY s.session_start, s.session_id) AS rn\n  FROM sessions s\n  JOIN signups u ON u.visitor_id = s.visitor_id\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each signed-up visitor keeps only the session numbered 1, the earliest with session_id settling a tie, so every visitor counts once."
+}

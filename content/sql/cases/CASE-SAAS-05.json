@@ -1,0 +1,177 @@
+{
+  "case_id": "CASE-SAAS-05",
+  "kind": "inbox",
+  "level": 6,
+  "world": "SAAS",
+  "company_id": "ledgerloop",
+  "schema": "ledgerloop",
+  "title": "Cohort retention and CAC payback, January to September 2025",
+  "persona": {
+    "name": "Griet",
+    "role": "Revenue operations lead"
+  },
+  "brief": {
+    "decision": "Whether to scale acquisition spend in 2026, from how the 2025 cohorts stay and how fast they pay back",
+    "deadline": "The 2026 planning offsite in two weeks"
+  },
+  "data_needed": [
+    "accounts",
+    "mrr_monthly",
+    "cogs_monthly",
+    "marketing_spend_monthly",
+    "sm_expense_monthly"
+  ],
+  "expected_output": {
+    "columns": [
+      "cohort_month",
+      "cohort_size",
+      "ret_m1_pct",
+      "ret_m3_pct",
+      "ret_m6_pct",
+      "new_mrr",
+      "gm_pct",
+      "cac_payback_months"
+    ],
+    "grain": "one row per cohort month from January to September 2025",
+    "sort": [
+      {
+        "column": "cohort_month",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "prompt": "Griet wants logo retention for the accounts LedgerLoop won in each month of January to September 2025. Some accounts churned and later came back on a new subscription, after months with no row in mrr_monthly. Before you write any SQL, which month should put an account in its cohort?",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-05:CP1",
+      "options": [
+        {
+          "oid": "oc33ce35",
+          "text": "The first month in which the account has a row in mrr_monthly, because that is when its MRR starts"
+        },
+        {
+          "oid": "o4ee3f3e",
+          "text": "The month of each of its subscriptions' start_date, so an account that comes back also joins the cohort of the month in which it returned"
+        },
+        {
+          "oid": "of618b79",
+          "text": "The month of its created_at, so an account that comes back stays in the cohort of the month it first became a customer"
+        },
+        {
+          "oid": "o5e8abed",
+          "text": "The month of its first event in subscription_events, opening events included, so every account gets a cohort"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "prompt": "Griet checks one cell first. Take the accounts whose created_at is from 2025-01-01 00:00:00 up to but not including 2025-02-01 00:00:00 (Brussels local time). mrr_monthly holds one row per account and month in which the account had MRR on the last day of the month, mrr_eur in euros at one fixed exchange rate; a month with no row means no MRR. How many of these accounts have a row for July 2025, whether or not they had a row in every month between? Type a whole number.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-SAAS-05:CP2",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "accounts"
+      },
+      "truth_key": "CASE-SAAS-05:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Griet's question.",
+      "credits_concepts": [
+        "SQL-PAT-06",
+        "SQL-DATE-02",
+        "SQL-AGG-04",
+        "SQL-CTE-01",
+        "SQL-JOIN-02"
+      ],
+      "item_id": "EX-CASE-SAAS-05"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Griet's headline is one CAC payback for the nine cohorts together. Take the accounts whose created_at is from 2025-01-01 00:00:00 up to but not including 2025-10-01 00:00:00 (Brussels local time). mrr_monthly holds one row per account and month in which the account had MRR on the last day of the month, mrr_eur in euros at one fixed exchange rate; a month with no row means no MRR. Their new MRR is the total of each account's mrr_eur for the month of its own created_at. Over the nine months January to September 2025 together, revenue is the total mrr_eur of every row of mrr_monthly, COGS the total amount_eur of cogs_monthly, and the sales and marketing cost the total spend_eur of marketing_spend_monthly plus the total amount_eur of sm_expense_monthly, the rows whose channel is shared included. The gross margin is (revenue minus COGS) divided by revenue. What is the CAC payback in months: the sales and marketing cost divided by (the new MRR times the gross margin)? Type the months rounded to 1 decimal, for example 15.5.",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-05:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "plain",
+        "decimals": 1,
+        "unit_label": "months"
+      },
+      "truth_key": "CASE-SAAS-05:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "prompt": "Griet's result shows no month 6 retention for the July to September 2025 cohorts, and the longest CAC paybacks for the February to April 2025 cohorts, which are also the smallest. What can Griet tell the planning offsite from this result alone?",
+      "credits_concepts": [],
+      "item_id": "CASE-SAAS-05:CP5",
+      "options": [
+        {
+          "oid": "o15c0b31",
+          "text": "The July to September cohorts kept none of their accounts to month 6, so the newest cohorts are the weakest and the spend that won them should stop."
+        },
+        {
+          "oid": "odc2f4dc",
+          "text": "Month 6 is not known yet for July to September; the long paybacks go with the smallest cohorts, and as the formula ignores churn, real paybacks are longer."
+        },
+        {
+          "oid": "o6b8e183",
+          "text": "The Starter price rise of February 2025 caused the long paybacks, so taking the price back down would bring every later cohort's payback back to May's level."
+        },
+        {
+          "oid": "o5045cf4",
+          "text": "The payback already allows for churn, so the cohorts with the lowest month 3 retention need no change to their payback before the offsite."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "prompt": "Write 2 to 4 sentences for Griet: how the 2025 cohorts stay, what the payback says about scaling acquisition spend, one caveat, and one next step before the offsite.",
+      "credits_concepts": []
+    }
+  ],
+  "model_plan": "Metric formula: ret_m1_pct, ret_m3_pct and ret_m6_pct, 100 times the cohort's accounts with a row in mrr_monthly 1, 3 or 6 calendar months after the cohort month, divided by cohort_size; new_mrr, the cohort's mrr_eur in the cohort month; gm_pct, 100 times (the month's revenue minus COGS) divided by revenue; cac_payback_months, the month's sales and marketing cost divided by (new_mrr times the gross margin).\nOutput grain: one row per cohort month from January to September 2025.\nTables and keys: accounts for each account's cohort month; mrr_monthly left joined on account_id for the later months; mrr_monthly, cogs_monthly, marketing_spend_monthly and sm_expense_monthly each added up to one row per month and joined on the cohort month.\nFilters: created_at from 2025-01-01 up to but not including 2025-10-01; every cost row of the month, the shared ones included.\nEdge cases: a comeback stays in its created_at cohort and counts as retained in any month with a row; a cell whose month comes after December 2025 is missing, not 0; months are calendar months, not days divided by 30; each monthly table is added up before the join, so nothing repeats.\nExpected row count: 9",
+  "model_answer_template": "Across the nine 2025 cohorts together, the spend that won them pays back in {CP4} months of gross margin, but the February to April cohorts were small and need far longer, while the larger cohorts from May onwards pay back faster. Most cohorts keep their accounts well to month 3, and {CP2} of the January accounts had MRR in July, some of them after coming back; month 6 is not known yet for July to September. The payback assumes no account churns, so the real figure is longer, most of all for a cohort that loses accounts early. Before scaling spend in 2026, I would split payback by acquisition channel and compare each channel with the common 12-month benchmark.",
+  "follow_up_question": "Should LedgerLoop scale acquisition spend in 2026, and in which channels?",
+  "data_source": {
+    "label": "Fictional, generated data: LedgerLoop",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 5,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "metric_ids": [
+    "MET-SAAS-08",
+    "MET-SAAS-11",
+    "MET-SAAS-01"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

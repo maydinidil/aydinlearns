@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-PAT-08-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "lag",
+    "activation_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-sessions-per-month",
+  "template_params": {
+    "table": "activation_events",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "How many activation sessions started in each month of 2025? Count a session in the UTC month of its first event, and work the gaps out over each user's whole history, 2024 included. A user's first activation event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant. When two events of a user share a moment, take them in event_name order, A to Z. Return two columns, in this order: month_start, the first day of the month, and sessions. Return one row for each month of 2025 with at least one session start. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read each user's previous event over all of the data, then count the 2025 session starts by month.",
+    "Filter to 2025 only after the window has run, or the first 2025 event of a 2024 user looks like a new user."
+  ],
+  "subgoals": [
+    {
+      "from": 49,
+      "to": 88,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 89,
+      "to": 175,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 176,
+      "to": 200,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 203,
+      "to": 290,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 291,
+      "to": 300,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 301,
+      "to": 479,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 480,
+      "to": 532,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Gaps come from each user's full history, so a 2025 event close to a late 2024 event stays in its session and only real starts count."
+}

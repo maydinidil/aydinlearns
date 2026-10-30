@@ -1,0 +1,97 @@
+{
+  "id": "EX-SQL-PAT-04-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "date_spine",
+    "zero_fill",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-choose-month-spine",
+  "template_params": {
+    "table": "subscription_events"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each month of 2025, a report needs the number of new LedgerLoop subscriptions (subscription_events with event_type 'new', by event_date), with 0 for a month that had none. Which query returns one row for each month, with the columns month and new_subscriptions?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oa4a2bc8",
+      "text": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), new_subs AS (\n  -- one row per month with new subscriptions\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month, COUNT(*) AS new_subscriptions\n  FROM subscription_events\n  WHERE event_type = 'new'\n    AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n)\nSELECT month, new_subscriptions\nFROM new_subs",
+      "misconception_id": "ERR-LOG-39"
+    },
+    {
+      "oid": "od12da45",
+      "text": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), new_subs AS (\n  -- one row per month with new subscriptions\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month, COUNT(*) AS new_subscriptions\n  FROM subscription_events\n  WHERE event_type = 'new'\n    AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n)\nSELECT m.month, n.new_subscriptions\nFROM months m\nLEFT JOIN new_subs n ON n.month = m.month",
+      "misconception_id": "ERR-LOG-17"
+    },
+    {
+      "oid": "oe598f47",
+      "text": "WITH months AS (\n  -- one row per day of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 DAY)\n), new_subs AS (\n  -- one row per month with new subscriptions\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month, COUNT(*) AS new_subscriptions\n  FROM subscription_events\n  WHERE event_type = 'new'\n    AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n)\nSELECT m.month, COALESCE(n.new_subscriptions, 0) AS new_subscriptions\nFROM months m\nLEFT JOIN new_subs n ON n.month = m.month",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "ob932fca",
+      "text": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), new_subs AS (\n  -- one row per month with new subscriptions\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month, COUNT(*) AS new_subscriptions\n  FROM subscription_events\n  WHERE event_type = 'new'\n    AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n)\nSELECT m.month, COALESCE(n.new_subscriptions, 0) AS new_subscriptions\nFROM months m\nLEFT JOIN new_subs n ON n.month = m.month",
+      "misconception_id": null
+    }
+  ]
+}

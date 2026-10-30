@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-SAAS-05",
+  "truths": {
+    "CP2": "WITH cohort AS (\n  -- one row per account created in January 2025\n  SELECT account_id\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND created_at < TIMESTAMP '2025-02-01 00:00:00'\n)\nSELECT COUNT(*)\nFROM cohort AS c\nJOIN mrr_monthly AS m ON m.account_id = c.account_id AND m.month = DATE '2025-07-01'",
+    "CP4": "WITH cohort AS (\n  -- one row per account created from January to September 2025, with its MRR in its first month\n  SELECT a.account_id, m.mrr_eur AS new_mrr\n  FROM accounts AS a\n  JOIN mrr_monthly AS m\n    ON m.account_id = a.account_id AND m.month = CAST(date_trunc('month', a.created_at) AS DATE)\n  WHERE a.created_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND a.created_at < TIMESTAMP '2025-10-01 00:00:00'\n),\nfigures AS (\n  -- one row: the nine months' revenue, COGS and sales and marketing cost\n  SELECT (SELECT SUM(mrr_eur) FROM mrr_monthly WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-09-01') AS revenue,\n         (SELECT SUM(amount_eur) FROM cogs_monthly WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-09-01') AS cogs,\n         (SELECT SUM(spend_eur) FROM marketing_spend_monthly WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-09-01')\n           + (SELECT SUM(amount_eur) FROM sm_expense_monthly WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-09-01') AS sm_cost\n)\nSELECT ROUND(f.sm_cost / ((SELECT SUM(new_mrr) FROM cohort) * (f.revenue - f.cogs) / f.revenue), 1)\nFROM figures AS f"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "of618b79",
+      "explanation": "created_at dates each account once, so a comeback stays in its first cohort; a subscription's start month would book the comeback as a new account in the month it returned."
+    },
+    "CP5": {
+      "correct_oid": "odc2f4dc",
+      "explanation": "A missing month 6 means the month had not ended, not that every account left, and a payback that ignores churn is a floor; the result alone cannot prove what caused the long paybacks."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "b4b07281006af96a",
+      "key_hash": "e5b807b2872f2a5e",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "c5e3f228e42be793",
+      "key_hash": "251fb89da6c82436",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "04f0e29d80f22480",
+      "key_hash": "328071836c67722e",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "e086796f14fb9fe6",
+      "key_hash": "eea4eb9dabc98d6c",
+      "at": "2026-10-29T22:26:59.071Z"
+    }
+  }
+}

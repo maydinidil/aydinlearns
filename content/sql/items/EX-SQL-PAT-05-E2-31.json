@@ -1,0 +1,158 @@
+{
+  "id": "EX-SQL-PAT-05-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "orders",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-fix-missing-vs-zero",
+  "template_params": {
+    "table": "orders",
+    "columns": "quarter"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each Voltmarkt store (stores.store_code), how many orders did it take in each quarter of 2025? order_ts holds UTC time: take the quarter of the UTC day. Return five columns, in this order: store_code, q1_orders, q2_orders, q3_orders and q4_orders. A quarter in which a store took no orders shows 0, not missing. Return one row for each store with orders in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "q1_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q2_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q3_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q4_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "q1_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "q2_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "q3_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "q4_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at what each CASE gives for an order of another quarter, and what SUM makes of a quarter with none.",
+    "A CASE with no ELSE gives a missing value; when no order of a store falls in a quarter, the sum is missing instead of 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 20,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 21,
+      "to": 311,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 312,
+      "to": 325,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 326,
+      "to": 366,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 367,
+      "to": 469,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 470,
+      "to": 491,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT s.store_code,\n  SUM(CASE WHEN quarter(o.order_ts) = 1 THEN 1 END) AS q1_orders,\n  SUM(CASE WHEN quarter(o.order_ts) = 2 THEN 1 END) AS q2_orders,\n  SUM(CASE WHEN quarter(o.order_ts) = 3 THEN 1 END) AS q3_orders,\n  SUM(CASE WHEN quarter(o.order_ts) = 4 THEN 1 END) AS q4_orders\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY s.store_code",
+  "starter_error_id": "ERR-LOG-17",
+  "time_target_ms": 240000,
+  "why_this_works": "With ELSE 0 every order adds 0 or 1 to each quarter, so a quarter a store had no orders in sums to 0 instead of missing."
+}

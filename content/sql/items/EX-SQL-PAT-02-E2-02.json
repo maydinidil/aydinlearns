@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-PAT-02-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "first_per_key",
+    "dedup",
+    "row_number",
+    "tie_break",
+    "leads"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-first-per-key-counted",
+  "template_params": {
+    "table": "leads",
+    "key": "email",
+    "count_by": "source"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "One contact can come back as several leads with the same email. Counting each contact once, under the source of their earliest lead (the one with the earliest created_at), how many contacts did each source bring in? created_at is Brussels local time. When two leads of an email tie on created_at, the lower lead_id is kept. Return two columns, in this order: source and contacts. Return one row for each source of some earliest lead. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "contacts",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per source"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "contacts",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "source"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the outer query: keep each email's lead numbered 1, then count the kept leads by source.",
+    "The filter on the number comes before the count, in the query that reads the CTE."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 37,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 38,
+      "to": 144,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 145,
+      "to": 157,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 160,
+      "to": 195,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 196,
+      "to": 207,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 208,
+      "to": 220,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 221,
+      "to": 236,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 160,
+    "stage2": 62
+  },
+  "faded_shape": "WITH ranked AS (  -- one row per lead\n  SELECT email, source,\n         ROW_NUMBER() OVER (PARTITION BY email ORDER BY created_at, lead_id) AS rn\n  FROM leads\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Keeping each email's lead numbered 1, the earliest with lead_id settling a tie, counts every contact once under one source."
+}

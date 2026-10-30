@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-02-E1-41",
+  "item_version": 1,
+  "correct_oid": "obda3557",
+  "explanation": "The numbering restarts for each plan_name, the latest valid_from first, so rn = 1 keeps one row per plan: Starter's 2025 price of 349.00 and the only row of every other plan. Enterprise stays, because a missing price does not stop its row being numbered 1. Sorting without DESC would keep Starter's first price, 290.00, and without the filter both Starter rows would stay.",
+  "solver": {
+    "prompt_hash": "07c0771f292b3afa",
+    "grader_version": "choice.3",
+    "chosen": "obda3557",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.749Z"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-06-E1-21",
+  "item_version": 1,
+  "reference_sql": "WITH cohort AS (  -- one row per account created from January to November 2025\n  SELECT account_id, CAST(date_trunc('month', created_at) AS DATE) AS cohort_month\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2025-01-01 00:00:00' AND created_at < TIMESTAMP '2025-12-01 00:00:00'\n),\nactive_1 AS (  -- one row per cohort account with a usage week in month 1\n  SELECT DISTINCT c.account_id\n  FROM cohort c\n  JOIN usage_weekly w ON w.account_id = c.account_id\n  WHERE date_diff('month', c.cohort_month, CAST(date_trunc('month', w.week_start) AS DATE)) = 1\n)\nSELECT c.cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(a.account_id) AS active_month_1\nFROM cohort c\nLEFT JOIN active_1 a ON a.account_id = c.account_id\nGROUP BY c.cohort_month",
+  "alternatives": [
+    "SELECT CAST(date_trunc('month', a.created_at) AS DATE) AS cohort_month,\n       COUNT(DISTINCT a.account_id) AS cohort_accounts,\n       COUNT(DISTINCT w.account_id) AS active_month_1\nFROM accounts a\nLEFT JOIN usage_weekly w\n  ON w.account_id = a.account_id\n AND date_diff('month', CAST(a.created_at AS DATE), w.week_start) = 1\nWHERE a.created_at >= TIMESTAMP '2025-01-01 00:00:00' AND a.created_at < TIMESTAMP '2025-12-01 00:00:00'\nGROUP BY 1",
+    "SELECT CAST(date_trunc('month', a.created_at) AS DATE) AS cohort_month,\n       COUNT(*) AS cohort_accounts,\n       SUM(CASE WHEN EXISTS (SELECT 1 FROM usage_weekly w\n                             WHERE w.account_id = a.account_id\n                               AND date_diff('month', CAST(a.created_at AS DATE), w.week_start) = 1) THEN 1 ELSE 0 END) AS active_month_1\nFROM accounts a\nWHERE a.created_at >= TIMESTAMP '2025-01-01 00:00:00' AND a.created_at < TIMESTAMP '2025-12-01 00:00:00'\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(date_trunc('month', a.created_at) AS DATE) AS cohort_month,\n       COUNT(*) AS cohort_accounts,\n       SUM(CASE WHEN EXISTS (SELECT 1 FROM usage_weekly w\n                             WHERE w.account_id = a.account_id\n                               AND date_diff('month', CAST(a.created_at AS DATE), w.week_start) = 1) THEN 1 ELSE 0 END) AS active_month_1\nFROM accounts a\nWHERE a.created_at >= TIMESTAMP '2025-01-01 00:00:00' AND a.created_at < TIMESTAMP '2025-12-01 00:00:00'\nGROUP BY 1",
+    "tradeoff": "EXISTS asks once per account whether a week falls in month 1, so no account is counted twice, but it is longer to write."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH cohort AS (  -- one row per account created from January to November 2025\n  SELECT account_id, CAST(date_trunc('month', created_at) AS DATE) AS cohort_month\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2025-01-01 00:00:00' AND created_at < TIMESTAMP '2025-12-01 00:00:00'\n),\nactive_1 AS (  -- one row per cohort account with a usage week in month 1\n  SELECT c.account_id\n  FROM cohort c\n  JOIN usage_weekly w ON w.account_id = c.account_id\n  WHERE date_diff('month', c.cohort_month, CAST(date_trunc('month', w.week_start) AS DATE)) = 1\n)\nSELECT c.cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(a.account_id) AS active_month_1\nFROM cohort c\nLEFT JOIN active_1 a ON a.account_id = c.account_id\nGROUP BY c.cohort_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-46",
+      "sql": "WITH cohort AS (  -- one row per account created from January to November 2025\n  SELECT account_id, created_at, CAST(date_trunc('month', created_at) AS DATE) AS cohort_month\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2025-01-01 00:00:00' AND created_at < TIMESTAMP '2025-12-01 00:00:00'\n),\nactive_1 AS (  -- one row per cohort account with a usage week in month 1\n  SELECT DISTINCT c.account_id\n  FROM cohort c\n  JOIN usage_weekly w ON w.account_id = c.account_id\n  WHERE date_diff('day', CAST(c.created_at AS DATE), w.week_start) // 30 = 1\n)\nSELECT c.cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(a.account_id) AS active_month_1\nFROM cohort c\nLEFT JOIN active_1 a ON a.account_id = c.account_id\nGROUP BY c.cohort_month"
+    }
+  ],
+  "hint3_partial": "WITH cohort AS (  -- one row per account created from January to November 2025\n  SELECT account_id, CAST(date_trunc('month', created_at) AS DATE) AS cohort_month\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2025-01-01 00:00:00' AND created_at < TIMESTAMP '2025-12-01 00:00:00'\n),\nactive_1 AS (  -- one row per cohort account with a usage week in month 1\n  SELECT DISTINCT c.account_id\n  FROM cohort c\n  JOIN usage_weekly w ON w.account_id = c.account_id\n  WHERE ___ = 1\n)\nSELECT c.cohort_month,\n       COUNT(*) AS cohort_accounts,\n       COUNT(a.account_id) AS active_month_1\nFROM cohort c\nLEFT JOIN active_1 a ON a.account_id = c.account_id\nGROUP BY c.cohort_month",
+  "solver": {
+    "prompt_hash": "33ef5c089ff033dc",
+    "schema_version": "1408cb8a5cf9",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH c AS (\n  SELECT account_id, CAST(date_trunc('month', created_at) AS DATE) AS cm FROM accounts\n  WHERE created_at >= TIMESTAMP '2025-01-01 00:00:00' AND created_at < TIMESTAMP '2025-12-01 00:00:00'\n),\na AS (\n  SELECT DISTINCT account_id, CAST(date_trunc('month', week_start) AS DATE) AS wm FROM usage_weekly\n)\nSELECT c.cm AS cohort_month, COUNT(*) AS cohort_accounts, COUNT(a.account_id) AS active_month_1\nFROM c LEFT JOIN a ON a.account_id = c.account_id AND a.wm = CAST(c.cm + INTERVAL 1 MONTH AS DATE)\nGROUP BY 1\n",
+    "at": "2026-10-28T14:57:06.971Z"
+  }
+}

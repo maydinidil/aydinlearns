@@ -1,0 +1,289 @@
+{
+  "id": "EX-CASE-SAAS-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "case",
+    "inbox",
+    "saas",
+    "cohort_retention",
+    "cac_payback",
+    "accounts",
+    "mrr_monthly",
+    "cogs_monthly",
+    "marketing_spend_monthly",
+    "sm_expense_monthly"
+  ],
+  "level": 6,
+  "source_ids": [
+    "04:CASE-SAAS-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-29",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-CASE-SAAS-05-cohort-retention-cac-payback",
+  "template_params": {
+    "cohorts": "2025-01 to 2025-09",
+    "cohort_date": "accounts.created_at",
+    "offsets": [
+      1,
+      3,
+      6
+    ],
+    "as_of": "2026-01-01",
+    "payback": "CAC / (mean new MRR x gross margin), no churn"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_cases",
+  "prompt": "Griet, the revenue operations lead, is preparing the 2026 planning offsite and asks how well each month's new accounts of January to September 2025 stayed, and how many months of gross margin each month's new accounts need to pay back what was spent to win them. An account's cohort month is the month of its created_at in accounts, which holds Brussels local time: take the accounts created from 2025-01-01 00:00:00 up to but not including 2025-10-01 00:00:00. An account that churns and comes back, a reactivation in subscription_events, keeps its cohort month and starts no new cohort. Take MRR from mrr_monthly: one row per account and month in which the account had MRR on the last day of the month, in euros at one fixed exchange rate; a month with no row means no MRR. Count months as calendar months, month 0 being the cohort month itself, so month 3 of the January 2025 cohort is April 2025. An account is retained at month 1, 3 or 6 when it has a row for that month, even if it had no row in a month between. The data ends on 31 December 2025 (as of 1 January 2026), so a retention cell whose month comes after December 2025 is missing, not 0. A cohort's new MRR is the total mrr_eur of its accounts for the cohort month itself. For the same calendar month, revenue is the total mrr_eur of every account in mrr_monthly, COGS is the total amount_eur of cogs_monthly, the gross margin is (revenue minus COGS) divided by revenue, and the sales and marketing cost is the total spend_eur of marketing_spend_monthly plus the total amount_eur of sm_expense_monthly, the rows whose channel is shared included. CAC is that cost divided by the cohort's accounts, and the CAC payback in months is CAC divided by (the new MRR divided by the cohort's accounts, times the gross margin), a payback that assumes no account churns. Return one row for each cohort month from January to September 2025 that has at least one account, with eight columns in this order: cohort_month, the first day of the month; cohort_size, its accounts; ret_m1_pct, ret_m3_pct and ret_m6_pct, the percentage of its accounts retained at months 1, 3 and 6 (75.5 for 75.5%); new_mrr in euros, rounded to 2 decimals; gm_pct, the gross margin as a percentage; and cac_payback_months. Round every percentage and cac_payback_months to 1 decimal, working from unrounded figures. Sort by cohort_month from oldest to newest.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "cohort_size",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ret_m1_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ret_m3_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ret_m6_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "gm_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cac_payback_months",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "cohort_month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "cohort_size",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "ret_m1_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "ret_m3_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "ret_m6_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "gm_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "cac_payback_months",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give each account created from January to September 2025 its cohort month, and check whether it has a row in mrr_monthly one, three and six calendar months later.",
+    "Leave a retention cell missing when its month comes after December 2025, and add up revenue, COGS and each cost table to one row per month before you join them to the cohorts."
+  ],
+  "subgoals": [
+    {
+      "from": 83,
+      "to": 163,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 166,
+      "to": 179,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 182,
+      "to": 286,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 341,
+      "to": 826,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 829,
+      "to": 905,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 908,
+      "to": 931,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1034,
+      "to": 1071,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1074,
+      "to": 1090,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1093,
+      "to": 1107,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1152,
+      "to": 1189,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1192,
+      "to": 1209,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1212,
+      "to": 1226,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1305,
+      "to": 1342,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1345,
+      "to": 1373,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1376,
+      "to": 1390,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1499,
+      "to": 1542,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1545,
+      "to": 1568,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1571,
+      "to": 1585,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1588,
+      "to": 2302,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 2303,
+      "to": 2527,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2528,
+      "to": 2551,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Cohorts by created_at keep a comeback in its first month, a month after December 2025 stays missing, and each monthly total is added up once before the join."
+}

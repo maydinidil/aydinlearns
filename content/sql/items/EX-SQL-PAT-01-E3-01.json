@@ -1,0 +1,191 @@
+{
+  "id": "EX-SQL-PAT-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "top_n_per_group",
+    "all_other",
+    "row_number",
+    "tie_break",
+    "set_op",
+    "sales"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-PAT-01",
+    "SQL-JOIN-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-PAT-01-top-n-plus-all-other",
+  "template_params": {
+    "table": "sales",
+    "group": "category",
+    "n": 3,
+    "measure": "revenue 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For a revenue chart, each category shows its 3 best-selling products of 2025 by net revenue, plus one \"All other\" row with the revenue of the rest of its products. Use the sales rows whose order_date falls in 2025 (order_date is a UTC day). Keep exactly 3 products per category. When products tie on revenue, the lower product_id comes first. Return three columns, in this order: category_name, item (the product_name for a product kept, or the text All other) and revenue, its 2025 net revenue. A category with 3 or fewer products that sold in 2025 has no All other row. Return one row for each product kept and each All other row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "item",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "item",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name",
+      "item"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each category's products by 2025 revenue; the products numbered up to 3 are rows of their own, and the rest add up into one row per category.",
+    "Stack the kept products and the summed rest with UNION ALL, and leave out a rest that has no product in it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 64,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 65,
+      "to": 154,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 155,
+      "to": 218,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 219,
+      "to": 297,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 298,
+      "to": 354,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 358,
+      "to": 412,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 413,
+      "to": 555,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 556,
+      "to": 574,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 577,
+      "to": 628,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 629,
+      "to": 640,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 641,
+      "to": 654,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 665,
+      "to": 731,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 732,
+      "to": 743,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 744,
+      "to": 756,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 757,
+      "to": 779,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "One number per category splits the kept products from the rest, and the rest add up into one All other row per category."
+}

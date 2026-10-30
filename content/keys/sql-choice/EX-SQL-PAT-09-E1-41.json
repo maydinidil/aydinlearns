@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-09-E1-41",
+  "item_version": 1,
+  "correct_oid": "oc022699",
+  "explanation": "The join matches each line to every promotion of its product whose dates cover the order date. Both promotions cover 6 to 12 October, so each line matches twice, and any total built on this join counts those sales twice. The join does not know which promotion the line carries; only order_lines.promo_id says that.",
+  "solver": {
+    "prompt_hash": "8726c6f037610f0b",
+    "grader_version": "choice.3",
+    "chosen": "oc022699",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.801Z"
+  }
+}

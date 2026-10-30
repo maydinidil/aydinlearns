@@ -1,0 +1,164 @@
+{
+  "id": "EX-SQL-PAT-09-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "range_join",
+    "sales"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-baseline-14",
+  "template_params": {
+    "table": "sales",
+    "baseline_days": 14,
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Before measuring a promotion, Pricing needs its baseline. For each promotion that started in 2025 (start_date from 1 January to 31 December 2025), how many units did its products sell in the baseline? The baseline is the 14 days just before the promotion's first day, that first day not included, and holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A promotion whose products sold nothing then shows 0. Return two columns, in this order: promo_id and baseline_units. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion that started in 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each promotion's products to their sales in the 14 days before its first day.",
+    "The window is a range on order_date: it ends the day before start_date and starts 14 days before start_date."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 93,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 94,
+      "to": 111,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 112,
+      "to": 178,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 244,
+      "to": 286,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 287,
+      "to": 301,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 302,
+      "to": 358,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 359,
+      "to": 405,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 406,
+      "to": 473,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 474,
+      "to": 495,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 498,
+      "to": 555,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 556,
+      "to": 568,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 569,
+      "to": 616,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The range ends the day before the promotion starts and reaches back 14 days, so the baseline never includes a promotion day."
+}

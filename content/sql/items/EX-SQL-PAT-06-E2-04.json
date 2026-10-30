@@ -1,0 +1,196 @@
+{
+  "id": "EX-SQL-PAT-06-E2-04",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "retention",
+    "wide_table",
+    "conditional_aggregation",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-wide-shares",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "activity": "payment",
+    "cohorts": "2025-01 to 2025-06",
+    "months": "m0-m3"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Show the paying share of each signup cohort from January to June 2025 in its first four months, one row per cohort month that has signups. A user's cohort month is the month of signup_ts, in UTC, and a user counts as paying in a month with at least one payment that was not refunded, by the UTC month of paid_at. Month 0 is the cohort month itself, month 1 the next calendar month, and so on. Each share is the cohort's paying users that month divided by all the users who signed up that month, as a fraction between 0 and 1. All these months have ended by the as-of date, 5 January 2026, so a month with no paying user shows 0. Return five columns, in this order: cohort_month (the first day of the month), m0, m1, m2 and m3. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "m0",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m1",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m2",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m3",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "m0",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "m1",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "m2",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "m3",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write one share column per month: the cohort's users with a payment at that offset over all the cohort's users.",
+    "Count distinct users inside a CASE that keeps only the wanted offset, and divide by the distinct users of the cohort; keep every cohort user with an outer join."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 72,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 151,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 154,
+      "to": 166,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 169,
+      "to": 277,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 281,
+      "to": 365,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 368,
+      "to": 394,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 404,
+      "to": 500,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 503,
+      "to": 623,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 626,
+      "to": 646,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 649,
+      "to": 1118,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1119,
+      "to": 1174,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1175,
+      "to": 1198,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Each column counts the users paying at one offset, and the outer join keeps every cohort user in the denominator."
+}

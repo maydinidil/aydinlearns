@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-06-E1-41",
+  "item_version": 1,
+  "correct_oid": "oaad7a73",
+  "explanation": "date_trunc moves both days to the first of their month, and date_diff then counts the calendar months between them: January to March is 2, February to February is 0 and December to January is 1. Dividing the days by 30 would give 0 for all three, because 31 January to 1 March is only 29 days; counting whole months would give 1 for the first user; and month numbers without the year would make December to January -11.",
+  "solver": {
+    "prompt_hash": "b8299b9aa07a4d1b",
+    "grader_version": "choice.3",
+    "chosen": "oaad7a73",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.776Z"
+  }
+}

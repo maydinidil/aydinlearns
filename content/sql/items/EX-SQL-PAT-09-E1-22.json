@@ -1,0 +1,203 @@
+{
+  "id": "EX-SQL-PAT-09-E1-22",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "revenue",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-revenue-vs-14",
+  "template_params": {
+    "table": "sales",
+    "baseline_days": 14,
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each promotion that started in 2025 (start_date from 1 January to 31 December 2025), give the net revenue (sales.net_revenue_eur) sold on promotion and the net revenue of its products in the baseline. A line counts for a promotion when it carries it in order_lines.promo_id, and every such line falls within the promotion's dates; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline is the 14 days just before the promotion's first day, that first day not included, and holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale shows 0. Return three columns, in this order: promo_id, promo_revenue and baseline_revenue. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "baseline_revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "baseline_revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up net revenue on the lines that carry each promotion and in its 14-day baseline.",
+    "Join the promotion's lines on promo_id to sales for their revenue; the baseline joins sales on the product and the date window."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 93,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 94,
+      "to": 111,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 112,
+      "to": 178,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 242,
+      "to": 296,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 297,
+      "to": 311,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 312,
+      "to": 361,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 362,
+      "to": 414,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 415,
+      "to": 436,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 502,
+      "to": 556,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 557,
+      "to": 571,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 572,
+      "to": 628,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 629,
+      "to": 675,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 676,
+      "to": 743,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 744,
+      "to": 765,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 768,
+      "to": 870,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 871,
+      "to": 883,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 884,
+      "to": 929,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 930,
+      "to": 977,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Revenue on promotion comes from the lines that carry it, and the baseline from the 14 days just before, so each sale counts once per period."
+}

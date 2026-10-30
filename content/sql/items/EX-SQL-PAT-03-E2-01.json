@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-PAT-03-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "year_over_year",
+    "self_join",
+    "sales"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-yoy-self-join",
+  "template_params": {
+    "table": "sales",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each month of 2025, compare Voltmarkt's net revenue with the same month a year before. Order dates are UTC days. Return three columns, in this order: month (the first day of the 2025 month), revenue_eur and revenue_prev_year_eur, the net revenue of the same month of 2024. A month of 2024 with no orders has nothing to compare with: show its revenue_prev_year_eur as missing. Return one row for each month of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_prev_year_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "revenue_prev_year_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each 2025 month to the row for the same month a year earlier.",
+    "Match the months by date, a year apart, and keep every 2025 month even when 2024 has no row for it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 239,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 240,
+      "to": 309,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 310,
+      "to": 324,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 325,
+      "to": 383,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 384,
+      "to": 418,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 240,
+    "stage2": 240
+  },
+  "faded_shape": "WITH monthly AS (\n  -- one row per month with orders, 2024 and 2025\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY order_month\n)\n",
+  "faded_suffix": "\nWHERE m.month >= DATE '2025-01-01'",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Joining on the month minus one year finds the same month of 2024 by date, so a month with no orders a year before stays missing instead of shifting the series."
+}

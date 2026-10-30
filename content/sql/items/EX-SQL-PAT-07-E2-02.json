@@ -1,0 +1,207 @@
+{
+  "id": "EX-SQL-PAT-07-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "ordered_funnel",
+    "step_rate",
+    "app_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-ordered-rates",
+  "template_params": {
+    "funnel": "upload, match, export",
+    "period": "2025-10 to 2025-12",
+    "order": "each step at or after the step before"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "What were the step conversion rates of the month-end close funnel in the app, over all the app events (October to December 2025)? A user starts the funnel at the user's first upload_statement event. The user counts as matched with a match_transaction event at or after that first upload, and as exported with an export_report event at or after the first such match; an event before the step before does not count. Return five columns, in this order: uploaded, matched, exported (each a number of users), match_rate (matched over uploaded) and export_rate (exported over matched), each rate a fraction between 0 and 1. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "uploaded",
+        "type_class": "numeric"
+      },
+      {
+        "name": "matched",
+        "type_class": "numeric"
+      },
+      {
+        "name": "exported",
+        "type_class": "numeric"
+      },
+      {
+        "name": "match_rate",
+        "type_class": "numeric"
+      },
+      {
+        "name": "export_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row for the whole funnel"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "uploaded",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "matched",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "exported",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "match_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "export_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step counts and the two step rates from the three lists of users.",
+    "Each list already holds only users who did the step in order, so count them, and divide each step by the step right before it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 81,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 84,
+      "to": 126,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 129,
+      "to": 144,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 184,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 187,
+      "to": 203,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 207,
+      "to": 317,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 320,
+      "to": 365,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 368,
+      "to": 498,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 501,
+      "to": 519,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 523,
+      "to": 596,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 599,
+      "to": 624,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 627,
+      "to": 752,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 755,
+      "to": 761,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 769,
+      "to": 983,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 984,
+      "to": 1073,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 769,
+    "stage2": 769
+  },
+  "faded_shape": "WITH up AS (  -- one row per user who uploaded a statement, with the first upload\n  SELECT user_id, MIN(event_ts) AS upload_ts\n  FROM app_events\n  WHERE event_name = 'upload_statement'\n  GROUP BY user_id\n),\nmt AS (  -- one row per user who matched a transaction at or after the first upload, with the first such match\n  SELECT u.user_id, MIN(e.event_ts) AS match_ts\n  FROM up u\n  JOIN app_events e\n    ON e.user_id = u.user_id AND e.event_name = 'match_transaction'\n   AND e.event_ts >= u.upload_ts\n  GROUP BY u.user_id\n),\nex AS (  -- one row per user who exported a report at or after that match\n  SELECT DISTINCT m.user_id\n  FROM mt m\n  JOIN app_events e\n    ON e.user_id = m.user_id AND e.event_name = 'export_report'\n   AND e.event_ts >= m.match_ts\n)\nSELECT\n       ",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Each step keeps only the users who did it at or after the step before, and each step rate divides by the step right before it.",
+  "faded_suffix": "\nFROM up u\nLEFT JOIN mt m ON m.user_id = u.user_id\nLEFT JOIN ex x ON x.user_id = u.user_id"
+}

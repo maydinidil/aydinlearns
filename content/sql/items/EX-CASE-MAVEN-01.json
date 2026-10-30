@@ -1,0 +1,192 @@
+{
+  "id": "EX-CASE-MAVEN-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "case",
+    "inbox",
+    "marketing",
+    "fictional_data",
+    "maven_toy_store",
+    "funnel",
+    "conversion",
+    "traffic_source",
+    "website_sessions",
+    "orders"
+  ],
+  "level": 6,
+  "source_ids": [
+    "03:DS-MKT-03",
+    "ERRATA:E-214"
+  ],
+  "verified": true,
+  "as_of": "2026-10-29",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-CASE-MAVEN-01-sessions-to-orders-by-source-and-month",
+  "template_params": {
+    "months": "2013-01 to 2013-12",
+    "channel": "utm_source, missing as its own group",
+    "order_match": "website_session_id",
+    "rate_base": "sessions"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "maven_toy_store",
+  "schema": "maven_toy_store",
+  "edge_schema": "maven_toy_store_edge",
+  "prompt": "Noor, the analytics lead, sets this take-home task on Maven Fuzzy Factory, a made-up online teddy bear shop from Maven Analytics whose data is fictional, and asks how each traffic source's website sessions turned into orders in each month of 2013. A session's traffic source is its utm_source. The sessions with a missing utm_source are one group of their own, whatever their http_referer says, and show utm_source as missing. Take the sessions whose created_at falls from 1 January 2013 up to but not including 1 January 2014, read as the data records it with no time zone change, and give each session the month of its own created_at. An order belongs to the session whose website_session_id it carries, and counts in that session's month even when it was placed after midnight in the next month or the next year. Return one row for each month of 2013 and traffic source with at least one session in that month, with five columns in this order: session_month, the first day of the month; utm_source; sessions, the number of sessions; orders, the number of orders those sessions placed; and conversion_pct, 100 times the number of sessions that placed at least one order divided by sessions, rounded to 2 decimals. A session that placed two orders adds 2 to orders but counts once in conversion_pct. Sort by session_month from oldest to newest, then by utm_source from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "session_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "utm_source",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "conversion_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "session_month",
+        "desc": false
+      },
+      {
+        "column": "utm_source",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "session_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "utm_source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "conversion_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "session_month",
+      "utm_source"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give each 2013 session its month, its traffic source and the number of orders it placed, keeping the sessions with no order.",
+    "Group those sessions by month and source, and count the sessions with at least one order apart from the orders themselves."
+  ],
+  "subgoals": [
+    {
+      "from": 126,
+      "to": 289,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 292,
+      "to": 389,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 392,
+      "to": 500,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 503,
+      "to": 560,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 563,
+      "to": 751,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 752,
+      "to": 770,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 771,
+      "to": 805,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 806,
+      "to": 840,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "One row per session with its own count of orders keeps the sessions with no order and lets a session with two orders count once in the rate, in the month the session started."
+}

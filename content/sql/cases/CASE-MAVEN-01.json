@@ -1,0 +1,171 @@
+{
+  "case_id": "CASE-MAVEN-01",
+  "kind": "inbox",
+  "level": 6,
+  "world": "MKT",
+  "company_id": "maven_toy_store",
+  "schema": "maven_toy_store",
+  "title": "Sessions to orders by traffic source in 2013",
+  "persona": {
+    "name": "Noor",
+    "role": "Analytics lead"
+  },
+  "brief": {
+    "decision": "A take-home task from our hiring team in the Netherlands, on Maven Fuzzy Factory, a made-up online teddy bear shop from Maven Analytics whose data is fictional: for each month of 2013, how many website sessions each traffic source brought, how many orders those sessions placed and what share of them turned into an order, to help decide where next year's search budget should go. The sessions that carry no traffic source are one group of their own.",
+    "deadline": "The panel interview, on Friday"
+  },
+  "data_needed": [
+    "website_sessions",
+    "orders"
+  ],
+  "expected_output": {
+    "columns": [
+      "session_month",
+      "utm_source",
+      "sessions",
+      "orders",
+      "conversion_pct"
+    ],
+    "grain": "one row per month of 2013 and traffic source, for each source with at least one session in the month",
+    "sort": [
+      {
+        "column": "session_month",
+        "desc": false
+      },
+      {
+        "column": "utm_source",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-MAVEN-01:CP1",
+      "credits_concepts": [],
+      "prompt": "Noor wants each traffic source's session-to-order conversion rate for each month, from Maven Fuzzy Factory's fictional web data: website_sessions holds one row per visit, with the visitor's user_id, and orders names the session each order was placed in. What should each source's monthly rate divide by?",
+      "options": [
+        {
+          "oid": "o67f9811",
+          "text": "The source's sessions in that month, each visit counted once, whether or not it placed an order."
+        },
+        {
+          "oid": "o95f49e6",
+          "text": "The source's visitors in that month by user_id, so a visitor with three sessions counts only once."
+        },
+        {
+          "oid": "ob3fa5cb",
+          "text": "The source's sessions in that month that viewed a product page, since only those could place an order."
+        },
+        {
+          "oid": "o481ebc5",
+          "text": "Every session in that month from all sources, so the sources' rates add up to the whole site's rate."
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-MAVEN-01:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "In Maven Fuzzy Factory's fictional web data, take the website sessions whose created_at falls from 1 January 2013 up to but not including 1 January 2014, as the data records it, from every traffic source. An order belongs to the session whose website_session_id it carries, whenever the order was placed, so an order placed just after midnight on 1 January 2014 in a session that started on 31 December 2013 still counts. How many orders did those sessions place? Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "orders"
+      },
+      "truth_key": "CASE-MAVEN-01:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-MAVEN-01",
+      "credits_concepts": [
+        "SQL-PAT-07",
+        "SQL-JOIN-02",
+        "SQL-DATE-01",
+        "SQL-AGG-02"
+      ],
+      "prompt": "Write the query that answers Noor's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-MAVEN-01:CP4",
+      "credits_concepts": [],
+      "prompt": "In Maven Fuzzy Factory's fictional web data, take the website sessions whose created_at falls from 1 January 2013 up to but not including 1 January 2014, as the data records it, from every traffic source together. A session converted when at least one order carries its website_session_id, whenever that order was placed. What percentage of those sessions converted, counting each session once however many orders it placed? Type the percentage rounded to 2 decimals, for example 12.34.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 2,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-MAVEN-01:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-MAVEN-01:CP5",
+      "credits_concepts": [],
+      "prompt": "In Noor's 2013 table from Maven Fuzzy Factory's fictional web data, gsearch brought several times as many sessions and orders as bsearch in every month, while bsearch turned about the same share of its sessions into orders, higher in some months and lower in others. Nothing else has been checked yet. Noor asks: can we conclude that moving budget from gsearch to bsearch would bring more orders?",
+      "options": [
+        {
+          "oid": "o0db748d",
+          "text": "Yes. bsearch turns its sessions into orders at least as well as gsearch does, so every session moved from gsearch to bsearch keeps or adds orders for the shop."
+        },
+        {
+          "oid": "o9071c0f",
+          "text": "Not yet. The rates describe the sessions each source brought at its current spend, not what extra spend would bring; test a shift and compare cost per order."
+        },
+        {
+          "oid": "o788b093",
+          "text": "No. bsearch brought far fewer sessions than gsearch, so its conversion rate rests on too few sessions to compare with gsearch at all."
+        },
+        {
+          "oid": "o99ec546",
+          "text": "No. The sessions with no traffic source in fact came from gsearch's ads, so gsearch's true conversion rate is higher than the table shows."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Noor: how each traffic source's sessions and conversion moved through 2013, the conversion rate for the whole year, one caveat, and one next step."
+    }
+  ],
+  "model_plan": "Metric formula: per month and traffic source, sessions counts the sessions; orders counts the orders those sessions placed; conversion_pct is 100 times the sessions with at least one order divided by sessions, rounded to 2 decimals.\nOutput grain: one row per month of 2013 and traffic source with at least one session, the sessions with a missing utm_source as one group.\nTables and keys: website_sessions joined to orders by LEFT JOIN on website_session_id, then a step at one row per session with its number of orders.\nFilters: sessions whose created_at is from 1 January 2013 up to, not including, 1 January 2014; no filter on the order's own date.\nEdge cases: a session with no order stays in with 0 orders; a session with two orders counts once in the rate; an order placed after midnight counts in its session's month, even in January 2014; a missing utm_source is a group of its own, whatever http_referer says.\nExpected row count: 36",
+  "model_answer_template": "In 2013 the shop's sessions turned into orders at {CP4} percent overall, and the {CP2} orders those sessions placed came mostly from gsearch, which brought by far the most sessions in every month. bsearch turned about the same share of its sessions into orders on far fewer sessions, but these rates describe the traffic each source brought at its spend, not what more spend would bring, and the data is fictional. Next, I would add each source's cost to get the cost per order, then test a budget shift on bsearch before moving money.",
+  "follow_up_question": "How does each source's conversion rate compare between desktop and mobile sessions?",
+  "data_source": {
+    "label": "Fictional data: Maven Fuzzy Factory, a made-up online teddy bear shop from Maven Analytics, with its website sessions, pageviews, orders and refunds. Source: Maven Analytics. Licence: Public Domain.",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-PAT-07"
+  ],
+  "metric_ids": [
+    "MET-MKT-07"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

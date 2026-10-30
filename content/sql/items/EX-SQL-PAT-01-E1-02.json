@@ -1,0 +1,167 @@
+{
+  "id": "EX-SQL-PAT-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "top_n_per_group",
+    "rank",
+    "ties_share",
+    "ad_spend_daily"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-PAT-01"
+  ],
+  "template_id": "T-PAT-01-top-1-ties-share",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "n": 1,
+    "measure": "clicks 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Which campaign of each channel got the most clicks in 2025? Use the ad_spend_daily rows whose spend_date, a UTC day, falls in 2025. When campaigns of a channel tie for the most clicks, they share the place and every one of them is kept. Return three columns, in this order: channel_name, campaign_id and clicks, the campaign's 2025 clicks. Return one row for each campaign kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each campaign's 2025 clicks with its channel, then rank the campaigns of each channel from the most clicks down.",
+    "Tied campaigns must share first place, so use a ranking that gives equal values the same number, restarted in each channel."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 69,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 70,
+      "to": 134,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 135,
+      "to": 261,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 262,
+      "to": 340,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 341,
+      "to": 382,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 386,
+      "to": 441,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 442,
+      "to": 562,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 563,
+      "to": 585,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 588,
+      "to": 628,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 629,
+      "to": 640,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 641,
+      "to": 654,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "RANK gives every campaign tied for a channel's most clicks place 1, so the filter keeps all of them."
+}

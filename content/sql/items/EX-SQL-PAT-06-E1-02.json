@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-PAT-06-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "month_offset",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-months-to-first-payment",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "event": "first payment",
+    "period": "2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "How long do new users take to pay? Take the users who signed up in 2025 and have made at least one payment, refunded or not. signup_ts and paid_at are UTC instants, so read every month in UTC. For each user, count the calendar months from the month of the signup to the month of the first payment: 0 when both fall in the same month, 1 for the next month, and so on. Return two columns, in this order: months_to_first_payment and users, the number of such users. Return one row for each number of months that occurs. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "months_to_first_payment",
+        "type_class": "numeric"
+      },
+      {
+        "name": "users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per number of months"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "months_to_first_payment",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "months_to_first_payment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each user's first payment, joining payments to their subscriptions.",
+    "Move the signup and the first payment to the first day of their months; the number of months between those two days is the first column."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 53,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 56,
+      "to": 105,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 108,
+      "to": 187,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 190,
+      "to": 208,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 211,
+      "to": 361,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 362,
+      "to": 418,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 419,
+      "to": 531,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 532,
+      "to": 564,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Counting months between the first days of the two months gives calendar months, so a signup on 31 January and a first payment on 1 March are 2 months apart."
+}

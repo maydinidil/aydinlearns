@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-PAT-08-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "lag",
+    "activation_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-starts-per-day",
+  "template_params": {
+    "table": "activation_events",
+    "from": "2025-10-13",
+    "to": "2025-10-19"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "How many activation sessions started on each UTC day from 13 to 19 October 2025 (both days included)? A user's first activation event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant. When two events of a user share a moment, take them in event_name order, A to Z. Work the gaps out over each user's whole history, so an event on 13 October whose previous event was earlier is compared with that earlier event. Return two columns, in this order: session_day, the UTC date the session's first event falls on, and sessions. Return one row for each day with at least one session start. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "session_day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "session_day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "session_day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read each user's previous event over the whole table, and only then keep the session starts in that week.",
+    "WHERE runs before the window, so filter the week in the outer query, after LAG has seen the earlier events."
+  ],
+  "subgoals": [
+    {
+      "from": 49,
+      "to": 88,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 89,
+      "to": 175,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 176,
+      "to": 200,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 203,
+      "to": 269,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 270,
+      "to": 279,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 280,
+      "to": 458,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 459,
+      "to": 490,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The gaps come from each user's full history, so only real session starts in the week are counted, each on its UTC day."
+}

@@ -37,6 +37,7 @@
     { "construct": "lag_lead",      "concept_id": "SQL-WIN-03",    "examples": ["SELECT product_name, LAG(unit_cost_eur) OVER (ORDER BY launch_date) AS prev_cost FROM products", "SELECT promo_code, LEAD(start_date) OVER (ORDER BY start_date) AS next_start FROM promotions"] },
     { "construct": "qualify",       "concept_id": "SQL-WIN-06",    "examples": ["SELECT product_name, brand, unit_cost_eur FROM products QUALIFY unit_cost_eur = MAX(unit_cost_eur) OVER (PARTITION BY brand)"] },
     { "construct": "ntile_first_value","concept_id": "SQL-WIN-07", "examples": ["SELECT product_name, NTILE(4) OVER (ORDER BY unit_cost_eur) AS quartile FROM products", "SELECT product_name, FIRST_VALUE(unit_cost_eur) OVER (PARTITION BY brand ORDER BY launch_date) AS first_cost FROM products"] },
-    { "construct": "percentile",    "concept_id": "SQL-WIN-07",    "examples": ["SELECT MEDIAN(unit_cost_eur) AS m FROM products", "SELECT quantile_cont(unit_cost_eur, 0.5) AS m FROM products", "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY unit_cost_eur) AS m FROM products"] }
+    { "construct": "percentile",    "concept_id": "SQL-WIN-07",    "examples": ["SELECT MEDIAN(unit_cost_eur) AS m FROM products", "SELECT quantile_cont(unit_cost_eur, 0.5) AS m FROM products", "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY unit_cost_eur) AS m FROM products"] },
+    { "construct": "pivot",         "concept_id": "SQL-PAT-05",    "examples": ["PIVOT stores ON country_code IN ('NL', 'BE') USING COUNT(*) GROUP BY store_type", "SELECT * FROM stores PIVOT (COUNT(*) FOR country_code IN ('NL', 'BE') GROUP BY store_type)", "UNPIVOT stores ON city, country_code INTO NAME field VALUE val"] }
   ]
 }

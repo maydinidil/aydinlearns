@@ -1,0 +1,224 @@
+{
+  "id": "EX-SQL-PAT-07-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "ordered_funnel",
+    "time_window",
+    "overall_rate",
+    "app_events",
+    "segment"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-ordered-within-days-by-segment",
+  "template_params": {
+    "funnel": "upload, match, export",
+    "period": "2025-10 to 2025-12",
+    "windows": "1 day",
+    "by": "segment"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "In each account segment, how many users closed the month-end funnel in the app within a day per step, over all the app events (October to December 2025)? A user starts the funnel at the user's first upload_statement event. The user counts as matched in time with a match_transaction event at or after that first upload and at most 1 day (24 hours) after it, and as exported in time with an export_report event at or after the first such match and at most 1 day after that match. A user belongs to the segment of the account of the user's app events. Return five columns, in this order: segment, uploaded, matched_in_1_day, exported_in_1_day (each a number of users) and overall_rate, exported_in_1_day over uploaded, as a fraction between 0 and 1. Return one row for each segment with a user who uploaded a statement. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "uploaded",
+        "type_class": "numeric"
+      },
+      {
+        "name": "matched_in_1_day",
+        "type_class": "numeric"
+      },
+      {
+        "name": "exported_in_1_day",
+        "type_class": "numeric"
+      },
+      {
+        "name": "overall_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "uploaded",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "matched_in_1_day",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "exported_in_1_day",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "overall_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each step in its window: the first match within a day after the first upload, then an export within a day after that match.",
+    "Join the lists to the uploaders with outer joins and to their segment; the overall rate divides the last step by everyone who uploaded."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 81,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 84,
+      "to": 126,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 129,
+      "to": 144,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 184,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 187,
+      "to": 203,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 207,
+      "to": 317,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 320,
+      "to": 365,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 368,
+      "to": 545,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 548,
+      "to": 566,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 570,
+      "to": 643,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 646,
+      "to": 671,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 674,
+      "to": 845,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 849,
+      "to": 922,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 925,
+      "to": 961,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 964,
+      "to": 1030,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1033,
+      "to": 1227,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1228,
+      "to": 1353,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1354,
+      "to": 1372,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each step counts only inside its one-day window after the step before, and the overall rate divides by every user who uploaded."
+}

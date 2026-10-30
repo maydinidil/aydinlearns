@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-PAT-02-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "row_number",
+    "tie_break",
+    "orders",
+    "last_seen"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-PAT-02-latest-per-key-counted",
+  "template_params": {
+    "table": "orders",
+    "key": "customer",
+    "count_by": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For a last-seen report: in which month did each customer place their latest order, and how many customers is that per month? order_ts holds UTC time; the month is the first day of the UTC month of the latest order's order_ts. Orders with a missing customer_id are guest orders and do not count. Each customer counts once. When two orders of a customer tie on order_ts, the lower order_id is kept. Return two columns, in this order: last_order_month and customers. Return one row for each month that holds some customer's latest order. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "last_order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "last_order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "last_order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each customer's orders from the latest order_ts down, keep number 1, then count those orders by month.",
+    "One order per customer even on a tie needs the stated tie-break; leave the guest orders out before numbering."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 58,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 59,
+      "to": 183,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 184,
+      "to": 197,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 198,
+      "to": 229,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 232,
+      "to": 311,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 312,
+      "to": 323,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 324,
+      "to": 336,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 337,
+      "to": 375,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "One order per customer, the latest, is kept before the months are counted, so a customer with two latest orders at one moment counts once."
+}

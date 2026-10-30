@@ -1,0 +1,167 @@
+{
+  "id": "EX-SQL-PAT-06-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "cohort",
+    "month_offset"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-DATE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-predict-month-offset",
+  "template_params": {
+    "rows": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Which result does this query return? Each row holds a user's signup day and the day of one later payment.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT user_id,\n       date_diff('month', date_trunc('month', signup_date), date_trunc('month', paid_date)) AS month_offset\nFROM (VALUES (1, DATE '2025-01-31', DATE '2025-03-01'),\n             (2, DATE '2025-02-01', DATE '2025-02-28'),\n             (3, DATE '2025-12-20', DATE '2026-01-05')) AS t(user_id, signup_date, paid_date)",
+  "options": [
+    {
+      "oid": "oaad7a73",
+      "text": "Offsets 2, 0 and 1",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "user_id",
+          "month_offset"
+        ],
+        "rows": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o4f2bce3",
+      "text": "Offsets 0, 0 and 0",
+      "misconception_id": "ERR-LOG-46",
+      "table": {
+        "columns": [
+          "user_id",
+          "month_offset"
+        ],
+        "rows": [
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o9964911",
+      "text": "Offsets 1, 0 and 0",
+      "misconception_id": "ERR-LOG-34",
+      "table": {
+        "columns": [
+          "user_id",
+          "month_offset"
+        ],
+        "rows": [
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o0285388",
+      "text": "Offsets 2, 0 and -11",
+      "misconception_id": "ERR-LOG-25",
+      "table": {
+        "columns": [
+          "user_id",
+          "month_offset"
+        ],
+        "rows": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            -11
+          ]
+        ]
+      }
+    }
+  ]
+}

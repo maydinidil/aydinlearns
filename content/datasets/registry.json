@@ -209,6 +209,130 @@
         "The prep makes small changes for DuckDB: it skips SET search_path and DROP TABLE IF EXISTS, creates FLOAT columns as DOUBLE, and runs the script's own UPDATE statements, which turn blank text, and the word null written as text, into missing values. It refuses any other kind of statement.",
         "The questions are on each case study's page. The app copies none of them, and none of the data: everything stays on your laptop."
       ]
+    },
+    {
+      "id": "DS-RETAIL-01",
+      "aliases": [],
+      "name": "Brazilian E-Commerce Public Dataset by Olist",
+      "owner": "Olist",
+      "licence": {
+        "name": "CC BY-NC-SA 4.0",
+        "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        "terms": "Free to share and adapt for non-commercial purposes, as long as Olist is credited and what you make from it is shared under the same licence."
+      },
+      "real": true,
+      "label": "Real data: Olist's Brazilian e-commerce orders, about 100,000 orders made at several marketplaces in Brazil from 2016 to 2018, without the geolocation file. Source: Olist, on Kaggle. Licence: CC BY-NC-SA 4.0.",
+      "source_url": "https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce",
+      "files": [
+        {
+          "name": "archive.zip",
+          "sha256": "967e41e04fc306fe604e2a693f488995a8b41e5047418f8a5c8e4abd6deca784",
+          "members": [
+            { "name": "olist_customers_dataset.csv", "table": "customers" },
+            { "name": "olist_orders_dataset.csv", "table": "orders" },
+            { "name": "olist_order_items_dataset.csv", "table": "order_items" },
+            { "name": "olist_order_payments_dataset.csv", "table": "order_payments" },
+            { "name": "olist_order_reviews_dataset.csv", "table": "order_reviews" },
+            { "name": "olist_products_dataset.csv", "table": "products" },
+            { "name": "olist_sellers_dataset.csv", "table": "sellers" },
+            { "name": "product_category_name_translation.csv", "table": "product_category_name_translation" }
+          ]
+        }
+      ],
+      "schemas": [
+        { "name": "olist", "title": "Olist" }
+      ],
+      "prep": "pipeline/datasets/olist.py",
+      "questions": [
+        { "id": "DS-RETAIL-01-Q1", "text": "Counting only orders with the status delivered, and each customer once by customer_unique_id: for each month of 2017, take the customers whose first delivered order was placed in that month. What share of them placed another delivered order on a later day, up to 31 August 2018?" },
+        { "id": "DS-RETAIL-01-Q2", "text": "For the orders delivered to customers between 1 January and 31 December 2017, which five customer states had the highest share of orders delivered after their estimated delivery date, and how did the average review score of those late orders compare with the on-time ones?" },
+        { "id": "DS-RETAIL-01-Q3", "text": "For the items of orders placed between 1 January and 31 December 2017, what was freight as a share of item price in each product category, by its English name, with the products that have no category, or a category with no English name, together as one group of their own? In which categories was it above 30%?" },
+        { "id": "DS-RETAIL-01-Q4", "text": "Counting only orders with the status delivered, and each customer once by customer_unique_id: of the customers whose first delivered order was placed between 1 January and 30 June 2017, what share placed a second delivered order on a later day, up to 31 August 2018, and how many days after the first did that second order come on average?" },
+        { "id": "DS-RETAIL-01-Q5", "text": "In orders placed between 1 January and 31 December 2017, what was freight as a share of item price for customers in each state, and which three states paid the highest share?" },
+        { "id": "DS-RETAIL-01-Q6", "text": "Which ten sellers sold the most item revenue, before freight, in orders placed between 1 January and 31 December 2017, and what was the average review score of the orders they sold in?" }
+      ],
+      "links": [
+        {
+          "n": 1,
+          "title": "Brazilian E-Commerce Public Dataset by Olist: public notebooks (Kaggle Code tab)",
+          "url": "https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce/code"
+        },
+        {
+          "n": 2,
+          "title": "Brazilian-E-Commerce-Public-Dataset-by-Olist, an analysis (ayushic2899 on GitHub)",
+          "url": "https://github.com/ayushic2899/Brazilian-E-Commerce-Public-Dataset-by-Olist"
+        },
+        {
+          "n": 3,
+          "title": "Olist SQL solutions: a GitHub search",
+          "url": "https://github.com/search?q=olist+sql&type=repositories"
+        }
+      ],
+      "notes": [
+        "Download the zip from the dataset's Kaggle page with its Download button. Kaggle names it archive.zip, and your browser may save it as archive (2).zip or another copy of that name. Keep it zipped, in your downloads folder or a folder inside it: the prep reads the CSV files inside it. When there are several copies of the name, the prep uses the copy whose fingerprint matches the registry's, else the newest one that holds Olist's files, and says which.",
+        "The prep reads eight of the zip's nine CSV files into eight tables: customers, orders, order_items, order_payments, order_reviews, products, sellers and product_category_name_translation. The geolocation file, olist_geolocation_dataset.csv, is left out: no question uses it.",
+        "Every row stays as the source has it: orders that were never delivered have a missing delivery date, some products have a missing category, and many reviews have no comment. IDs and postcode prefixes are text, and the columns keep the source's names, product_name_lenght included, so public solutions run as written.",
+        "customer_id changes with every order, so it never shows a customer coming back: count a returning customer on customer_unique_id.",
+        "Use this data for non-commercial study, crediting Olist, as the CC BY-NC-SA 4.0 licence says."
+      ]
+    },
+    {
+      "id": "DS-MKT-03",
+      "aliases": [],
+      "name": "Toy Store E-Commerce Database (Maven Fuzzy Factory)",
+      "owner": "Maven Analytics",
+      "licence": {
+        "name": "Public Domain",
+        "url": "https://mavenanalytics.io/data-playground/toy-store-e-commerce-database",
+        "terms": "The dataset's page on Maven Analytics states License: Public Domain. The app loads only the files you downloaded yourself, and copies none of the data."
+      },
+      "real": false,
+      "label": "Fictional data: Maven Fuzzy Factory, a made-up online teddy bear shop from Maven Analytics, with its website sessions, pageviews, orders and refunds. Source: Maven Analytics. Licence: Public Domain.",
+      "source_url": "https://mavenanalytics.io/data-playground/toy-store-e-commerce-database",
+      "files": [
+        {
+          "name": "Maven+Fuzzy+Factory.zip",
+          "sha256": "3fb0de0664968de0f5af0c20cfb93de64b144ceecfaa476ed96e4c2749183c13",
+          "members": [
+            { "name": "website_sessions.csv", "table": "website_sessions" },
+            { "name": "website_pageviews.csv", "table": "website_pageviews" },
+            { "name": "orders.csv", "table": "orders" },
+            { "name": "order_items.csv", "table": "order_items" },
+            { "name": "order_item_refunds.csv", "table": "order_item_refunds" },
+            { "name": "products.csv", "table": "products" }
+          ]
+        }
+      ],
+      "schemas": [
+        { "name": "maven_toy_store", "title": "Maven Fuzzy Factory" }
+      ],
+      "prep": "pipeline/datasets/maven_toy_store.py",
+      "questions": [
+        { "id": "DS-MKT-03-Q1", "text": "For each month from January to December 2013, how many website sessions came from each traffic source (utm_source, with the sessions that carry none as a group of their own), how many orders did those sessions place, and what was each source's session-to-order conversion rate?" },
+        { "id": "DS-MKT-03-Q2", "text": "Between 1 July and 30 September 2014, which pair of traffic source and campaign had the highest session-to-order conversion rate, among the pairs with at least 1,000 sessions?" },
+        { "id": "DS-MKT-03-Q3", "text": "Take each session's landing page, the first page it viewed. Between 1 June and 31 July 2012, which landing page turned the highest share of its sessions into orders, among the pages that started at least 100 sessions?" },
+        { "id": "DS-MKT-03-Q4", "text": "The second product went on sale on 6 January 2013. How did revenue per session from 6 January to 5 April 2013, the 90 days starting on that day, compare with the 90 days before it, from 8 October 2012 to 5 January 2013?" },
+        { "id": "DS-MKT-03-Q5", "text": "For each product, what share of the order items sold between 1 January and 31 December 2014 were refunded, and how much money did those refunds pay back?" },
+        { "id": "DS-MKT-03-Q6", "text": "Between 1 January and 31 March 2014, how did the session-to-order conversion rate of desktop sessions compare with mobile sessions for each traffic source?" }
+      ],
+      "links": [
+        {
+          "n": 1,
+          "title": "Toy Store E-Commerce Database, the dataset's page and its data dictionary (Maven Analytics)",
+          "url": "https://mavenanalytics.io/data-playground/toy-store-e-commerce-database"
+        },
+        {
+          "n": 2,
+          "title": "Maven Fuzzy Factory SQL projects: a GitHub search",
+          "url": "https://github.com/search?q=maven+fuzzy+factory+sql&type=repositories"
+        }
+      ],
+      "notes": [
+        "Download the zip from the Toy Store E-Commerce Database page of Maven Analytics' Data Playground. Keep it zipped, in your downloads folder or a folder inside it: the prep reads the CSV files inside it, wherever they sit in the zip.",
+        "The prep reads six CSV files into six tables: website_sessions, website_pageviews, orders, order_items, order_item_refunds and products. The data dictionary file, maven_fuzzy_factory_data_dictionary.csv, is not loaded: the schema panel describes each column.",
+        "Where the files write the word NULL for a missing value, the prep loads a missing value and counts them. Every other value stays as the source has it.",
+        "The data is fictional: Maven Analytics made up the shop and its visitors. It teaches web funnels and channel reporting, but says nothing about a real market."
+      ]
     }
   ]
 }

@@ -1,0 +1,186 @@
+{
+  "id": "EX-SQL-PAT-07-E2-31",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "ordered_funnel",
+    "step_before",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-fix-step-before",
+  "template_params": {
+    "funnel": "signup, activation, payment",
+    "period": "2025-01 to 2025-06",
+    "order": "payment at or after activation"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many of the users who signed up from January to June 2025 (signup_ts, in UTC) reached each step of the signup funnel, in order? A user is activated at the first first_campaign_sent event, and counts as paid only when the user's first payment (paid_at, refunded or not) came at or after that activation. A user whose first payment came before the activation does not count as paid, even if a later payment came after it, and neither does a user with no activation. Return three columns, in this order: signed_up, activated and paid, each a number of users. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "signed_up",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "signed_up",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check how the paid step is flagged: the question needs the step before it.",
+    "A user who paid but was never activated, or whose first payment came before the activation, must not count as paid; compare the first payment with the activation moment."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 75,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 123,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 126,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 151,
+      "to": 191,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 194,
+      "to": 210,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 214,
+      "to": 280,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 283,
+      "to": 332,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 335,
+      "to": 414,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 417,
+      "to": 435,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 439,
+      "to": 531,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 534,
+      "to": 688,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 691,
+      "to": 791,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 794,
+      "to": 906,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 909,
+      "to": 1043,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1044,
+      "to": 1054,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH act AS (  -- one row per activated user, with the moment of activation\n  SELECT user_id, MIN(event_ts) AS activated_at\n  FROM activation_events\n  WHERE event_name = 'first_campaign_sent'\n  GROUP BY user_id\n),\npay AS (  -- one row per user who has paid, with the first payment\n  SELECT s.user_id, MIN(p.paid_at) AS first_paid_at\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n  GROUP BY s.user_id\n),\nsteps AS (  -- one row per user who signed up in the period, with the steps reached in order\n  SELECT u.user_id, u.signup_ts,\n         a.activated_at IS NOT NULL AS is_activated,\n         p.first_paid_at IS NOT NULL AS is_paid\n  FROM signups u\n  LEFT JOIN act a ON a.user_id = u.user_id\n  LEFT JOIN pay p ON p.user_id = u.user_id\n  WHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-07-01 00:00:00+00'\n)\nSELECT COUNT(*) AS signed_up,\n       COUNT(*) FILTER (WHERE is_activated) AS activated,\n       COUNT(*) FILTER (WHERE is_paid) AS paid\nFROM steps",
+  "time_target_ms": 180000,
+  "why_this_works": "The paid flag now needs a first payment at or after the activation, so a payer with no activation, or with the payment first, drops out.",
+  "starter_error_id": "ERR-LOG-44"
+}

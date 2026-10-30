@@ -1,0 +1,168 @@
+{
+  "id": "EX-SQL-PAT-05-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "signups",
+    "quarter",
+    "percent"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-CTE-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-country-by-quarter-share",
+  "template_params": {
+    "table": "signups",
+    "columns": "quarter"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each signup country (signups.country_code), how many users signed up for Mailvora in each quarter of 2025, how many in the whole year, and what share of the year's signups came in the fourth quarter? signup_ts holds UTC time: take the quarter in UTC. Return seven columns, in this order: country_code, q1, q2, q3, q4, total and q4_share_pct, the fourth quarter as a percentage of the year's total (12.5 for 12.5%), rounded to 1 decimal. A quarter with no signups shows 0. Return one row for each country with a signup in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "q1",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q2",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q3",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q4",
+        "type_class": "numeric"
+      },
+      {
+        "name": "total",
+        "type_class": "numeric"
+      },
+      {
+        "name": "q4_share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "q1",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "q2",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "q3",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "q4",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "total",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "q4_share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the 2025 signups by country with one count per quarter and one for the year, then work out the fourth-quarter share.",
+    "Filtered counts give 0 for a quarter with no signups; the share is the fourth quarter over the year, times 100."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 493,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 494,
+      "to": 537,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 538,
+      "to": 584,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 585,
+      "to": 600,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Filtered counts turn the quarters into columns with 0 where a quarter had none, and the share divides the fourth quarter by the year, times 100."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-07-E1-42",
+  "item_version": 1,
+  "correct_oid": "oe343283",
+  "explanation": "activation_events has one row per activation event, with its event_name and event_ts, and a user is activated at the first_campaign_sent event. signups holds when the user signed up, not when the user was activated; subscriptions and payments hold the paid step; and sessions are website visits, before the signup.",
+  "solver": {
+    "prompt_hash": "333fb416428ac961",
+    "grader_version": "choice.3",
+    "chosen": "oe343283",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.786Z"
+  }
+}

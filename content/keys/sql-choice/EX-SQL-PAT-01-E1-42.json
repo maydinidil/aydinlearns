@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "obfb76d4",
+  "explanation": "The numbering restarts in each channel_group and runs from the most campaigns down, so rn = 1 keeps the busiest channel of every group: affiliates, nonbrand_search, meta and youtube. The unpaid channels have no campaigns, so the inner join leaves them out and no unpaid row appears. Ascending order would keep the channel with the fewest campaigns, and without PARTITION BY only one row would be kept in all.",
+  "solver": {
+    "prompt_hash": "81f2c78d236a3a3d",
+    "grader_version": "choice.3",
+    "chosen": "obfb76d4",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.744Z"
+  }
+}

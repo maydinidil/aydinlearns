@@ -1,0 +1,153 @@
+{
+  "id": "EX-SQL-PAT-06-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "month_offset",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-paid-in-month-0",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "activity": "payment",
+    "cohorts": "2024",
+    "offset": 0
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each signup month of 2024, how many users signed up, and how many of them made a payment that was not refunded in their signup month itself? signup_ts and paid_at are UTC instants, so read months in UTC. The as-of date is 5 January 2026, so every month up to December 2025 has ended. Return three columns, in this order: cohort_month (the first day of the month), cohort_users and paid_month_0. Return one row for each month of 2024 in which at least one user signed up. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "cohort_users",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid_month_0",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "cohort_users",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid_month_0",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find the users with a payment that was not refunded in the same calendar month as their signup, each once.",
+    "Compare the first days of the two months, and keep every user of the cohort with an outer join so the cohort size stays whole."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 94,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 97,
+      "to": 122,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 125,
+      "to": 246,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 249,
+      "to": 343,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 346,
+      "to": 489,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 490,
+      "to": 548,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 549,
+      "to": 661,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 662,
+      "to": 683,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Month 0 is the signup's own calendar month, and the outer join keeps the users who did not pay in the cohort size."
+}

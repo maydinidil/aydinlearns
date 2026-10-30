@@ -1,6 +1,6 @@
 {
   "item_id": "EX-CASE-DQ-03",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT p.category_id,\n       SUM(CASE WHEN p.sku <> UPPER(REPLACE(p.sku, ' ', '')) THEN 1 ELSE 0 END) AS n_sku_off,\n       SUM(CASE WHEN p.category_raw NOT IN (SELECT c.category_name FROM categories AS c) THEN 1 ELSE 0 END) AS n_category_raw_off\nFROM products AS p\nWHERE p.sku <> UPPER(REPLACE(p.sku, ' ', ''))\n   OR p.category_raw NOT IN (SELECT c.category_name FROM categories AS c)\nGROUP BY p.category_id\nORDER BY p.category_id",
   "alternatives": [
     "SELECT p.category_id,\n       SUM(CASE WHEN p.sku <> UPPER(REPLACE(p.sku, ' ', '')) THEN 1 ELSE 0 END) AS n_sku_off,\n       SUM(CASE WHEN c.category_id IS NULL THEN 1 ELSE 0 END) AS n_category_raw_off\nFROM products AS p\nLEFT JOIN categories AS c ON c.category_name = p.category_raw\nWHERE p.sku <> UPPER(REPLACE(p.sku, ' ', ''))\n   OR c.category_id IS NULL\nGROUP BY p.category_id\nORDER BY p.category_id",
@@ -34,11 +34,11 @@
   ],
   "hint3_partial": "SELECT p.category_id,\n       SUM(CASE WHEN p.sku <> ___ THEN 1 ELSE 0 END) AS n_sku_off,\n       SUM(CASE WHEN p.category_raw NOT IN (___) THEN 1 ELSE 0 END) AS n_category_raw_off\nFROM products AS p\nWHERE ___\nGROUP BY p.category_id\nORDER BY p.category_id",
   "solver": {
-    "prompt_hash": "b1cb7b919255ecf2",
+    "prompt_hash": "3df9c785c2214458",
     "schema_version": "81419b0500f4",
-    "dataset_version": "b2d2b40fb117bb07",
-    "grader_version": "6a.1",
-    "query": "WITH f AS (\n  SELECT category_id,\n         (sku <> upper(sku) OR sku LIKE '% %') AS sku_off,\n         (category_raw NOT IN (SELECT category_name FROM categories WHERE category_name IS NOT NULL)) AS cat_off\n  FROM products\n)\nSELECT category_id,\n       COUNT(*) FILTER (WHERE sku_off) AS n_sku_off,\n       COUNT(*) FILTER (WHERE cat_off) AS n_category_raw_off\nFROM f\nWHERE sku_off OR cat_off\nGROUP BY category_id\nORDER BY category_id NULLS LAST\n",
-    "at": "2026-10-15T19:10:05.200Z"
+    "dataset_version": "bc81b0b50d286337",
+    "grader_version": "8a.1",
+    "query": "SELECT p.category_id,\n       COUNT(*) FILTER (WHERE p.sku <> upper(p.sku) OR regexp_matches(p.sku, '\\s')) AS n_sku_off,\n       COUNT(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM categories c WHERE c.category_name = p.category_raw)) AS n_category_raw_off\nFROM products p\nGROUP BY p.category_id\nHAVING COUNT(*) FILTER (WHERE p.sku <> upper(p.sku) OR regexp_matches(p.sku, '\\s')) > 0\n    OR COUNT(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM categories c WHERE c.category_name = p.category_raw)) > 0\nORDER BY p.category_id NULLS LAST\n",
+    "at": "2026-10-29T18:42:47.205Z"
   }
 }

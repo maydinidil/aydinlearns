@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-PAT-02-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "dedup",
+    "keep_one",
+    "raw_data",
+    "Q-02-01",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-PAT-02-dedup-per-key",
+  "template_params": {
+    "table": "subscription_events",
+    "per": "subscription"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop_raw",
+  "edge_schema": "ledgerloop_edge_clean",
+  "uses_raw": true,
+  "prompt": "Which subscriptions have events that arrived twice, and by how much is each one's event count inflated? These tables may hold errors. Some subscription events arrived twice: two rows of subscription_events are copies of one event when subscription_id, event_type, event_date and mrr_delta_local all match. Keep the row with the lowest event_id. Clean nothing else. Return three columns, in this order: subscription_id, rows_arrived (all of the subscription's rows) and events (its events once copies are removed). Return one row for each subscription with at least one copy. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "subscription_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "rows_arrived",
+        "type_class": "numeric"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "subscription_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "rows_arrived",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "subscription_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number the copies of each event, the lowest event_id first, then per subscription count every row and the rows numbered 1.",
+    "Keep the subscriptions whose two counts differ with a group filter."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 72,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 73,
+      "to": 226,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 227,
+      "to": 253,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 256,
+      "to": 351,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 352,
+      "to": 365,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 366,
+      "to": 390,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 391,
+      "to": 444,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Counting every row and only the rows numbered 1 per subscription shows the copies, and HAVING keeps the subscriptions where the two differ."
+}

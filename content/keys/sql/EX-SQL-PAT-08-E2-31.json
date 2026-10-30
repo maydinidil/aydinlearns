@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-08-E2-31",
+  "item_version": 1,
+  "reference_sql": "WITH gaps AS (\n  -- one row per app event in October 2025\n  SELECT user_id, account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n), flagged AS (\n  -- one row per app event in October 2025\n  SELECT user_id, account_id, event_ts,\n    CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM gaps\n)\nSELECT account_id, SUM(new_session) AS sessions\nFROM flagged\nGROUP BY account_id",
+  "alternatives": [
+    "WITH gaps AS (\n  -- one row per app event in October 2025\n  SELECT user_id, account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n)\nSELECT account_id, COUNT(*) FILTER (WHERE prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes') AS sessions\nFROM gaps\nGROUP BY account_id",
+    "WITH oct AS (\n  -- one row per app event in October 2025\n  SELECT event_id, user_id, account_id, event_ts\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n)\nSELECT e.account_id, COUNT(*) AS sessions\nFROM oct e\nWHERE NOT EXISTS (\n  SELECT 1 FROM oct p\n  WHERE p.user_id = e.user_id\n    AND (p.event_ts < e.event_ts OR (p.event_ts = e.event_ts AND p.event_id < e.event_id))\n    AND p.event_ts >= e.event_ts - INTERVAL '30 minutes'\n)\nGROUP BY e.account_id"
+  ],
+  "other_way": {
+    "sql": "WITH gaps AS (\n  -- one row per app event in October 2025\n  SELECT user_id, account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n)\nSELECT account_id, COUNT(*) FILTER (WHERE prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes') AS sessions\nFROM gaps\nGROUP BY account_id",
+    "tradeoff": "Counting the starts with a FILTER right after the LAG step saves the second CTE, at the cost of a longer condition."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH gaps AS ( SELECT user_id, account_id, event_ts, LAG(event_ts) OVER (ORDER BY event_ts, event_id) AS prev_ts FROM app_events WHERE event_ts >= TIMESTAMPTZ '2025-10-01 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00' ), flagged AS ( SELECT user_id, account_id, event_ts, CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session FROM gaps ) SELECT account_id, SUM(new_session) AS sessions FROM flagged GROUP BY account_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "WITH gaps AS ( SELECT user_id, account_id, event_ts, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts FROM app_events WHERE event_ts >= TIMESTAMPTZ '2025-10-01 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00' ), flagged AS ( SELECT user_id, account_id, event_ts, CASE WHEN event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session FROM gaps ) SELECT account_id, SUM(new_session) AS sessions FROM flagged GROUP BY account_id"
+    }
+  ],
+  "hint3_partial": "WITH gaps AS (\n  -- one row per app event in October 2025\n  SELECT user_id, account_id, event_ts,\n    LAG(event_ts) OVER (___ ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n), flagged AS (\n  -- one row per app event in October 2025\n  SELECT user_id, account_id, event_ts,\n    CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM gaps\n)\nSELECT account_id, SUM(new_session) AS sessions\nFROM flagged\nGROUP BY account_id",
+  "solver": {
+    "prompt_hash": "d162a4f47f8a88b0",
+    "schema_version": "c66411aea2e3",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH gaps AS (\n  SELECT user_id, account_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n), flagged AS (\n  SELECT user_id, account_id, event_ts,\n    CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM gaps\n)\nSELECT account_id, SUM(new_session) AS sessions\nFROM flagged\nGROUP BY account_id\n",
+    "at": "2026-10-28T14:57:13.243Z"
+  }
+}

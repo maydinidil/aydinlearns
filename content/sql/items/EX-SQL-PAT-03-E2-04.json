@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-PAT-03-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "quarter_over_quarter",
+    "percent_change",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-qoq-pct",
+  "template_params": {
+    "table": "payments",
+    "period": "quarter"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each quarter of 2024 and 2025, show what Mailvora was paid and the change from the previous quarter as a percentage of the previous quarter's amount (12.5 for 12.5%), rounded to 1 decimal. A refunded payment does not count. paid_at holds UTC time: take the quarter in UTC. Every quarter has payments. Only these two years count, so the first quarter of 2024 shows change_pct as missing. Return three columns, in this order: quarter (the first day of the quarter), paid_eur and change_pct. Return one row for each quarter. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "quarter",
+        "type_class": "temporal"
+      },
+      {
+        "name": "paid_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "quarter",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "paid_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "change_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "quarter"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the payments per UTC quarter, leaving out refunds, then put the quarter before beside each one.",
+    "The previous quarter's amount is the base: divide the difference by it and multiply by 100 before rounding."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 528,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 529,
+      "to": 554,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 555,
+      "to": 631,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 632,
+      "to": 645,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The change over last quarter's amount, times 100, is the percentage change; the first quarter of 2024 has no quarter before it in the range."
+}

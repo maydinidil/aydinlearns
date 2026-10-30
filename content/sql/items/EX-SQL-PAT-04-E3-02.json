@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-PAT-04-E3-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "grid",
+    "cross_join",
+    "ad_spend_daily"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-DATE-02",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-campaign-day-grid",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "spine": "range x campaigns"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each nonbrand search campaign (channel_name 'nonbrand_search') that ran the whole week from 3 to 9 March 2025, by its start_date and end_date (every campaign has both), and for each day of that week, how many clicks did it get? Spend days are UTC days. Every such campaign has a row for every day, and a day with no spend shows 0 clicks. Return three columns, in this order: campaign_id, day and clicks. Return one row for each campaign and day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id",
+      "day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, pair every running campaign with every day of the week, then attach the spend rows.",
+    "The grid of campaigns and days gives every cell a row; join the spend on both the campaign and the day, and show 0 for none."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 459,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 460,
+      "to": 520,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 521,
+      "to": 535,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 536,
+      "to": 553,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 554,
+      "to": 638,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "CROSS JOIN builds every campaign and day; the LEFT JOIN on both keys fills each cell, with 0 on a day a campaign did not spend."
+}

@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-REAL-03",
+  "truths": {
+    "CP2": "WITH delivered AS (\n  -- one row per delivered order: the person who placed it and the day it was placed\n  SELECT c.customer_unique_id,\n         CAST(o.order_purchase_timestamp AS DATE) AS order_day\n  FROM orders AS o\n  JOIN customers AS c ON c.customer_id = o.customer_id\n  WHERE o.order_status = 'delivered'\n),\nfirsts AS (\n  -- one row per person: the day of the first delivered order\n  SELECT customer_unique_id, MIN(order_day) AS first_day\n  FROM delivered\n  GROUP BY customer_unique_id\n)\nSELECT COUNT(*) AS people\nFROM firsts\nWHERE first_day >= DATE '2017-01-01'\n  AND first_day < DATE '2018-01-01'",
+    "CP4": "WITH delivered AS (\n  -- one row per delivered order: the person who placed it and the day it was placed\n  SELECT c.customer_unique_id,\n         CAST(o.order_purchase_timestamp AS DATE) AS order_day\n  FROM orders AS o\n  JOIN customers AS c ON c.customer_id = o.customer_id\n  WHERE o.order_status = 'delivered'\n),\nfirsts AS (\n  -- one row per person: the day of the first delivered order\n  SELECT customer_unique_id, MIN(order_day) AS first_day\n  FROM delivered\n  GROUP BY customer_unique_id\n),\npeople AS (\n  -- one row per person whose first delivered order was placed in 2017, with 1 when the person came back\n  SELECT f.customer_unique_id,\n         MAX(CASE WHEN d.order_day > f.first_day AND d.order_day <= DATE '2018-08-31' THEN 1 ELSE 0 END) AS came_back\n  FROM firsts AS f\n  JOIN delivered AS d ON d.customer_unique_id = f.customer_unique_id\n  WHERE f.first_day >= DATE '2017-01-01'\n    AND f.first_day < DATE '2018-01-01'\n  GROUP BY f.customer_unique_id\n)\nSELECT ROUND(100.0 * COUNT(*) FILTER (WHERE came_back = 1) / COUNT(*), 2) AS repeat_pct\nFROM people"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "od964c82",
+      "explanation": "customer_id changes with every order, so only customer_unique_id follows one person across orders; grouping by customer_id makes every buyer look new, and an address can be shared by several people."
+    },
+    "CP5": {
+      "correct_oid": "o8d96d32",
+      "explanation": "Every month's return window ends on 31 August 2018, so the late months had fewer months to come back; a window of the same length per month is needed before calling anyone less loyal, and nothing here shows that sale buyers never return."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "2af9a00b36427d84",
+      "key_hash": "85bcfb8306710e33",
+      "at": "2026-10-29T22:04:28.583Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "99b430418835e2a5",
+      "key_hash": "ff55e432f680fb9e",
+      "at": "2026-10-29T22:04:28.583Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "ec5a050a4a94eeff",
+      "key_hash": "d396e81a48ad9550",
+      "at": "2026-10-29T22:04:28.583Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "8c49ad3d657a8923",
+      "key_hash": "878dccc18834cfbb",
+      "at": "2026-10-29T22:04:28.583Z"
+    }
+  }
+}

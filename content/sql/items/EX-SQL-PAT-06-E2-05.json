@@ -1,0 +1,191 @@
+{
+  "id": "EX-SQL-PAT-06-E2-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "immature_cells",
+    "wide_table",
+    "conditional_aggregation",
+    "usage_weekly"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-wide-immature",
+  "template_params": {
+    "cohort_date": "created_at",
+    "activity": "usage week",
+    "cohorts": "2025-07 to 2025-12",
+    "months": "m0-m3"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For the accounts created from July to December 2025, show how many used the product in each of their first four months, one row per cohort month that has accounts. An account's cohort month is the month of its created_at (Brussels local time). A usage week counts in the month its week_start falls in, and a week that starts before the cohort month does not count. Month 0 is the cohort month itself, month 1 the next calendar month, and so on. The as-of date is 1 January 2026: a month that ends after it is not known yet and shows missing, while a month that has ended with no usage shows 0. Return five columns, in this order: cohort_month (the first day of the month), m0, m1, m2 and m3. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "m0",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m1",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m2",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m3",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "m0",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "m1",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "m2",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "m3",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the month columns: the cohort's accounts with a usage week at each offset, and missing for a month that has not ended by the as-of date.",
+    "Count distinct accounts inside a CASE for each offset; wrap months 1 to 3 in a CASE that checks whether that month starts on or after 1 January 2026."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 69,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 72,
+      "to": 152,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 155,
+      "to": 168,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 171,
+      "to": 271,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 275,
+      "to": 345,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 348,
+      "to": 377,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 387,
+      "to": 486,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 489,
+      "to": 555,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 558,
+      "to": 1191,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1192,
+      "to": 1255,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1256,
+      "to": 1279,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Each column counts the accounts active at one offset, and the CASE leaves a month that has not ended by 1 January 2026 missing instead of 0."
+}

@@ -1,7 +1,8 @@
 // tests/schemas/dataset.test.ts: the dataset registry's record (sprint 6 Part 2, Task G2; S6-21, E-062, E-063, E-197, ruling P35).
 // validateDataset checks one record's shape: the licence, the label, `real`, and no question with a relative date (E-073). It also
 // holds the registry's text rules: no em dash, no citation marker (E-076), never "SQLite" (E-078), a fictional record labelled
-// fictional and a real one naming its licence. Each refusal is tested once against a record that otherwise passes.
+// fictional and a real one naming its licence. Each refusal is tested once against a record that otherwise passes. Sprint 8 Part 2
+// (Task D1; S8-16, E-213): a zip of CSV files lists its members, and a record labelled fictional is never real data (E-075).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -29,8 +30,53 @@ test('a complete record passes, and so does each record of the committed registr
   assert.deepEqual(validateDataset(good()), []);
   assert.equal(REGISTRY_FILE, 'datasets/registry.json');
   const registry = JSON.parse(await readFile(`content/${REGISTRY_FILE}`, 'utf8')) as { datasets: unknown[] };
-  assert.deepEqual(registry.datasets.map((r) => (r as { id: string }).id), ['DS-RETAIL-02', 'DS-PRICE-101', 'CH-01']);
+  assert.deepEqual(registry.datasets.map((r) => (r as { id: string }).id), ['DS-RETAIL-02', 'DS-PRICE-101', 'CH-01', 'DS-RETAIL-01', 'DS-MKT-03']);
   for (const r of registry.datasets) assert.deepEqual(validateDataset(r), [], (r as { id: string }).id);
+});
+
+const committed = async (id: string): Promise<Record<string, unknown>> => {
+  const registry = JSON.parse(await readFile(`content/${REGISTRY_FILE}`, 'utf8')) as { datasets: Record<string, unknown>[] };
+  return structuredClone(registry.datasets.find((r) => r.id === id)!);
+};
+
+test('S8-16 and E-213: Olist is real under CC BY-NC-SA 4.0; Maven Toy Store is fictional, under the licence its page states', async () => {
+  const olist = await committed('DS-RETAIL-01') as unknown as DatasetRecord;
+  assert.deepEqual([olist.real, olist.licence.name, olist.schemas.map((s) => s.name), olist.prep], [true, 'CC BY-NC-SA 4.0', ['olist'], 'pipeline/datasets/olist.py']);
+  assert.match(olist.label, /^Real data: .*geolocation.*Licence: CC BY-NC-SA 4\.0\.$/, 'the card says the geolocation file is left out');
+  assert.ok(!olist.files[0]!.members!.some((m) => /geolocation/.test(m.name)), 'the geolocation file is not read');
+  const maven = await committed('DS-MKT-03') as unknown as DatasetRecord;
+  assert.deepEqual([maven.real, maven.licence.name, maven.licence.url, maven.schemas.map((s) => s.name)],
+    [false, 'Public Domain', 'https://mavenanalytics.io/data-playground/toy-store-e-commerce-database', ['maven_toy_store']]);
+  assert.match(maven.label, /^Fictional data: Maven Fuzzy Factory, a made-up online teddy bear shop from Maven Analytics\b.*Source: Maven Analytics\. Licence: Public Domain\.$/);
+  assert.match(maven.licence.terms, /License: Public Domain.*only the files you downloaded/s, 'as CH-01 words its own: the page, and nothing copied');
+});
+
+test('E-075: Maven Toy Store\'s record is refused as real data, and with a label that does not say it is fictional', async () => {
+  const asReal = await committed('DS-MKT-03');
+  asReal.real = true;
+  assert.ok(validateDataset(asReal).some((m) => /a dataset labelled fictional must have real: false \(E-075\)/.test(m)), JSON.stringify(validateDataset(asReal)));
+  const unlabelled = await committed('DS-MKT-03');
+  unlabelled.label = 'Data: Maven Fuzzy Factory, an online teddy bear shop. Source: Maven Analytics. Licence: Public Domain.';
+  assert.ok(validateDataset(unlabelled).some((m) => /a fictional dataset's label says it is fictional \(E-075\)/.test(m)));
+});
+
+test('S8-16: a zip of CSV files lists its members, each a plain file name and the table it loads', () => {
+  const zip = (members: unknown, extra: Record<string, unknown> = {}) => (r: Record<string, unknown>) => {
+    r.files = [{ name: 'invented.zip', sha256: SHA, members, ...extra }];
+  };
+  const ok = good() as unknown as Record<string, unknown>;
+  zip([{ name: 'orders.csv', table: 'orders' }, { name: 'order lines.csv', table: 'order_lines' }])(ok);
+  assert.deepEqual(validateDataset(ok), []);
+  refusedWith(zip([]), /files\[0\]\.members must list the files the zip holds that the prep reads/);
+  refusedWith(zip('orders.csv'), /files\[0\]\.members must list the files/);
+  refusedWith(zip([null]), /files\[0\]\.members\[0\] needs a name and a table/);
+  for (const name of ['folder/orders.csv', 'folder\\orders.csv', '../orders.csv', 'C:orders.csv', '', ' ']) {
+    refusedWith(zip([{ name, table: 'orders' }]), /files\[0\]\.members\[0\]\.name must be a plain file name/);
+  }
+  for (const table of ['Orders', 'order lines', '', 3]) refusedWith(zip([{ name: 'orders.csv', table }]), /files\[0\]\.members\[0\]\.table must be a plain table name/);
+  refusedWith(zip([{ name: 'orders.csv', table: 'orders' }, { name: 'ORDERS.csv', table: 'orders_two' }]), /files\[0\]\.members\[1\]\.name repeats orders\.csv/i);
+  refusedWith(zip([{ name: 'orders.csv', table: 'orders' }, { name: 'more.csv', table: 'orders' }]), /files\[0\]\.members\[1\]\.table repeats orders/);
+  refusedWith(zip([{ name: 'orders.csv', table: 'orders' }], { inside: 'orders.csv' }), /files\[0\] names either the workbook inside the zip \(inside\) or the files it holds \(members\), not both/);
 });
 
 test('P35: a record with no licence, no label or no `real` is refused', () => {

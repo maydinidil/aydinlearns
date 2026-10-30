@@ -1,0 +1,202 @@
+{
+  "id": "EX-SQL-PAT-09-E1-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "uplift",
+    "order_lines"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-promo-vs-14",
+  "template_params": {
+    "table": "order_lines",
+    "baseline_days": 14,
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each promotion that started in 2025 (start_date from 1 January to 31 December 2025), compare the units sold on promotion with the units of its products in the baseline. A line counts for a promotion when it carries it in order_lines.promo_id, and every such line falls within the promotion's dates; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline is the 14 days just before the promotion's first day, that first day not included, and holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A promotion with no sale in a period shows 0 for it. Return three columns, in this order: promo_id, promo_units and baseline_units. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion that started in 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the baseline window: the 14 days that end the day before the promotion's first day.",
+    "Join the sales on the product, then keep only the order dates in that window, with the first promotion day left out."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 93,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 94,
+      "to": 111,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 112,
+      "to": 178,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 242,
+      "to": 288,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 289,
+      "to": 303,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 304,
+      "to": 353,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 354,
+      "to": 375,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 441,
+      "to": 483,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 484,
+      "to": 498,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 499,
+      "to": 555,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 556,
+      "to": 602,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 603,
+      "to": 670,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 671,
+      "to": 692,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 695,
+      "to": 789,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 790,
+      "to": 802,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 803,
+      "to": 848,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 849,
+      "to": 896,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 603,
+    "stage2": 603
+  },
+  "faded_shape": "WITH promo AS (\n  -- one row per promotion that started in 2025\n  SELECT promo_id, start_date\n  FROM promotions\n  WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n), during AS (\n  -- one row per promotion that started in 2025\n  SELECT p.promo_id, SUM(ol.quantity) AS units\n  FROM promo p\n  JOIN order_lines ol ON ol.promo_id = p.promo_id\n  GROUP BY p.promo_id\n), baseline AS (\n  -- one row per promotion with a baseline sale\n  SELECT p.promo_id, SUM(s.units) AS units\n  FROM promo p\n  JOIN promotion_products pp ON pp.promo_id = p.promo_id\n  JOIN sales s ON s.product_id = pp.product_id\n",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The promotion's units come from the lines that carry it, each counted once, and the baseline from the 14 days just before it.",
+  "faded_suffix": "\n  GROUP BY p.promo_id\n)\nSELECT p.promo_id, COALESCE(d.units, 0) AS promo_units, COALESCE(b.units, 0) AS baseline_units\nFROM promo p\nLEFT JOIN during d ON d.promo_id = p.promo_id\nLEFT JOIN baseline b ON b.promo_id = p.promo_id"
+}

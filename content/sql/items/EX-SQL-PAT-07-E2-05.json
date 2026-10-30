@@ -1,0 +1,196 @@
+{
+  "id": "EX-SQL-PAT-07-E2-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "ordered_funnel",
+    "time_window",
+    "overall_rate"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-ordered-within-days",
+  "template_params": {
+    "funnel": "signup, activation, payment",
+    "period": "2025",
+    "windows": "7 and 30 days"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For the users who signed up in 2025, how many were activated within 7 days and then paid within 30 days? A user is activated in time when the first first_campaign_sent event came at most 7 days (168 hours) after signup_ts, and paid in time when the user was activated in time and the first payment (paid_at, refunded or not) came at or after that activation and at most 30 days after it. All times are UTC instants, and no first_campaign_sent event comes before its user's signup_ts. Return four columns, in this order: signed_up, activated_in_7_days, paid_in_30_days (each a number of users) and overall_rate, paid_in_30_days over signed_up, as a fraction between 0 and 1. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "signed_up",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activated_in_7_days",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid_in_30_days",
+        "type_class": "numeric"
+      },
+      {
+        "name": "overall_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "signed_up",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activated_in_7_days",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid_in_30_days",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "overall_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, flag each user's steps in time: the activation within 7 days of signup, then the first payment within 30 days after that activation.",
+    "Compare the instants with an interval added; a missing activation or payment must leave the flag false, and the overall rate divides by every signup."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 75,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 123,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 126,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 151,
+      "to": 191,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 194,
+      "to": 210,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 214,
+      "to": 280,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 283,
+      "to": 332,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 335,
+      "to": 414,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 417,
+      "to": 435,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 439,
+      "to": 530,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 533,
+      "to": 849,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 852,
+      "to": 952,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 955,
+      "to": 1067,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1070,
+      "to": 1301,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1302,
+      "to": 1312,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Each step counts only when it came in its window after the step before, and the overall rate divides by everyone who signed up."
+}

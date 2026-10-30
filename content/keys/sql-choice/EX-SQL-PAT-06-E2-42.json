@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-06-E2-42",
+  "item_version": 1,
+  "correct_oid": "ob92ba2c",
+  "explanation": "Only the month that starts on or after 1 January 2026 is turned into a missing value: January 2026 has not ended by the as-of date, so its count is not known. December 2025 has ended, so its 0 is a real 0: no account was active. Showing the January cell as 0 would read as if every account had left, and showing December as missing would hide a real drop.",
+  "solver": {
+    "prompt_hash": "49cc18e100656d71",
+    "grader_version": "choice.3",
+    "chosen": "ob92ba2c",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.782Z"
+  }
+}

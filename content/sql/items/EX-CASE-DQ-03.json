@@ -1,6 +1,6 @@
 {
   "id": "EX-CASE-DQ-03",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -51,7 +51,7 @@
   "schema": "voltmarkt_raw",
   "edge_schema": "voltmarkt_edge_clean",
   "uses_raw": true,
-  "prompt": "Sanne, the category manager, wants to know which categories hold products with messy text keys before the product master is cleaned. These tables may hold errors. A sku is off when it is not in standard form: upper case with no spaces anywhere in it. A category_raw is off when it does not equal the category_name of any category, exactly as stored. Some category_raw values spell the parent category TV & Video in several ways instead of naming a category. Return one row for each category_id with at least one product whose sku or category_raw is off, with three columns in this order: category_id; n_sku_off, its products with an off sku; and n_category_raw_off, its products with an off category_raw. The products with a missing category_id form one row of their own, with a missing category_id. Sort by category_id from low to high, with the missing category_id last.",
+  "prompt": "Sanne, the category manager, wants to know which categories hold products with messy text keys before the product master is cleaned. These tables may hold errors. A sku is off when it is not in standard form: upper case with no spaces anywhere in it. A category_raw is off when it does not equal the category_name of any category, exactly as stored. Some category_raw values spell the parent category TV & Video in several ways instead of naming a category. Return one row for each category_id with at least one product whose sku or category_raw is off, with three columns in this order: category_id; n_sku_off, its products with an off sku; and n_category_raw_off, its products with an off category_raw. The products with a missing category_id form one row of their own, with a missing category_id. Sort by category_id from low to high, and the missing category_id may come first or last.",
   "output_contract": {
     "columns": [
       {

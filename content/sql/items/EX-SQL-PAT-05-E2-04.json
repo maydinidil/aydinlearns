@@ -1,0 +1,148 @@
+{
+  "id": "EX-SQL-PAT-05-E2-04",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "sales",
+    "stores"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-month-by-country",
+  "template_params": {
+    "table": "sales",
+    "columns": "store country"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each month of 2025, what net revenue did Voltmarkt's stores in the Netherlands, Belgium and Luxembourg take? Use the store's own country (stores.country_code 'NL', 'BE' and 'LU'), not the country an order ships to. The webshop, store 99, has country_code 'NL' in stores, so it counts as an NL store. Order dates are UTC days. Return four columns, in this order: month (the first day of the month), nl_revenue_eur, be_revenue_eur and lu_revenue_eur. A country with no sales in a month shows 0. Return one row for each month of 2025 with sales. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "nl_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "be_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lu_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "nl_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "be_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "lu_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the sales to their store for its country, then add up the revenue per month in one column per country.",
+    "Group by the month only; each country's sum keeps only its stores' revenue and shows 0 when they sold nothing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 31,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 32,
+      "to": 312,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 313,
+      "to": 326,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 327,
+      "to": 374,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 375,
+      "to": 442,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 443,
+      "to": 466,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The store's country splits each month's revenue into three conditional sums, one row per month, with 0 for a country that sold nothing."
+}

@@ -12,14 +12,14 @@ saying "wrong".
 
 | Section | Content |
 |---|---|
-| SQL | Levels 1 to 5, 32 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs, set operations, subqueries, text, date arithmetic, data cleaning and window functions: lessons with worked examples, 902 exercises (write the query, fix the query, predict the result, choose the query), timed drills and a cumulative drill over levels 1 to 4, raw tables with planted errors to clean, 34 cases in an inbox (an opener for each level, eleven daily cases, five pricing cases, two retail cases, five data-quality tickets, four marketing cases on a second company, Mailvora, and two take-home cases on real data), mistake cards for the mistakes that keep coming back, "other ways to write this" after a pass, a dataset explorer over both companies and the real datasets you prepare, and a portfolio export with flagship drafts on real data |
+| SQL | Levels 1 to 6, 42 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs, set operations, subqueries, text, date arithmetic, data cleaning, window functions and the business patterns of level 6 (top-N per group, dedup, period comparisons, date spines, pivoting, cohorts, funnels, sessions, promo uplift, SaaS MRR): lessons with worked examples, 1,166 exercises (write the query, fix the query, predict the result, choose the query), timed drills and a cumulative drill over levels 1 to 4, a level 6 drill, raw tables with planted errors to clean, 47 cases in an inbox (an opener for each level, thirteen daily cases, five pricing cases, four retail cases, five data-quality tickets, four marketing cases on a second company, Mailvora, a level 6 opener, two daily cases, five SaaS cases and a marketing case on a third, LedgerLoop (a B2B SaaS company in Ghent), two take-home cases on real data, and one case each on Olist and Maven Toy Store), mistake cards for the mistakes that keep coming back, "other ways to write this" after a pass, a dataset explorer over the three companies and the real datasets you prepare, and a portfolio export with flagship drafts on real data |
 | GA4 | Complete for the certification: 16 lessons and 123 questions (73 for practice and 20-question mini drills, 50 held out for 25-question half-mocks and 50-question full mocks), a readiness check, and 10 interview labs in Google's GA4 demo account, each re-checked a week later |
 | Methodology | 78 concepts, each with a reading: 51 metrics (marketing, retail, pricing and SaaS), 13 on experiments and A/B testing, 9 on statistics and 5 on pricing economics. 478 questions, 93 of them held out for mocks |
 | Recruiter mocks | Four timed mocks on questions you have not seen: the screen mock (stage 2's online SQL test), the knowledge mock (stage 3), the case-round mock (stage 4) and the take-home mock (stage 5). The Recruiter mocks screen has one card per recruitment stage, with the readiness board's status, each mock's history and the live reps |
 
 ## Real datasets
 
-Two real datasets and one practice set can be added to the explorer and the inbox. None of them is
+Four datasets and one practice set can be added to the explorer and the inbox: three real datasets and one fictional (Maven Toy Store). None of them is
 in this repository: you download them yourself, and the app prepares them on your laptop. Until a
 dataset is prepared, its cases show in the inbox with the command that prepares it, and nothing else
 changes.
@@ -28,6 +28,8 @@ changes.
 |---|---|---|---|
 | Online Retail II (real data: the invoice lines of a UK online gift shop, December 2009 to December 2011) | The [UCI page](https://archive.ics.uci.edu/dataset/502/online+retail+ii), Download button | `online+retail+ii.zip`, zipped or unzipped | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): free to share and adapt, with credit |
 | Breakfast at the Frat (nearly real data: dunnhumby's 156 weeks of store sales and promotions in four categories) | dunnhumby's [Source Files page](https://www.dunnhumby.com/source-files/), Breakfast at the Frat button (it may ask for a name and an email) | `dunnhumby_Breakfast-at-the-Frat.zip` | [dunnhumby terms](https://www.dunnhumby.com/terms-and-conditions/): research, personal or non-commercial use only |
+| Brazilian E-Commerce Public Dataset by Olist (real data: about 100,000 orders from several marketplaces in Brazil, 2016 to 2018; the geolocation file is not read) | The [Kaggle page](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce), Download button | `archive.zip` (a copy such as `archive (1).zip` is found too) | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/): non-commercial use, with credit to Olist, and what you make from it shared under the same licence |
+| Toy Store E-Commerce Database, Maven Fuzzy Factory (fictional data: a made-up online teddy bear shop, 2012 to 2015) | The [Maven Analytics page](https://mavenanalytics.io/data-playground/toy-store-e-commerce-database) | `Maven+Fuzzy+Factory.zip` | Public Domain, as the page states (read 2026-10-29) |
 | The 8 Week SQL Challenge (fictional data, handmade by its author, Danny Ma) | Each case study page at [8weeksqlchallenge.com](https://8weeksqlchallenge.com) links its schema script on DB Fiddle | The eight scripts as text files named `case-study-1-dannys-diner.sql` to `case-study-8-fresh-segments.sql`, in a folder `8-week-sql-challenge` | No licence stated. The app copies none of the challenge's questions, data or scripts |
 
 Put the files in one folder (your downloads folder is fine), then run:
@@ -36,7 +38,7 @@ Put the files in one folder (your downloads folder is fine), then run:
 npm run prep:datasets -- --from <that folder>
 ```
 
-Add `--only <dataset ID>` (`DS-RETAIL-02`, `DS-PRICE-101` or `CH-01`) to prepare one. The prep checks
+Add `--only <dataset ID>` (`DS-RETAIL-02`, `DS-PRICE-101`, `DS-RETAIL-01`, `DS-MKT-03` or `CH-01`) to prepare one. The prep checks
 each file's fingerprint against the registry's (a different file warns and is recorded, and the prep
 goes on), reads it into `data/real/`, prints its checks (row counts, what it removed and
 why), and then rebuilds the course database. Run it again after updating the app. Each dataset's notes
@@ -289,21 +291,21 @@ mock on questions you have not seen meets that stage on the readiness board, wit
 Aydin designed and directed the project and built it with AI coding agents (Claude Code), from a
 written design, sprint plans and test-first tasks, with a review per task and an outside review
 of every pull request. Lessons and exercises are generated from a research bank by agents and
-checked before they ship: 23,732 automated content checks (with the real datasets prepared), and a blind solver (a fresh agent
+checked before they ship: 29,148 automated content checks (with the real datasets prepared), and a blind solver (a fresh agent
 that solves every exercise without seeing its answer key). The design, the plans, every ruling
 and the review logs are in `docs/`.
 
-Today: 3,050 automated tests (the render tests included), 296 data pipeline tests, 23,732 content checks (with the real datasets prepared) and a 95-row browser smoke test, all passing.
+Today: 3,111 automated tests (the render tests included), 488 data pipeline tests, 29,148 content checks (with the real datasets prepared) and a 106-row browser smoke test, all passing.
 
 ## Status
 
-Version 0.7.3 (2026-10-23). Built: SQL levels 1 to 5 with the scheduler, Today, drills, level
+Version 0.8.1 (2026-10-30: sprint 8 Part 2, the public `v0.8.1` after the merge). Built: SQL levels 1 to 6 with the scheduler, Today, drills, level
 openers, cases and the inbox, mistake cards, the portfolio export, the Progress screen, the
 dataset explorer and screen mode; GA4 complete (lessons, mini drills, half-mocks, full mocks,
 the readiness check and the interview labs); Methodology complete; optional telemetry (0.5.2) and
 the study journey (0.5.3); SQL level 4, raw data and the incident tickets (0.6.0); Mailvora, the marketing cases and the first
 real datasets (0.6.1); the opt-in AI tutor (0.6.2); SQL level 5 and the screen mock on the Recruiter mocks screen (0.7.0); the knowledge, case-round
-and take-home mocks and the tutor's second opinion (0.7.1); fixes and polish after the mocks (0.7.2, 0.7.3). Later 0.x releases add SQL levels 6 and 7, more companies and real datasets. See
+and take-home mocks and the tutor's second opinion (0.7.1); fixes and polish after the mocks (0.7.2, 0.7.3); SQL level 6 and LedgerLoop (0.8.0); the SaaS cases, Olist and Maven Toy Store (0.8.1). Later 0.x releases add SQL level 7. See
 `docs/planning/roadmap.md` and `CHANGELOG.md`.
 
 It runs on Windows 11; other systems are untested.
@@ -349,7 +351,7 @@ The app itself:
 | `server/` | The local server: the SQL runner (`server/runner/`), the grader (`server/grader/`), the logs, the routes and the AI tutor (`server/tutor/`) |
 | `web/` | The screens: Today, the maps, lessons, exercises, timed runs, the recruiter mocks, settings and setup, and the tutor panel (`web/src/tutor/`) |
 | `content/` | The SQL, GA4 and Methodology curricula, lessons and exercises, their answer keys (`content/keys/`), and the dataset registry (`content/datasets/registry.json`) |
-| `pipeline/` | The Python build for the course database (Voltmarkt and Mailvora), and the real-data prep in `pipeline/datasets/` |
+| `pipeline/` | The Python build for the course database (Voltmarkt, Mailvora and LedgerLoop), and the real-data prep in `pipeline/datasets/` |
 | `tools/` | The content checks, the ERRATA check, the import check, the curriculum extractor, the blind-solver tools, the launcher (`tools/launch.ts`), `npm run journey` (`tools/journey.ts`, with its views in `tools/journey-views.sql`) and the tutor's live eval (`tools/tutor-eval.ts`) |
 | `tests/` | The test suite, with the render tests in `tests/web/render/`, plus the browser smoke test in `tests/e2e/` |
 | `data/`, `logs/` | The built course database (with any real data you prepared, in `data/real/`) and the attempt log. Git ignores both; the log is backed up to the folder chosen in Settings after each session |
@@ -436,7 +438,7 @@ Each funnel step carries three attributes:
 | Attribute | Values |
 |---|---|
 | `topic` | `SQL`, `GA4` or `Methodology` |
-| `case_theme` | SQL: `pricing`, the Voltmarkt pricing case world. GA4 and Methodology: the exam topic, such as `T-GA4-01` |
+| `case_theme` | SQL: a case follows its world and an exercise its company: `pricing` (PRICE, Voltmarkt), `marketing` (MKT, Mailvora), `retail` (RETAIL), `data_quality` (DQ), `saas` (SAAS, LedgerLoop); a lesson, and anything else, `pricing`. GA4 and Methodology: the exam topic, such as `T-GA4-01` |
 | `difficulty` | SQL exercises: `E1` to `E3`. Lessons, case checkpoints (their case's level) and GA4 and Methodology questions have no difficulty grade, so their level stands in: `L1` to `L7`, or `unrated` |
 
 Each answer's `exercise_submitted` step also carries:

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-10-E1-41",
+  "item_version": 2,
+  "correct_oid": "o46a1a6d",
+  "explanation": "The CASE looks only at the month end before: from 0 at the end of March to 349.00 at the end of April reads as new. The query never asks whether the account had MRR earlier, so it books a returning account as new business; a reactivation needs that history test before the new branch. February's month before is not in the list, so its LAG is missing and it shows other.",
+  "solver": {
+    "prompt_hash": "f92de4d89bf7b279",
+    "grader_version": "choice.3",
+    "chosen": "o46a1a6d",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.810Z"
+  }
+}

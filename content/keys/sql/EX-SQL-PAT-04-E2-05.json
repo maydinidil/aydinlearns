@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-05",
+  "item_version": 1,
+  "reference_sql": "WITH spend AS (\n  -- one row per channel and month with spend in 2024\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT b.channel_id, b.month, b.budget_eur, COALESCE(s.spend_eur, 0) AS spend_eur\nFROM budget_monthly b\nLEFT JOIN spend s ON s.channel_id = b.channel_id AND s.month = b.month\nWHERE b.month BETWEEN DATE '2024-01-01' AND DATE '2024-12-01'",
+  "alternatives": [
+    "SELECT b.channel_id, b.month, b.budget_eur,\n  (SELECT COALESCE(SUM(a.spend), 0)\n   FROM ad_spend_daily a\n   JOIN campaigns c ON c.campaign_id = a.campaign_id\n   WHERE c.channel_id = b.channel_id AND CAST(date_trunc('month', a.spend_date) AS DATE) = b.month) AS spend_eur\nFROM budget_monthly b\nWHERE b.month BETWEEN DATE '2024-01-01' AND DATE '2024-12-01'",
+    "WITH spend AS (\n  -- one row per channel and month with spend in 2024\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT b.channel_id, b.month, b.budget_eur, CASE WHEN s.spend_eur IS NULL THEN 0 ELSE s.spend_eur END AS spend_eur\nFROM spend s\nRIGHT JOIN budget_monthly b ON s.channel_id = b.channel_id AND s.month = b.month\nWHERE b.month BETWEEN DATE '2024-01-01' AND DATE '2024-12-01'"
+  ],
+  "other_way": {
+    "sql": "SELECT b.channel_id, b.month, b.budget_eur,\n  (SELECT COALESCE(SUM(a.spend), 0)\n   FROM ad_spend_daily a\n   JOIN campaigns c ON c.campaign_id = a.campaign_id\n   WHERE c.channel_id = b.channel_id AND CAST(date_trunc('month', a.spend_date) AS DATE) = b.month) AS spend_eur\nFROM budget_monthly b\nWHERE b.month BETWEEN DATE '2024-01-01' AND DATE '2024-12-01'",
+    "tradeoff": "A spend subquery for each budget row needs no outer join, but it sums the spend again for every channel and month."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH spend AS (\n  -- one row per channel and month with spend in 2024\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n) SELECT b.channel_id, b.month, b.budget_eur, COALESCE(s.spend_eur, 0) AS spend_eur FROM budget_monthly b JOIN spend s ON s.channel_id = b.channel_id AND s.month = b.month WHERE b.month BETWEEN DATE '2024-01-01' AND DATE '2024-12-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH spend AS (\n  -- one row per channel and month with spend in 2024\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n) SELECT b.channel_id, b.month, b.budget_eur, s.spend_eur FROM budget_monthly b LEFT JOIN spend s ON s.channel_id = b.channel_id AND s.month = b.month WHERE b.month BETWEEN DATE '2024-01-01' AND DATE '2024-12-01'"
+    }
+  ],
+  "hint3_partial": "WITH spend AS (\n  -- one row per channel and month with spend in 2024\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT b.channel_id, b.month, b.budget_eur, COALESCE(s.spend_eur, 0) AS spend_eur\nFROM budget_monthly b\n___ spend s ON s.channel_id = b.channel_id AND s.month = b.month\nWHERE b.month BETWEEN DATE '2024-01-01' AND DATE '2024-12-01'",
+  "solver": {
+    "prompt_hash": "e33773beec329b67",
+    "schema_version": "e6d71da27077",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH s AS (\n  SELECT cp.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns cp ON cp.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n  GROUP BY 1, 2\n)\nSELECT b.channel_id, b.month, b.budget_eur, COALESCE(s.spend_eur, 0) AS spend_eur\nFROM budget_monthly b\nLEFT JOIN s ON s.channel_id = b.channel_id AND s.month = b.month\nWHERE b.month BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n",
+    "at": "2026-10-28T14:57:05.119Z"
+  }
+}

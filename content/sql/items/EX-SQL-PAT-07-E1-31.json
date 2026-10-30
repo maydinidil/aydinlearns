@@ -1,0 +1,157 @@
+{
+  "id": "EX-SQL-PAT-07-E1-31",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "users_per_step",
+    "count_distinct",
+    "app_events",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-fix-count-users",
+  "template_params": {
+    "funnel": "upload, match, export",
+    "period": "2025-10 to 2025-12",
+    "by": "segment"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each account segment, how many users reached each step of the month-end close funnel in the app? Use all app events (October to December 2025). A user counts as uploaded with an upload_statement event, as matched with a match_transaction event, and as exported with an export_report event; a user counts at a step only when the user also reached every step before it, in any order. A user belongs to the segment of the account of the user's app events. Return four columns, in this order: segment, uploaded, matched and exported, each a number of users. Return one row for each segment with app events. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "uploaded",
+        "type_class": "numeric"
+      },
+      {
+        "name": "matched",
+        "type_class": "numeric"
+      },
+      {
+        "name": "exported",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "uploaded",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "matched",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "exported",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the counts count: the question wants users, and each row of app_events is one event.",
+    "The checks for the steps before are right; in each of the three counts, count each user once, not each event row."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 82,
+      "to": 379,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 382,
+      "to": 448,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 451,
+      "to": 480,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 483,
+      "to": 641,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 642,
+      "to": 657,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 658,
+      "to": 674,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT a.segment,\n       COUNT(*) FILTER (WHERE e.event_name = 'upload_statement') AS uploaded,\n       COUNT(*) FILTER (WHERE e.event_name = 'match_transaction'\n                          AND EXISTS (SELECT 1 FROM app_events x WHERE x.user_id = e.user_id AND x.event_name = 'upload_statement')) AS matched,\n       COUNT(*) FILTER (WHERE e.event_name = 'export_report'\n                          AND EXISTS (SELECT 1 FROM app_events x WHERE x.user_id = e.user_id AND x.event_name = 'upload_statement')\n                          AND EXISTS (SELECT 1 FROM app_events x WHERE x.user_id = e.user_id AND x.event_name = 'match_transaction')) AS exported\nFROM app_events e\nJOIN accounts a ON a.account_id = e.account_id\nGROUP BY 1",
+  "time_target_ms": 150000,
+  "why_this_works": "Each row of app_events is one event, so counting rows counts events; counting distinct users counts each user once at each step, and the checks for the steps before already keep out a user who skipped one.",
+  "starter_error_id": "ERR-LOG-04"
+}

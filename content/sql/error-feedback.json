@@ -155,9 +155,9 @@
     "model": "Read how the question treats missing values. If missing means 0, wrap the column in `COALESCE(col, 0)` before you calculate; if it says to ignore them, use the column as it is. Do not filter a line away for one missing value: each total already skips its own missing values, and the line still counts in the other totals."
   },
   "ERR-LOG-18": {
-    "assumed": "You probably expected the rows to come out in the order the question asks for, either without an ORDER BY or with one on a different column or in the other direction.",
-    "why": "SQL gives no guaranteed row order unless the query sorts the rows. Your rows are right, but when the question asks for an order, the order is part of the answer.",
-    "model": "Add `ORDER BY` with the column the question names, `DESC` for highest or latest first and `ASC` for lowest or earliest first, and add the question's tie-break as a second sort column after a comma."
+    "assumed": "You probably expected the rows to come out, or to be picked, in the order the question asks for, either without an ORDER BY or with one on a different column or in the other direction.",
+    "why": "SQL gives no guaranteed row order unless the query sorts the rows, and it sorts only by the column and in the direction you write. When the question asks for an order, the order is part of the answer, even if every row is right. Where the order also picks the rows, as in a top 3 with LIMIT, a rank or the one row kept for each key, the other direction picks the rows from the other end, so the rows themselves come out wrong too.",
+    "model": "Add `ORDER BY` with the column the question names, `DESC` for highest or latest first and `ASC` for lowest or earliest first, and add the question's tie-break as a second sort column after a comma. Do the same inside OVER when a ranking picks the rows: `ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY valid_from DESC)` keeps each product's latest price in `price_history`, and `ASC` its first. There, valid_from is unique for each product, so no tie-break is needed."
   },
   "ERR-LOG-19": {
     "assumed": "You probably expected rounding before you add up or divide to give the same answer as rounding at the end.",
@@ -283,6 +283,46 @@
     "assumed": "You probably expected a 7-day moving average to have no value until the series has 7 days of data.",
     "why": "A frame such as `ROWS BETWEEN 6 PRECEDING AND CURRENT ROW` takes whatever rows exist. On the first day it holds 1 row and on the third day 3, so the average there is over fewer days and reads like a real 7-day figure. A chart then starts with values that swing more than the rest, and a rule such as 'below the 7-day average' fires on them.",
     "model": "Count the rows in the same frame and use the count: `COUNT(*) OVER (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)` gives each day's number of rows, so flag a day as a short window when the count is below 7, or leave those days out, as the question says. When some days have no row, give every day a row first, or 7 rows can span more than 7 days."
+  },
+  "ERR-LOG-44": {
+    "assumed": "You probably expected every user at a later step of a funnel, such as a purchase, to have gone through the steps before it.",
+    "why": "Real data does not follow the funnel's order. A user can buy from a saved link with no product view in the period, or add to cart before viewing. `COUNT(DISTINCT CASE WHEN event_name = 'purchase' THEN user_id END)` counts every buyer, those users included, so a later step can hold users the step before it never had, and its conversion rate can go over 100%.",
+    "model": "Work out each user's first time at each step in a CTE, one row per user, then count a user at a step only when the step before it is there too, and earlier when the question says the steps happen in order: `WITH firsts AS (SELECT user_id, MIN(CASE WHEN event_name = 'first_campaign_sent' THEN event_ts END) AS sent_at, MIN(CASE WHEN event_name = 'automation_created' THEN event_ts END) AS automation_at FROM activation_events GROUP BY user_id) SELECT COUNT(sent_at) AS sent, COUNT(CASE WHEN automation_at >= sent_at THEN 1 END) AS automation_after_sent FROM firsts`. When the question gives a step a time window, such as within 7 days of the step before it, a user who got there later is not at that step, so put the window in the same CASE: `automation_at >= sent_at AND automation_at <= sent_at + INTERVAL 7 DAY`. Then check that no step holds more users than the step before it."
+  },
+  "ERR-LOG-45": {
+    "assumed": "You probably expected any earlier step of the funnel to work as the base of a conversion rate.",
+    "why": "A funnel has two kinds of rate, and both are real numbers. A step rate divides a step by the step right before it: 120 buyers out of 300 users who added to cart is 40%. An overall rate divides it by the top of the funnel: the same 120 buyers out of 2,000 viewers is 6%. Dividing by the wrong one gives no error, only the answer to another question.",
+    "model": "Count each step's users once, in a CTE, then name each rate by its base before you write it: `1.0 * buyers / NULLIF(carts, 0) AS cart_to_purchase` for the step rate, and `1.0 * buyers / NULLIF(viewers, 0) AS view_to_purchase` for the overall rate. To check, the step rates multiplied together give the overall rate."
+  },
+  "ERR-LOG-46": {
+    "assumed": "You probably expected a number of days divided by 30 to give the number of months since a customer's cohort month.",
+    "why": "Months have 28 to 31 days, so days divided by 30 drift away from the calendar. 1 February to 1 March is 28 days, and 28 / 30 rounded down is 0, though March is the month after. A customer who joined on 15 January and came back on 14 March is in month 2 of the January cohort, but 58 days / 30 rounded down says 1. Rounding to the nearest number does not fix it: 31 January to 1 February is 1 day, which rounds to month 0, though February is the month after.",
+    "model": "Cut both dates to the first of their month, then count the months between them, which is what a cohort offset means: `date_diff('month', date_trunc('month', first_order_date), date_trunc('month', order_date)) AS month_offset`. On first-of-month dates, `date_diff('month', ...)` counts whole calendar months, so January to March is 2. Check one customer by hand: the cohort month itself is month 0."
+  },
+  "ERR-LOG-47": {
+    "assumed": "You probably expected every account that goes from 0 MRR to more than 0 to be a new customer.",
+    "why": "An account that churned and later comes back also goes from 0 to more than 0. Its return is a reactivation: the business won that account once already. Booking it as new makes new business look bigger and reactivation look like 0, and the MRR bridge still adds up, so nothing warns you.",
+    "model": "Look at the account's whole history, not only the month before. On an account-month spine, so every month has a row, carry the month before's MRR and the highest MRR before this month: `LAG(mrr) OVER (PARTITION BY account_id ORDER BY month_start) AS prev_mrr` and `MAX(mrr) OVER (PARTITION BY account_id ORDER BY month_start ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS mrr_before`. Then `CASE WHEN COALESCE(prev_mrr, 0) = 0 AND mrr > 0 AND COALESCE(mrr_before, 0) = 0 THEN 'new' WHEN COALESCE(prev_mrr, 0) = 0 AND mrr > 0 THEN 'reactivation' END`, with the other movements after them. Both windows give a missing value on an account's first month, so COALESCE reads it as 0."
+  },
+  "ERR-LOG-48": {
+    "assumed": "You probably expected the last month in the data to be a whole month, like the months before it, and every store or account to be there for the whole of each period you compare.",
+    "why": "Data stops on the day it was pulled, not at the end of a month. If it ends on 10 March, March holds 10 days and February 28, so March's total looks far lower and the month-on-month change shows a fall that is only the missing days. A week or a year cut short works the same way, and so does a first period that starts partway through. A store or account that opened or closed during one of the periods is a partial period too: a store that opened in September 2024 sold for four months that year, so its 2025 growth is mostly the months it was not open in 2024.",
+    "model": "Check where the data ends first: `SELECT MAX(order_date) FROM sales`. If that is not the last day of its month, leave that month out with `WHERE order_date < date_trunc('month', (SELECT MAX(order_date) FROM sales))`, or compare the same days of each month, such as 1 to 10 March against 1 to 10 February, as the question says. When stores or accounts come and go, compare like for like: keep only those there for the whole of both periods, such as `WHERE opened_on <= DATE '2024-01-01' AND close_date IS NULL` for 2024 against 2025. Then say in the result which months are whole."
+  },
+  "ERR-LOG-49": {
+    "assumed": "You probably expected a change to come out the same whichever value you subtract or divide by.",
+    "why": "Growth compares a period with the one before it, so the earlier value is the base. Revenue that goes from 100 to 120 rose by 20, which is 20% of the earlier 100. Old minus new gives -20, a fall where revenue rose, and dividing by the new 120 gives 16.7% instead of 20%. With LAG, the earlier value is what LAG returns, not the current row.",
+    "model": "On one row per month, such as `SELECT order_month, SUM(net_revenue_eur) AS revenue FROM sales GROUP BY order_month` in a CTE, divide by the earlier month: `revenue / NULLIF(LAG(revenue) OVER (ORDER BY order_month), 0) - 1`, which is the same as (revenue minus the earlier month) over the earlier month. Then check one row by hand: a rise must give a positive number."
+  },
+  "ERR-LOG-50": {
+    "assumed": "You probably expected any of a customer's dates, such as the signup, the first order or the first payment, to give the same cohort.",
+    "why": "A customer who signed up in January and first paid in March is in the January cohort by signup and the March cohort by first payment. The two cohorts hold different customers, so cohort sizes and retention rates both change. And a customer who has not paid yet has no first-payment month at all, so a cohort by first payment leaves that customer out.",
+    "model": "Read which event the question dates the cohort by, and take that event's first date for each customer: `SELECT s.user_id, date_trunc('month', MIN(p.paid_at)) AS cohort_month FROM payments p JOIN subscriptions s ON s.subscription_id = p.subscription_id GROUP BY s.user_id` for a cohort by first payment, or `date_trunc('month', signup_ts)` from `signups` for a cohort by signup. Then check one customer who did the two in different months."
+  },
+  "ERR-LOG-51": {
+    "assumed": "You probably expected every plan's price to be what it brings in each month.",
+    "why": "MRR is revenue per month. A monthly plan's price is already that, but an annual plan's price pays for 12 months: a plan of 1,200 a year is 100 of MRR, not 1,200. Counted whole, each annual account counts 12 times over, so total MRR and the share from annual plans both come out too high.",
+    "model": "Turn each price into a monthly amount before you add it up: `CASE WHEN billing_period = 'annual' THEN price_eur / 12.0 ELSE price_eur END AS mrr_eur`. When the annual price has a discount in it, divide the discounted price, not the list price. Then check one annual account by hand: its MRR times 12 is its price for the year."
   },
   "ERR-CMP-01": {
     "assumed": "You probably expected to need DISTINCT to stop the rows from repeating.",

@@ -20,7 +20,7 @@
           "why": "Each line has one product, so this join keeps one row per line."
         },
         {
-          "text": "GROUP BY p.brand),",
+          "text": "GROUP BY p.brand),  -- one row per brand with units sold",
           "subgoal": "output_grain",
           "why": "The first step ends at one row per brand."
         },
@@ -35,7 +35,7 @@
           "why": "One row per price check, each with its product's brand."
         },
         {
-          "text": "GROUP BY p.brand)",
+          "text": "GROUP BY p.brand)  -- one row per brand with competitor checks",
           "subgoal": "output_grain",
           "why": "The second step also ends at one row per brand."
         },
@@ -66,7 +66,7 @@
           "why": "One row per line."
         },
         {
-          "text": "GROUP BY order_id)",
+          "text": "GROUP BY order_id)  -- one row per order",
           "subgoal": "output_grain",
           "why": "One row per order: the grain of orders."
         },

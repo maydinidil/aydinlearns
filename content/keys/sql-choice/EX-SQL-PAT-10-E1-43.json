@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-10-E1-43",
+  "item_version": 1,
+  "correct_oid": "o718716f",
+  "explanation": "subscription_events holds every change to MRR with its date, so adding them up to 31 March 2025 gives the MRR then. subscriptions.mrr_local is the MRR at the end or today, not on an earlier date; an annual plan's invoice bills twelve months at once; usage_weekly counts activity, not money.",
+  "solver": {
+    "prompt_hash": "526030350f16f007",
+    "grader_version": "choice.3",
+    "chosen": "o718716f",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.815Z"
+  }
+}

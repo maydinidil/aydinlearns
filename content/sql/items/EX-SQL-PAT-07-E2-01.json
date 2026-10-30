@@ -1,0 +1,222 @@
+{
+  "id": "EX-SQL-PAT-07-E2-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "ordered_funnel",
+    "step_rate",
+    "overall_rate"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-ordered-rates",
+  "template_params": {
+    "funnel": "signup, activation, payment",
+    "period": "2025",
+    "order": "payment at or after activation"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "What were the step and overall conversion rates of the signup funnel for the users who signed up in 2025 (signup_ts, in UTC)? A user is activated at the first first_campaign_sent event, and counts as paid only when the user's first payment (paid_at, refunded or not) came at or after that activation. A user whose first payment came before the activation does not count as paid, even if a later payment came after it, and neither does a user with no activation. Return six columns, in this order: signed_up, activated, paid (each a number of users), activation_rate (activated over signed_up), paid_step_rate (paid over activated) and overall_rate (paid over signed_up), each rate a fraction between 0 and 1. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "signed_up",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activation_rate",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid_step_rate",
+        "type_class": "numeric"
+      },
+      {
+        "name": "overall_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row for the whole funnel"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "signed_up",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activation_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "paid_step_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "overall_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step counts and the three rates from the per-user steps.",
+    "A step rate divides a step by the step right before it; the overall rate divides the last step by the top of the funnel."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 75,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 123,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 126,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 151,
+      "to": 191,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 194,
+      "to": 210,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 214,
+      "to": 280,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 283,
+      "to": 332,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 335,
+      "to": 414,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 417,
+      "to": 435,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 439,
+      "to": 531,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 534,
+      "to": 688,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 691,
+      "to": 791,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 794,
+      "to": 906,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 909,
+      "to": 915,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 923,
+      "to": 1307,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1308,
+      "to": 1318,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 923,
+    "stage2": 923
+  },
+  "faded_shape": "WITH act AS (  -- one row per activated user, with the moment of activation\n  SELECT user_id, MIN(event_ts) AS activated_at\n  FROM activation_events\n  WHERE event_name = 'first_campaign_sent'\n  GROUP BY user_id\n),\npay AS (  -- one row per user who has paid, with the first payment\n  SELECT s.user_id, MIN(p.paid_at) AS first_paid_at\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n  GROUP BY s.user_id\n),\nsteps AS (  -- one row per user who signed up in the period, with the steps reached in order\n  SELECT u.user_id, u.signup_ts,\n         a.activated_at IS NOT NULL AS is_activated,\n         COALESCE(p.first_paid_at >= a.activated_at, false) AS is_paid\n  FROM signups u\n  LEFT JOIN act a ON a.user_id = u.user_id\n  LEFT JOIN pay p ON p.user_id = u.user_id\n  WHERE u.signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n)\nSELECT\n       ",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The paid step needs a first payment at or after the activation, the step rate divides by the activated users, and the overall rate by everyone who signed up.",
+  "faded_suffix": "\nFROM steps"
+}

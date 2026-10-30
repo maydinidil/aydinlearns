@@ -1,0 +1,213 @@
+{
+  "id": "EX-SQL-PAT-06-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "retention",
+    "spine",
+    "long_table",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-long-share-spine",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "activity": "payment",
+    "cohorts": "2025-01 to 2025-03",
+    "offsets": "0-5"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "What share of each signup cohort paid in each of its first six months? Take the users who signed up from January to March 2025; a user's cohort month is the month of signup_ts, in UTC. A user counts as paying in a month with at least one payment that was not refunded, by the UTC month of paid_at. The month offset counts calendar months from the cohort month, from 0 to 5. Every one of these months has ended by the as-of date, 5 January 2026, so a month with no paying user shows 0. Return four columns, in this order: cohort_month (the first day of the month), month_offset, cohort_users (the users who signed up that month) and paying_share, the paying users divided by cohort_users, as a fraction between 0 and 1. Return one row for each cohort month and each month offset from 0 to 5. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cohort_users",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paying_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per cohort month and month offset from 0 to 5"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "month_offset",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "cohort_users",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paying_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month",
+      "month_offset"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the month offset of each payment: the calendar months from the cohort month to the payment's month.",
+    "The cohort month is already a first day; turn the payment instant into the first day of its month before counting the months between them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 72,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 151,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 154,
+      "to": 166,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 169,
+      "to": 277,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 281,
+      "to": 320,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 323,
+      "to": 368,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 371,
+      "to": 382,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 385,
+      "to": 406,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 410,
+      "to": 494,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 497,
+      "to": 539,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 549,
+      "to": 645,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 648,
+      "to": 768,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 771,
+      "to": 791,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 794,
+      "to": 912,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 913,
+      "to": 1058,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1059,
+      "to": 1114,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 549,
+    "stage2": 549
+  },
+  "faded_shape": "WITH cohort AS (  -- one row per user who signed up in the cohort months\n  SELECT user_id, CAST(date_trunc('month', signup_ts) AS DATE) AS cohort_month\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-04-01 00:00:00+00'\n),\nsizes AS (  -- one row per cohort month\n  SELECT cohort_month, COUNT(*) AS cohort_users\n  FROM cohort\n  GROUP BY cohort_month\n),\npaid AS (  -- one row per cohort user and month with a payment that was not refunded\n  SELECT DISTINCT c.user_id, c.cohort_month,\n         ",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The spine of offsets 0 to 5 keeps every cell, the LEFT JOIN leaves a month with no payer at 0, and each payment sits at its calendar-month offset.",
+  "faded_suffix": "\n  FROM cohort c\n  JOIN subscriptions s ON s.user_id = c.user_id\n  JOIN payments p ON p.subscription_id = s.subscription_id\n  WHERE NOT p.refunded\n)\nSELECT z.cohort_month, k.month_offset, z.cohort_users,\n       1.0 * COUNT(pd.user_id) / z.cohort_users AS paying_share\nFROM sizes z\nCROSS JOIN range(0, 6) AS k(month_offset)\nLEFT JOIN paid pd ON pd.cohort_month = z.cohort_month AND pd.month_offset = k.month_offset\nGROUP BY z.cohort_month, k.month_offset, z.cohort_users"
+}

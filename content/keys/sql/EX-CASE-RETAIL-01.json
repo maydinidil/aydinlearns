@@ -1,0 +1,46 @@
+{
+  "item_id": "EX-CASE-RETAIL-01",
+  "item_version": 1,
+  "reference_sql": "SELECT channel,\n       COUNT(DISTINCT order_id) AS orders,\n       SUM(net_revenue_eur) AS net_sales_eur,\n       ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS aov_eur,\n       ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order\nFROM sales\nWHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30'\nGROUP BY channel\nORDER BY channel",
+  "alternatives": [
+    "SELECT channel, COUNT(DISTINCT order_id) AS orders, SUM(net_revenue_eur) AS net_sales_eur, ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS aov_eur, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS units_per_order FROM sales WHERE order_month = DATE '2025-11-01' GROUP BY 1 ORDER BY 1",
+    "SELECT channel, COUNT(DISTINCT order_id) AS orders, SUM(net_revenue_eur) AS net_sales_eur, ROUND(SUM(net_revenue_eur) * 1.0 / COUNT(DISTINCT order_id), 2) AS aov_eur, ROUND(SUM(units) / CAST(COUNT(DISTINCT order_id) AS DECIMAL(18, 2)), 2) AS units_per_order FROM sales WHERE order_date >= DATE '2025-11-01' AND order_date < DATE '2025-12-01' GROUP BY channel ORDER BY channel ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT channel,\n       COUNT(order_id) AS orders,\n       SUM(net_revenue_eur) AS net_sales_eur,\n       ROUND(SUM(net_revenue_eur) / COUNT(order_id), 2) AS aov_eur,\n       ROUND(SUM(units) * 1.0 / COUNT(order_id), 2) AS units_per_order\nFROM sales\nWHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30'\nGROUP BY channel\nORDER BY channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT channel,\n       COUNT(DISTINCT order_id) AS orders,\n       SUM(net_revenue_eur) AS net_sales_eur,\n       ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS aov_eur,\n       ROUND(SUM(units) // COUNT(DISTINCT order_id), 2) AS units_per_order\nFROM sales\nWHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30'\nGROUP BY channel\nORDER BY channel"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT channel,\n       COUNT(DISTINCT order_id) AS orders,\n       SUM(net_revenue_eur) AS net_sales_eur,\n       ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS aov_eur,\n       ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order\nFROM sales\nWHERE order_date >= DATE '2025-11-01' AND order_date < DATE '2025-11-30'\nGROUP BY channel\nORDER BY channel"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT channel,\n       COUNT(DISTINCT order_id) AS orders,\n       SUM(net_revenue_eur) AS net_sales_eur,\n       ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS aov_eur,\n       ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order\nFROM sales\nWHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30'\n  AND net_revenue_eur IS NOT NULL\nGROUP BY channel\nORDER BY channel"
+    },
+    {
+      "id": "PW5",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT channel,\n       COUNT(DISTINCT order_id) AS orders,\n       SUM(net_revenue_eur) AS net_sales_eur,\n       ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS aov_eur,\n       ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order\nFROM sales\nWHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30'\nGROUP BY channel\nORDER BY channel DESC"
+    }
+  ],
+  "hint3_partial": "SELECT channel,\n       COUNT(___) AS orders,\n       SUM(net_revenue_eur) AS net_sales_eur,\n       ROUND(___, 2) AS aov_eur,\n       ROUND(___, 2) AS units_per_order\nFROM sales\nWHERE order_date BETWEEN ___ AND ___\nGROUP BY ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "3dd13d280ea42f9a",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "59aa492c652892ff",
+    "grader_version": "8a.1",
+    "query": "SELECT channel,\n       COUNT(DISTINCT order_id) AS orders,\n       SUM(net_revenue_eur) AS net_sales_eur,\n       ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS aov_eur,\n       ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order\nFROM sales\nWHERE order_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30'\nGROUP BY channel\nORDER BY channel\n",
+    "at": "2026-10-29T22:26:55.772Z"
+  }
+}

@@ -59,6 +59,12 @@
 // Rows 7b-1 to 7b-5 (sprint 7 Part 2, Task F3) run after the 7a rows, on a server of their own with the fake tutor model: the knowledge mock (30 questions, no labels, a saved answer, a review
 // by section), the case-round (plan first, CP1 to CP6, the 60-second step, a review with the right answers and the rubric), the take-home across a server restart on the same logs, the
 // review's tutor second opinion (no change to the pass), and stages 3 to 5 live on the Recruiter mocks screen. Mock answers are read from the keys and the truth file here and typed only.
+// Rows 8a-1 to 8a-5 (sprint 8 Part 1, Task F1) run after the 7b rows, on a server of their own with the fake tutor model: SQL level 6 on the map and a level 6 lesson's pretest item,
+// an SQL-PAT-01 item passed with its reference and a ROW_NUMBER answer with no tie-break failed on the edge data with the tie in the diff, the level 6 drill (10 questions, help at the
+// review), CASE-LEDGER-L6 opened at CP1 with its CP3 graded, and the explorer's LedgerLoop schemas. Keys are read in this process and only typed.
+// Rows 8b-1 to 8b-6 (sprint 8 Part 2, Task F3) run after the 8a rows, on a server of their own over an empty logs folder: CASE-SAAS-03 answered through CP6 and exported (the page names
+// LedgerLoop), CASE-MKT-05 through CP4, CASE-RETAIL-04's CP3, G-SQL-LEVEL-6's "SaaS cases solved: 0 of 5" (row 8b-4 runs first there), the explorer's Olist (real, with its licence) and
+// Maven Toy Store (fictional), and CASE-REAL-03 and CASE-MAVEN-01 in the inbox with their data lines. Keys and truth values are read in this process and only typed.
 // Rows tu-1 to tu-8 (sprint T) check the AI tutor: off by default on every server here (the keys are set blank, and each server keeps
 // the keys saved in Settings in a file of its own in the temporary folder, AYDINLEARNS_KEYS_FILE, T-20), then on a server of its own with
 // the fake model (AYDINLEARNS_TUTOR_PROVIDER=fake, T-23), which calls nothing and answers for every model. That server spaces the fake
@@ -1255,7 +1261,8 @@ async function main(): Promise<number> {
       const last = await stepLabels(page);
       expect(JSON.stringify(last) === JSON.stringify(['Daily case', `Re-test: ${title(HISTORY.next)}`]), `Today lists: ${last.join(' | ')}`);
       const opens = await stepRow(page, `Re-test: ${title(HISTORY.next)}`).locator('span.muted').innerText();
-      expect(/^Opens at \d\d:\d\d$/.test(opens) && (await stepRow(page, `Re-test: ${title(HISTORY.next)}`).getByRole('button').count()) === 0,
+      // A run just before Amsterdam midnight opens the re-test the next day, and opensWhen then names the day.
+      expect(/^Opens (on \d{1,2} [A-Z][a-z]+ )?at \d\d:\d\d$/.test(opens) && (await stepRow(page, `Re-test: ${title(HISTORY.next)}`).getByRole('button').count()) === 0,
         `the new concept's re-test says "${opens}" and has a button`);
       const goal = await page.getByText(/^Next goal: .+, by \d{1,2} [A-Z][a-z]+( \d{4})?$/).innerText();     // S5A-18: the SQL tab's line, unlabelled
       const tomorrow = await page.getByText(/^Due tomorrow: \d+ reviews?$/).innerText();
@@ -2648,11 +2655,11 @@ async function main(): Promise<number> {
         return 'G-GA4-CERT shows its named-concepts line at "0 of 12" with nothing practised';
       });
 
-      await row('5a-5', 'Settings shows version 0.7.3', async () => {
+      await row('5a-5', 'Settings shows version 0.8.1', async () => {
         await p.goto(`${BASE}/#/setup`);
         await p.getByRole('heading', { name: 'Settings and setup', level: 1 }).waitFor();
-        await p.getByText('Version 0.7.3', { exact: true }).waitFor();
-        return 'Settings and setup shows "Version 0.7.3"';
+        await p.getByText('Version 0.8.1', { exact: true }).waitFor();
+        return 'Settings and setup shows "Version 0.8.1"';
       });
 
       await row('5a-3', 'an A/B SQL item passes with its reference query', async () => {
@@ -4483,6 +4490,443 @@ async function main(): Promise<number> {
         expect(!(await p.locator('main').innerText()).includes('Coming in 0.7.1'), 'the mocks screen still reads "Coming in 0.7.1"');
         expect(takeBlock === '' || (await p.locator('section.mocks li[data-stage="5"] a[href*="#/mock/review/"]').count()) >= 1, 'stage 5 has no review link for its run');
         return 'stages 3, 4 and 5 show their names, rules (questions or minutes), a start or the forms line and their history; "Coming in 0.7.1" is nowhere on the screen';
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server!);
+      server = null;
+    }
+
+    // ---- sprint 8 Part 1 rows (Task F1): SQL level 6, the LedgerLoop company, the level 6 drill, the opener, the explorer's picker ----
+    // Rows 8a-1 to 8a-5 run after the 7b rows, on a server of their own over an empty logs folder with the fake tutor model (8a-3 needs a tutor that
+    // could open). Keys are read in this process and only typed into the page; a failing row's message names IDs only.
+    {
+      const dir = join(tmp, 'logs-8a');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir, { env: { AYDINLEARNS_TUTOR_PROVIDER: 'fake' } });
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      const PAT = curriculum.concepts.filter((c) => c.id.startsWith('SQL-PAT-')).sort((a, b) => a.id.localeCompare(b.id));
+      const titleOf = (id: string): string => curriculum.concepts.find((c) => c.id === id)?.title ?? id;
+      const LEDGER_OPENER = 'CASE-LEDGER-L6';
+      const stripBtn8 = (id: string) => p.getByRole('navigation', { name: 'Case steps' }).locator(`button[data-step-button="${id}"]`);
+      const step8 = (id: string) => p.locator(`[data-step="${id}"]`);
+      /** The same query with the tie-break taken off the first ROW_NUMBER window: its ORDER BY keeps only its first term. Null when there is nothing to take off. */
+      function dropTieBreak(sql: string): string | null {
+        const m = /ROW_NUMBER\s*\(\s*\)\s*OVER\s*\(/i.exec(sql);
+        if (!m) return null;
+        const open = m.index + m[0].length;
+        let depth = 1;
+        let end = open;
+        for (; end < sql.length && depth > 0; end++) { if (sql[end] === '(') depth++; else if (sql[end] === ')') depth--; }
+        const body = sql.slice(open, end - 1);
+        const ob = /\bORDER\s+BY\b/i.exec(body);
+        if (!ob) return null;
+        const head = body.slice(0, ob.index + ob[0].length);
+        const terms: string[] = [];
+        let d = 0;
+        let from = ob.index + ob[0].length;
+        for (let i = from; i <= body.length; i++) {
+          const ch = body[i];
+          if (ch === '(') d++; else if (ch === ')') d--;
+          if ((ch === ',' && d === 0) || i === body.length) { terms.push(body.slice(from, i)); from = i + 1; }
+        }
+        if (terms.length < 2) return null;
+        return `${sql.slice(0, open)}${head}${terms[0]}${sql.slice(end - 1)}`;
+      }
+
+      await row('8a-1', 'the SQL map shows level 6 with its 10 concepts (SQL-PAT-01 to -10), nothing locked or disabled; a level 6 lesson opens and a pretest item is graded and logged', async () => {
+        expect(PAT.length === 10 && PAT.every((c) => c.level === 6), `the curriculum has ${PAT.length} SQL-PAT concepts`);
+        await p.goto(`${BASE}/#/map`);
+        await p.getByRole('heading', { name: 'SQL map', level: 1 }).waitFor();
+        const level6 = p.locator('.level').filter({ has: p.locator('h2', { hasText: /^Level 6:/ }) });
+        await level6.waitFor();
+        const text = await level6.innerText();
+        const missing = PAT.filter((c) => !text.includes(c.title)).map((c) => c.id);
+        expect(missing.length === 0, `level 6 on the map lacks the titles of ${missing.join(', ')}`);
+        const links = await level6.locator('a[href^="#/lesson/SQL-PAT-"]').evaluateAll((els) => els.map((a) => a.getAttribute('href') ?? ''));
+        expect(JSON.stringify([...links].sort()) === JSON.stringify(PAT.map((c) => `#/lesson/${c.id}`)), `level 6 has ${links.length} lesson links`);
+        const mapText = await p.locator('main').innerText();
+        const disabled = await p.locator('main [disabled], main [aria-disabled="true"]').count();
+        expect(!/\b(un)?lock(ed|s)?\b/i.test(mapText) && disabled === 0, 'something on the map is locked or disabled');
+
+        const first = PAT[0]!.id;
+        const lesson = await readJson<Lesson>(join(ROOT, `content/sql/lessons/${first}.json`));
+        await p.goto(`${BASE}/#/lesson/${first}`);
+        await p.getByRole('heading', { name: titleOf(first), level: 1, exact: true }).waitFor();
+        await p.getByRole('navigation', { name: 'Lesson steps' }).waitFor();
+        await p.getByRole('button', { name: 'Start the pretest' }).click();
+        await p.getByText('Question 1 of 2.').waitFor();
+        await p.locator('.cm-content').waitFor();
+        await replaceSql(p, NOT_IT);
+        await submit(p);
+        await p.locator('section.grade h3').first().waitFor({ timeout: 30_000 });
+        const att = await waitFor('the pretest attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === lesson.pretest_item_ids[0] && r.phase === 'pretest'));
+        return `level 6 on the map lists SQL-PAT-01 to -10 by title, each a lesson link, nothing locked or disabled; ${first} opened and its pretest item ${lesson.pretest_item_ids[0]} was graded and logged (phase ${String(att.phase)})`;
+      });
+
+      await row('8a-2', 'an SQL-PAT-01 write item passes with its reference; a ROW_NUMBER answer with no tie-break passes on the visible data and fails on the edge data with the tie in the diff', async () => {
+        const writes: string[] = [];
+        for (const k of [...keys.values()].filter((x) => x.item_id.startsWith('EX-SQL-PAT-01-')).sort((a, b) => a.item_id.localeCompare(b.item_id))) {
+          const it = await item(k.item_id).catch(() => null);
+          if (it && it.kind === 'write' && it.use === 'pool') writes.push(k.item_id);
+        }
+        expect(writes.length > 0, 'no SQL-PAT-01 pool write item has a key');
+        const passId = writes[0]!;
+        await openItem(p, passId);
+        await replaceSql(p, keys.get(passId)!.reference_sql);
+        await submit(p);
+        await outcome(p, 'Correct');
+        const pass = await waitFor(`${passId}'s attempt`, async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === passId));
+        expect(pass.outcome === 'pass', `${passId}'s attempt is logged as ${String(pass.outcome)}, not pass`);
+
+        // No fix item of SQL-PAT-01 starts as ROW_NUMBER without a tie-break (E2-31 ranks with RANK, E2-32 has the tie-break), so the wrong
+        // answer is built in this process from a reference by the smallest change: the tie-break column leaves the window's ORDER BY.
+        const tried: string[] = [];
+        for (const id of writes) {
+          const wrong = dropTieBreak(keys.get(id)!.reference_sql);
+          if (wrong === null) continue;
+          tried.push(id);
+          await openItem(p, id);
+          await replaceSql(p, wrong);
+          await submit(p);
+          await p.locator('section.grade h3').first().waitFor({ timeout: 30_000 });
+          const heading = (await p.locator('section.grade h3').first().innerText()).trim();
+          if (/Correct/.test(heading)) continue;                                // this item's edge data has no tie that the missing column decides
+          const att = await waitFor(`${id}'s wrong attempt`, async () => (await attempts(dir)).filter((r) => r.record === 'attempt' && r.item_id === id).at(-1));
+          const [visible, edge] = att.payload?.per_dataset ?? [];
+          if (!visible || !edge || !visible.passed || edge.passed) continue;    // not an edge-only failure
+          await p.getByText('Your query did not work on the hidden test data, which contains:').waitFor();
+          const readTable = async (caption: RegExp) => {
+            const box = p.locator('section.grade .diff .result').filter({ has: p.locator('p.muted', { hasText: caption }) });
+            if ((await box.count()) === 0) return [] as string[][];
+            return box.first().locator('tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll('td')].map((td) => (td.textContent ?? '').trim())));
+          };
+          const missing = await readTable(/^✗ Rows you are missing/);
+          const extra = await readTable(/^✗ Rows that should not be there/);
+          // The tie: a row the answer lost and a row it kept in its place agree on at least one value (the tied ranking value) and differ on at least one (the key).
+          const tied = missing.some((m) => extra.some((e) => m.length === e.length && m.some((v, i) => v === e[i]) && m.some((v, i) => v !== e[i])));
+          expect(tied, `${id}: the diff shows ${missing.length} missing and ${extra.length} extra rows, and no pair of them shares a value while differing in another`);
+          return `${passId} passed with its reference (logged as a pass); ${id} (a reference with the tie-break column taken off its ROW_NUMBER window, built in process) passed on ${visible.schema}, failed on ${edge.schema}, and its diff shows ${missing.length} missing and ${extra.length} extra rows that tie (tried: ${tried.join(', ')})`;
+        }
+        throw new Error(`no SQL-PAT-01 write item fails on its edge data once its tie-break is dropped (tried: ${tried.join(', ') || 'none'})`);
+      });
+
+      await row('8a-3', 'the level 6 drill starts with 10 questions; hints, show answer and the tutor wait for the review and are there after "End the drill and see the review"', async () => {
+        await p.goto(`${BASE}/#/drill`);
+        await p.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/start') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'Start drill: level 6' }).click();
+        const started = await startedP;
+        expect(started.status() === 200, `the level 6 drill start answered ${started.status()}`);
+        const run = (await started.json()) as DrillStarted;
+        expect(run.kind === 'level' && run.questions === 10 && run.servings.length === 10, `the level 6 run has ${run.servings.length} servings (${run.questions} questions)`);
+        await p.getByRole('heading', { name: 'Level 6 drill', level: 1, exact: true }).waitFor();
+        const nav = p.getByRole('navigation', { name: 'Questions' });
+        expect((await nav.getByRole('button', { name: /^Question \d+(:|$)/ }).count()) === 10, 'the strip does not hold ten question buttons');
+        await nav.getByRole('button', { name: 'Question 10', exact: true }).waitFor();
+        // During the run: the help line, no hint and no show-answer control, and the tutor closed (its button disabled, Alt+T opens no question box).
+        await p.getByText('Help opens in the end-of-run review.', { exact: true }).waitFor();
+        await p.locator('[data-question="0"] .cm-content').waitFor();
+        expect((await p.getByRole('button', { name: /^Hint \d/ }).count()) === 0 && (await p.getByRole('button', { name: 'Show answer' }).count()) === 0
+          && (await p.getByRole('button', { name: /^Show part of the answer/ }).count()) === 0, 'a hint or show-answer control is on screen during the run');
+        const wait = p.getByRole('button', { name: 'The tutor waits for the review' });
+        await wait.waitFor();
+        expect(await wait.isDisabled(), 'the tutor button is enabled during the run');
+        const tutorPanel = p.getByRole('complementary', { name: 'Tutor' });
+        // F1-R-2: press Alt+T until the closed panel shows (the key handler may not be attached yet), instead of a fixed pause. A press that
+        // opens nothing leaves the panel closed, so a retry never closes it.
+        await waitFor('the tutor panel to open on Alt+T', async () => {
+          await p.locator('main h1').focus();
+          await p.keyboard.press('Alt+t');
+          return await tutorPanel.waitFor({ timeout: 700 }).then(() => true, () => false);
+        });
+        await tutorPanel.getByText('The tutor waits for the review.', { exact: true }).waitFor();
+        expect((await tutorPanel.getByLabel('Your question').count()) === 0, 'the tutor panel takes a question during the run');
+        await p.keyboard.press('Alt+t');
+        await tutorPanel.waitFor({ state: 'detached' });
+
+        const endedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/end') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'End the drill and see the review' }).click();
+        await endedP;
+        await p.getByRole('heading', { name: 'Level 6 drill: review', level: 1 }).waitFor();
+        const q1 = p.locator('[data-question="0"]');
+        await q1.getByText('Loading the exercise...').waitFor({ state: 'detached' });
+        await q1.getByRole('button', { name: 'Show answer' }).waitFor();
+        await q1.getByRole('button', { name: /^Hint 1$/ }).waitFor();
+        await p.getByRole('button', { name: 'Ask the tutor' }).waitFor();
+        return 'the level 6 drill started with 10 questions (ten question buttons); during the run the help line showed, no hint or show-answer control was on screen and the tutor button was disabled with Alt+T showing its closed line and no question box; after the end, question 1 offers Hint 1 and Show answer and the tutor button is open';
+      });
+
+      await row('8a-4', `${LEDGER_OPENER} opens at CP1 with nothing locked, and its CP3 grades Correct after CP1 and CP2 are answered`, async () => {
+        const opener = await casePublic(LEDGER_OPENER);
+        const cp3Item = opener.checkpoints.find((c) => c.kind === 'CP3')?.item_id;
+        expect(cp3Item !== undefined && keys.has(cp3Item), `${LEDGER_OPENER}: CP3 has no answer key`);
+        await p.goto(`${BASE}/#/opener/${LEDGER_OPENER}?step=CP1`);
+        await p.locator('.case-status').waitFor();
+        await p.getByRole('heading', { name: opener.title, level: 1 }).waitFor();
+        await p.locator('button[data-step-button="CP1"][aria-current="step"]').waitFor();
+        const lockedOrDisabled = await p.getByRole('navigation', { name: 'Case steps' }).locator('[disabled], [aria-disabled="true"]').count();
+        const navText = await p.getByRole('navigation', { name: 'Case steps' }).innerText();
+        expect(lockedOrDisabled === 0 && !/\block(ed|s)?\b/i.test(navText), `${LEDGER_OPENER}: a step is locked or disabled`);
+        // CP1 and CP2 as the other case rows answer them: the right option, then the true value, each with a confidence of 3.
+        const cp1 = step8('CP1');
+        try { await cp1.locator(`input[type="radio"][value="${await caseOid(LEDGER_OPENER, 'CP1')}"]`).check(); }
+        catch { throw new Error(`${LEDGER_OPENER} CP1: could not pick the option`); }
+        await cp1.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+        await cp1.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+        await stripBtn8('CP2').click();
+        const cp2 = step8('CP2');
+        await cp2.getByLabel('Your answer').fill(await caseTyped(LEDGER_OPENER, 'CP2'));
+        await cp2.getByRole('button', { name: 'Check', exact: true }).click();
+        await cp2.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+        await cp2.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+        await stripBtn8('CP3').click();
+        const served = p.waitForResponse((r) => r.url().endsWith('/api/serve') && r.request().method() === 'POST');
+        await step8('CP3').locator('[data-serve="CP3"]').click();
+        const sv = (await (await served).json()) as Served;
+        expect(sv.phase === 'case' && sv.item_id === cp3Item, `${LEDGER_OPENER}: CP3 was served in phase ${sv.phase} as ${sv.item_id}`);
+        await step8('CP3').locator('.cm-content').waitFor();
+        await replaceSql(p, keys.get(cp3Item!)!.reference_sql);
+        await submit(p);
+        await outcome(p, 'Correct');
+        const att = await waitFor('the CP3 attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === cp3Item));
+        expect(att.outcome === 'pass' && att.phase === 'case', `${cp3Item}'s attempt is logged as ${String(att.outcome)} in phase ${String(att.phase)}`);
+        return `${LEDGER_OPENER} (level ${String(opener.level)}) opened with CP1 as the current step and no step locked or disabled; CP1 and CP2 were answered rightly; CP3 (${cp3Item}) was served in phase case, graded Correct and logged as a pass`;
+      });
+
+      await row('8a-5', 'the explorer lists LedgerLoop and its raw schema with their notes ("This table may hold errors." on the raw one); a query on subscription_events runs', async () => {
+        await p.goto(`${BASE}/#/explore`);
+        await p.getByRole('heading', { name: 'Dataset explorer', level: 1 }).waitFor();
+        await p.locator('[data-explore-editor] .cm-content').waitFor();
+        const companies = await p.locator('[data-dataset-picker] optgroup[label="Fictional companies"] option')
+          .evaluateAll((os) => os.map((o) => ({ value: (o as HTMLOptionElement).value, text: (o.textContent ?? '').trim(), disabled: (o as HTMLOptionElement).disabled })));
+        const has = (value: string) => companies.some((o) => o.value === value && !o.disabled);
+        expect(has('ledgerloop') && has('ledgerloop_raw'), `the picker's companies: ${companies.map((o) => o.value).join(', ')}`);
+        const panel = p.locator('aside[aria-label="Tables"]');
+        const notes = (await getJson<ExploreView>('/api/explore')).body.notes;
+        // The raw schema first: its notes carry the warning. The clean one then runs the query.
+        await p.locator('[data-dataset-picker]').selectOption('ledgerloop_raw');
+        await panel.waitFor();
+        await panel.getByText('This table may hold errors.').first().waitFor();
+        await p.locator('[data-dataset-picker]').selectOption('ledgerloop');
+        await p.locator('.explore-main [data-dataset-card="ledgerloop"]').waitFor();
+        await panel.getByText('subscription_events', { exact: false }).first().waitFor();
+        // F1-R-1: the clean schema's notes are on screen as the raw one's are: every one of its tables is listed, and none carries the raw warning.
+        const cleanTables = notes.filter((n) => n.schema === 'ledgerloop').map((n) => n.table);
+        expect(cleanTables.length > 0, 'the explorer view lists no ledgerloop tables');
+        // Each table's own summary line: a bare getByText can first find the name inside another table's closed notes (a key line).
+        for (const t of cleanTables) await panel.locator('summary > code', { hasText: new RegExp(`^${t}$`) }).waitFor();
+        expect((await panel.getByText('This table may hold errors.').count()) === 0, 'the clean ledgerloop panel carries the raw schema warning');
+        expect(notes.some((n) => n.schema === 'ledgerloop' && n.table === 'subscription_events') && notes.some((n) => n.schema === 'ledgerloop_raw'), 'the explorer view has no notes for ledgerloop');
+        const first = notes.find((n) => n.schema === 'ledgerloop')!;
+        await waitFor('the editor to start on ledgerloop', async () => squash(await editorText(p)) === `SELECT * FROM ${first.table} LIMIT 10`);
+        await replaceSql(p, 'SELECT * FROM subscription_events LIMIT 10');
+        const ran = p.waitForResponse((r) => r.url().endsWith('/api/explore/run') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'Run', exact: true }).click();
+        const sent = (await ran).request().postDataJSON() as { schema?: unknown };
+        expect(sent.schema === 'ledgerloop', `the run was sent on ${String(sent.schema)}`);
+        await resultTable(p).waitFor();
+        expect((await p.locator('[data-explore-error]').count()) === 0, 'the run drew an error');
+        const line = (await resultTable(p).innerText()).trim();
+        expect(!/^Your result: 0 rows/.test(line), `subscription_events returned "${line}"`);
+        return `the picker lists ledgerloop and ledgerloop_raw under Fictional companies; the raw schema's panel shows "This table may hold errors."; a query on subscription_events in ledgerloop ran ("${line}")`;
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server!);
+      server = null;
+    }
+
+    // ---- sprint 8 Part 2 rows (Task F3): the LedgerLoop, Voltmarkt, Olist and Maven cases, the level 6 goal's SaaS line, the explorer's two new datasets ----
+    // Rows 8b-1 to 8b-6 run after the 8a rows, on a server of their own over an empty logs folder (no tutor model). 8b-4 runs first, because it needs a log where no
+    // SaaS case is solved and 8b-1 solves CASE-SAAS-03; the rest need no state from each other. Keys and truth values are read in this process and only typed
+    // into the page; a failing row's message names IDs and steps, never a value, an option or SQL.
+    {
+      const dir = join(tmp, 'logs-8b');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir);
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      const SAAS = 'CASE-SAAS-03';
+      const MKT5 = 'CASE-MKT-05';
+      const RETAIL4 = 'CASE-RETAIL-04';
+      const REAL3 = 'CASE-REAL-03';
+      const MAVEN1 = 'CASE-MAVEN-01';
+      const stepBtn = (id: string) => p.getByRole('navigation', { name: 'Case steps' }).locator(`button[data-step-button="${id}"]`);
+      const stepOf = (id: string) => p.locator(`[data-step="${id}"]`);
+      const cp3Of = async (caseId: string): Promise<string> => {
+        const id = (await casePublic(caseId)).checkpoints.find((c) => c.kind === 'CP3')?.item_id;
+        expect(id !== undefined && keys.has(id), `${caseId}: CP3 has no answer key`);
+        return id;
+      };
+      /** Opens a case from the inbox. */
+      async function openFromInbox(caseId: string): Promise<void> {
+        const c = await casePublic(caseId);
+        await p.goto(`${BASE}/#/inbox`);
+        const entry = p.locator(`.inbox-list li[data-case="${caseId}"]`);
+        await entry.waitFor();
+        expect((await entry.locator('[data-unavailable]').count()) === 0, `${caseId} is listed as unavailable`);
+        await entry.getByRole('link', { name: c.title }).click();
+        await p.locator('.case-status').waitFor();
+      }
+      /** CP1 or CP5: the right option and a confidence of 3. */
+      async function choiceStep(caseId: string, cp: 'CP1' | 'CP5'): Promise<void> {
+        await stepBtn(cp).click();
+        const step = stepOf(cp);
+        try { await step.locator(`input[type="radio"][value="${await caseOid(caseId, cp)}"]`).check(); }
+        catch { throw new Error(`${caseId} ${cp}: could not pick the option`); }
+        await step.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+        await step.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+      }
+      /** CP2 or CP4: the true value to the asked decimals. */
+      async function typedStep(caseId: string, cp: 'CP2' | 'CP4'): Promise<void> {
+        await stepBtn(cp).click();
+        const step = stepOf(cp);
+        await step.getByLabel('Your answer').fill(await caseTyped(caseId, cp));
+        await step.getByRole('button', { name: 'Check', exact: true }).click();
+        await step.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+        await step.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+      }
+      /** CP3: served in phase case, answered with the item's reference, graded Correct and logged as a pass. */
+      async function cp3Step(caseId: string): Promise<string> {
+        const item3 = await cp3Of(caseId);
+        await stepBtn('CP3').click();
+        const served = p.waitForResponse(isServeCase);
+        await stepOf('CP3').locator('[data-serve="CP3"]').click();
+        const sv = (await (await served).json()) as Served;
+        expect(sv.phase === 'case' && sv.item_id === item3, `${caseId}: CP3 was served in phase ${sv.phase} as ${sv.item_id}`);
+        await stepOf('CP3').locator('.cm-content').waitFor();
+        await replaceSql(p, keys.get(item3)!.reference_sql);
+        await submit(p);
+        await outcome(p, 'Correct');
+        const att = await waitFor(`${item3}'s attempt`, async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === item3));
+        expect(att.outcome === 'pass' && att.phase === 'case', `${item3}'s attempt is logged as ${String(att.outcome)} in phase ${String(att.phase)}`);
+        return item3;
+      }
+
+      await row('8b-4', 'Progress shows G-SQL-LEVEL-6 with "SaaS cases solved: 0 of 5" on an empty log', async () => {
+        await p.goto(`${BASE}/#/progress`);
+        await p.locator('section.progress').waitFor();
+        const goal = p.locator('[data-progress="goals"] li[data-goal="G-SQL-LEVEL-6"]');
+        await goal.waitFor();
+        const lines = (await goal.locator('li[data-criterion-met]').allInnerTexts()).map((t) => (t.trim().split('\n')[0] ?? '').trim());
+        const line = lines.find((t) => /^SaaS cases solved/.test(t));
+        expect(line !== undefined, `G-SQL-LEVEL-6 has no SaaS line (it shows ${lines.length} criteria)`);
+        expect(/^SaaS cases solved: 0 of 5$/.test(line), `G-SQL-LEVEL-6's SaaS line reads "${line}"`);
+        return 'G-SQL-LEVEL-6 shows "SaaS cases solved: 0 of 5" on an empty log';
+      });
+
+      await row('8b-5', 'the explorer lists Olist as real data with its licence (CC BY-NC-SA 4.0) and Maven Toy Store as fictional data', async () => {
+        const view = (await getJson<ExploreView>('/api/explore')).body;
+        const olist = view.datasets.find((d) => d.schemas.some((s) => s.name === 'olist'));
+        const maven = view.datasets.find((d) => d.schemas.some((s) => s.name === 'maven_toy_store'));
+        expect(olist !== undefined && maven !== undefined, 'the explorer view lacks the olist or the maven_toy_store schema');
+        expect(olist.schemas.some((s) => s.name === 'olist' && s.prepared) && maven.schemas.some((s) => s.name === 'maven_toy_store' && s.prepared), 'olist or maven_toy_store is not prepared');
+        await p.goto(`${BASE}/#/explore`);
+        await p.getByRole('heading', { name: 'Dataset explorer', level: 1 }).waitFor();
+        await p.locator('[data-explore-editor] .cm-content').waitFor();
+        const groupOf = (schema: string): Promise<string> => p.locator('[data-dataset-picker] optgroup').evaluateAll((gs, s) => {
+          const g = gs.find((x) => [...x.querySelectorAll('option')].some((o) => (o as HTMLOptionElement).value === s && !(o as HTMLOptionElement).disabled));
+          return g ? (g as HTMLOptGroupElement).label : '';
+        }, schema);
+        const oGroup = await groupOf('olist');
+        const mGroup = await groupOf('maven_toy_store');
+        expect(oGroup === 'Real datasets', `olist is listed under "${oGroup}", not "Real datasets"`);
+        expect(mGroup !== '' && mGroup !== 'Real datasets', `maven_toy_store is listed under "${mGroup}"`);
+        await chooseDataset(p, 'olist', olist.id);
+        const oCard = squash(await p.locator(`.explore-main [data-dataset-card="${olist.id}"]`).innerText());
+        expect(oCard.includes('Real data:') && oCard.includes('Licence: CC BY-NC-SA 4.0.'), `${olist.id}'s card does not read as real data with its licence`);
+        await chooseDataset(p, 'maven_toy_store', maven.id);
+        const mCard = squash(await p.locator(`.explore-main [data-dataset-card="${maven.id}"]`).innerText());
+        expect(mCard.includes('Fictional data:') && !/Real data/i.test(mCard), `${maven.id}'s card does not read as fictional data`);
+        expect((await p.getByRole('button', { name: 'Save as a flagship draft', exact: true }).count()) === 0, `${maven.id} offers a flagship draft, which is for real data`);
+        return `${olist.id} (olist) sits under Real datasets and its card reads as real data with "Licence: CC BY-NC-SA 4.0."; ${maven.id} (maven_toy_store) sits under its own fictional group "${mGroup}", its card reads "Fictional data:", names no real data, and offers no flagship draft`;
+      });
+
+      await row('8b-6', `${REAL3} and ${MAVEN1} open from the inbox; ${MAVEN1}'s brief says fictional data and ${REAL3}'s says real data with its licence`, async () => {
+        await openFromInbox(REAL3);
+        const realLine = squash(await p.locator('p.muted', { hasText: /^Data:/ }).first().innerText());
+        expect(/^Data: Real data:/.test(realLine) && realLine.includes('CC BY-NC-SA 4.0'), `${REAL3}'s data line does not read as real data with its licence`);
+        await openFromInbox(MAVEN1);
+        const mavenLine = squash(await p.locator('p.muted', { hasText: /^Data:/ }).first().innerText());
+        expect(/^Data: Fictional data:/.test(mavenLine), `${MAVEN1}'s data line does not say fictional data`);
+        expect(!/\breal\b/i.test(mavenLine), `${MAVEN1}'s data line calls the data real`);
+        return `${REAL3} and ${MAVEN1} opened from the inbox, neither marked unavailable; ${REAL3}'s data line reads as real data with CC BY-NC-SA 4.0, ${MAVEN1}'s reads "Fictional data:" and the word real is not in it`;
+      });
+
+      await row('8b-2', `${MKT5} (on LedgerLoop) is answered through CP4: CP1 and CP2 right, CP3 Correct with its reference, CP4 right`, async () => {
+        await openFromInbox(MKT5);
+        await choiceStep(MKT5, 'CP1');
+        await typedStep(MKT5, 'CP2');
+        const item3 = await cp3Step(MKT5);
+        await stepOf('CP3').locator('[data-row-count]').waitFor();
+        await p.getByRole('button', { name: 'Next', exact: true }).click();
+        await typedStep(MKT5, 'CP4');
+        return `${MKT5}: CP1 and CP2 answered rightly, CP3 (${item3}) served in phase case, graded Correct and logged as a pass, CP4 answered rightly`;
+      });
+
+      await row('8b-3', `${RETAIL4}'s CP3 (a date spine) is submitted with its reference and graded Correct`, async () => {
+        await openFromInbox(RETAIL4);
+        const item3 = await cp3Step(RETAIL4);
+        return `${RETAIL4}: CP3 (${item3}) was served in phase case, its reference was graded Correct and logged as a pass`;
+      });
+
+      await row('8b-1', `${SAAS} opens from the inbox and is answered through CP6; its export finishes and its page names the case and LedgerLoop's data source`, async () => {
+        const saas = await casePublic(SAAS);
+        await openFromInbox(SAAS);
+        await choiceStep(SAAS, 'CP1');
+        await typedStep(SAAS, 'CP2');
+        await cp3Step(SAAS);
+        await stepOf('CP3').locator('[data-row-count]').waitFor();
+        await p.getByRole('button', { name: 'Next', exact: true }).click();
+        await typedStep(SAAS, 'CP4');
+        await choiceStep(SAAS, 'CP5');
+        await stepBtn('CP6').click();
+        const cp6 = stepOf('CP6');
+        await cp6.getByLabel('Your insight').fill('Expansion and contraction move the MRR, so report each movement on its own line.');
+        await cp6.getByRole('button', { name: 'Save the insight' }).click();
+        await cp6.locator('.case-model h3', { hasText: 'The model answer' }).waitFor();
+        await cp6.locator('.case-ticks input[type="checkbox"]').first().check();
+        await cp6.getByRole('button', { name: 'Save the rubric' }).click();
+        await cp6.getByText('Rubric saved.').waitFor();
+        const status = (await getJson<{ status: string }>(`/api/cases/${SAAS}`)).body.status;
+        expect(status === 'solved', `${SAAS} is ${status}, not solved`);
+        // M1: with one SaaS case solved on this server, Progress counts it (8b-4 only sees the empty log).
+        await p.goto(`${BASE}/#/progress`);
+        await p.locator('section.progress').waitFor();
+        const saasGoal = p.locator('[data-progress="goals"] li[data-goal="G-SQL-LEVEL-6"]');
+        await saasGoal.waitFor();
+        const saasLines = (await saasGoal.locator('li[data-criterion-met]').allInnerTexts()).map((t) => (t.trim().split('\n')[0] ?? '').trim());
+        const saasLine = saasLines.find((t) => /^SaaS cases solved/.test(t));
+        expect(saasLine === 'SaaS cases solved: 1 of 5', `after ${SAAS}, G-SQL-LEVEL-6's SaaS line reads "${saasLine}"`);
+
+        const folder = await mkdtemp(join(tmp, 'portfolio-8b1-'));
+        const set = await postJson<unknown>('/api/settings', { key: 'portfolio_folder', value: folder });
+        expect(set.status === 200, `the portfolio folder setting answered ${set.status}`);
+        await p.goto(`${BASE}/#/portfolio`);
+        await p.locator('p[data-folder="ready"]').waitFor();
+        const entry = p.locator(`li[data-case="${SAAS}"]`);
+        await entry.waitFor();
+        const replied = p.waitForResponse((r) => r.url().endsWith(`/api/cases/${SAAS}/export`) && r.request().method() === 'POST');
+        await entry.getByRole('button', { name: /^Export/ }).click();
+        const res = await replied;
+        const files = ((await res.json()) as { files?: string[] }).files;
+        expect(res.status() === 200 && Array.isArray(files) && files.length === 2, `${SAAS}'s export answered ${res.status()}`);
+        await p.getByRole('status').filter({ hasText: new RegExp(`^Saved ${SAAS}-\\d{4}-\\d{2}-\\d{2}\\.md and `) }).waitFor();
+        const names = (await readdir(folder)).sort();
+        expect(names.join() === [...files!].sort().join(), `${SAAS}: the folder holds ${names.length} files, the reply named ${files!.length}`);
+        const md = names.find((n) => n.endsWith('.md'));
+        expect(md !== undefined, `${SAAS}: the export wrote no .md page`);
+        const page = await readFile(join(folder, md), 'utf8');
+        const lines = page.split(/\r?\n/);
+        expect(lines[0] === `# ${saas.title}` && page.includes(SAAS), `${SAAS}: the page does not name the case`);
+        expect(lines.some((l) => l === '**Data source:** Fictional, generated data: LedgerLoop'), `${SAAS}: the page lacks LedgerLoop's data source line`);
+        return `${SAAS} was opened from the inbox, CP1 to CP5 answered rightly (CP3 Correct), CP6's insight and rubric saved, the case solved; its export wrote ${names.length} files and the page names the case and holds "Data source: Fictional, generated data: LedgerLoop"`;
       });
 
       await browser.close();

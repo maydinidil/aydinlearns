@@ -1,0 +1,95 @@
+{
+  "id": "EX-SQL-PAT-01-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "top_n_per_group",
+    "rank",
+    "ties_share",
+    "sales"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-PAT-01"
+  ],
+  "template_id": "T-PAT-01-choose-top-1-ties-share",
+  "template_params": {
+    "table": "sales",
+    "group": "category",
+    "n": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Which query returns, for each category, the product or products with the highest net revenue in 2025, in the columns category_name, product_id and revenue? Use the sales rows whose order_date falls in 2025 (a UTC day). When products of a category tie for the highest revenue, they share the place and every one of them is kept.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o3a49403",
+      "text": "WITH product_rev AS (  -- one row per product with sales in 2025\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product with sales in 2025\n  SELECT category_name, product_id, revenue,\n         ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id) AS rnk\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rnk = 1",
+      "misconception_id": "ERR-LOG-40"
+    },
+    {
+      "oid": "o3352400",
+      "text": "WITH ranked AS (  -- one row per sales row of 2025\n  SELECT category_name, product_id, net_revenue_eur AS revenue,\n         RANK() OVER (PARTITION BY category_name ORDER BY net_revenue_eur DESC) AS rnk\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rnk = 1",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "o9f1a196",
+      "text": "WITH product_rev AS (  -- one row per product with sales in 2025\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product with sales in 2025\n  SELECT category_name, product_id, revenue,\n         RANK() OVER (PARTITION BY category_name ORDER BY revenue DESC) AS rnk\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rnk = 1",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2b4a005",
+      "text": "WITH product_rev AS (  -- one row per product with sales in 2025\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product with sales in 2025\n  SELECT category_name, product_id, revenue,\n         RANK() OVER (ORDER BY revenue DESC) AS rnk\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rnk = 1",
+      "misconception_id": "ERR-LOG-37"
+    }
+  ]
+}

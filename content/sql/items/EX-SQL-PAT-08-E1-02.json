@@ -1,0 +1,158 @@
+{
+  "id": "EX-SQL-PAT-08-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "lag",
+    "case",
+    "activation_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-CASE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-flag-day",
+  "template_params": {
+    "table": "activation_events",
+    "day": "2025-10-14"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Mailvora wants to see which activation events open a session. For each activation event on 14 October 2025 (the UTC day of event_ts, a UTC instant), show new_session: 1 when the event is the user's first event that day or comes more than 30 minutes after the user's previous event that day, and 0 otherwise. An event exactly 30 minutes after the one before is not a new session. Use only that day's events. When two events of a user share a moment, take them in event_name order, A to Z. Return four columns, in this order: user_id, event_ts, event_name and new_session. Return one row for each event. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "event_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "event_name",
+        "type_class": "text"
+      },
+      {
+        "name": "new_session",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per activation event on 14 October 2025 (UTC)"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "event_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "event_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "new_session",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "user_id",
+      "event_ts",
+      "event_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the flag: 1 for a first event or a gap of more than 30 minutes, 0 otherwise.",
+    "A first event has a missing prev_ts, and a comparison with a missing value is never true, so test for it on its own."
+  ],
+  "subgoals": [
+    {
+      "from": 74,
+      "to": 113,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 114,
+      "to": 200,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 201,
+      "to": 225,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 226,
+      "to": 338,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 341,
+      "to": 378,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 379,
+      "to": 485,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 486,
+      "to": 495,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The flag is 1 where the user has no earlier event that day or the gap passes 30 minutes, so each 1 marks the start of a session."
+}

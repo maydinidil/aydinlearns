@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-PAT-09-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "promo",
+    "overlap",
+    "fan_out"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-JOIN-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-predict-overlap",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Product 379 is in promotion 56 (29 September to 12 October 2025) and promotion 57 (6 to 19 October 2025). From 6 to 12 October it sold on two order lines, 833167 and 838561, and both carry promotion 57, the deeper one. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT s.order_line_id, p.promo_id\nFROM sales s\nJOIN promotion_products pp ON pp.product_id = s.product_id\nJOIN promotions p ON p.promo_id = pp.promo_id\n  AND s.order_date BETWEEN p.start_date AND p.end_date\nWHERE s.product_id = 379\n  AND s.order_date BETWEEN DATE '2025-10-06' AND DATE '2025-10-12'",
+  "options": [
+    {
+      "oid": "of9fd3d4",
+      "text": "Each line once, with promotion 57",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "order_line_id",
+          "promo_id"
+        ],
+        "rows": [
+          [
+            833167,
+            57
+          ],
+          [
+            838561,
+            57
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oc022699",
+      "text": "Each line twice, once for each promotion",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "order_line_id",
+          "promo_id"
+        ],
+        "rows": [
+          [
+            833167,
+            56
+          ],
+          [
+            833167,
+            57
+          ],
+          [
+            838561,
+            56
+          ],
+          [
+            838561,
+            57
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oad6c4e2",
+      "text": "Each line once, with promotion 56",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "order_line_id",
+          "promo_id"
+        ],
+        "rows": [
+          [
+            833167,
+            56
+          ],
+          [
+            838561,
+            56
+          ]
+        ]
+      }
+    }
+  ]
+}

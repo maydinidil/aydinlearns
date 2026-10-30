@@ -1,0 +1,253 @@
+{
+  "id": "EX-SQL-PAT-10-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "bridge",
+    "currency"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-bridge-per-currency",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Finance keeps one MRR bridge per currency, with no conversion. For each month of 2025 and each currency, give opening MRR (every event dated before the month's first day, opening events included), the new, expansion, reactivation, contraction and churn MRR of the events dated in the month, and closing MRR (every event dated up to the month's last day), all in that currency. Contraction and churn keep their negative sign, so opening plus the five movements is closing. Each event's event_type names its movement (new, expansion, contraction, churn or reactivation); a reactivation is an account coming back after it churned, never new MRR. Leave out the opening events: they carry the MRR subscriptions already had when the data starts on 1 January 2024. A movement with no event shows 0. Return nine columns, in this order: month_start, currency, opening_mrr, new_mrr, expansion_mrr, reactivation_mrr, contraction_mrr, churn_mrr and closing_mrr. Return one row for each month of 2025 and each currency. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "currency",
+        "type_class": "text"
+      },
+      {
+        "name": "opening_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churn_mrr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "closing_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "currency",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "opening_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "new_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "expansion_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "reactivation_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "contraction_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "churn_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "closing_mrr",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start",
+      "currency"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give every month and currency a row, join the events up to the month's end, and sum each movement on its own.",
+    "A movement column needs the event in the month and of its type; ELSE 0 makes a quiet month show 0 rather than missing."
+  ],
+  "subgoals": [
+    {
+      "from": 48,
+      "to": 160,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 206,
+      "to": 251,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 303,
+      "to": 369,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 370,
+      "to": 398,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 399,
+      "to": 462,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 465,
+      "to": 498,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 499,
+      "to": 594,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 595,
+      "to": 712,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 713,
+      "to": 842,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 843,
+      "to": 978,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 979,
+      "to": 1112,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1113,
+      "to": 1234,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1235,
+      "to": 1274,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1275,
+      "to": 1288,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1289,
+      "to": 1312,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1313,
+      "to": 1407,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1408,
+      "to": 1442,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Kept per currency, each bridge adds up exactly with no rate at all, and opening plus the month's movements is closing."
+}

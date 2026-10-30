@@ -1,0 +1,134 @@
+{
+  "concept_id": "SQL-PAT-08",
+  "version": 2,
+  "reading_md": "## Sessions: grouping a user's events into visits\n\nEvent tables hold one row per click, page or action. A session groups one user's events that happen close together: a new session starts when the user has been quiet for longer than a set gap, often 30 minutes. Analysts count sessions, measure how long they last and see which event opens them.\n\n### Three steps\n\n1. **The gap.** LAG brings the user's previous event onto each row: `LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id)`. PARTITION BY keeps each user apart; without it, the row before can be another user's event, and two people's visits blur into one.\n2. **The flag.** A CASE gives 1 when the event starts a session and 0 when it continues one.\n3. **The number.** A running SUM of the flags, per user in time order, numbers the sessions: 1, 1, 1, 2, 2. Write the frame out: `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`.\n\nThen GROUP BY user and session number turns events into sessions: MIN gives the start, MAX the end, COUNT the events.\n\n### The first event starts a session\n\nA user's first event has no event before it, so its LAG is missing, and any comparison with a missing value is never true. Test for it on its own: `prev_ts IS NULL OR ...`. Forget it and every user loses one session.\n\n### Measure the gap in time\n\nSubtract the two moments and compare the interval itself: `event_ts - prev_ts > INTERVAL '30 minutes'`, or compare epoch seconds with 1800. Two slips look right at a glance:\n- seconds compared with 30, so almost every event opens a session;\n- `date_diff('minute', prev_ts, event_ts)`, which counts minute boundaries crossed: 09:06:50 to 09:36:51 is over 30 minutes, yet it crosses only 30 boundaries.\n\nThe question also says what a gap of exactly 30 minutes does. \"More than 30 minutes\" keeps it in the session (`>`); \"30 minutes or more\" starts a new one (`>=`).\n\n### Instants, not clock times\n\n`event_ts` here is a UTC instant. On 26 October 2025 the clocks in Brussels and Amsterdam went back an hour, so two events 35 minutes apart can read 02:45 and then 02:20 on the wall clock. Work every gap out on the instants; turn a moment into local time only for the day or hour you report.\n\n### WHERE runs before the window\n\nFilter to one day and LAG sees only that day, so each user's first event that day starts a session. That is right when the question uses only that day's events. When the question works sessions out over the whole history, read the gaps in a CTE first and filter afterwards.\n\n### Ties\n\nTwo events of a user at the same moment get a gap of 0, which never opens a session, but which of them comes first decides which row carries the flag. End the window's ORDER BY with a tie-break, such as `event_id`.",
+  "syntax_md": "```sql\nWITH gaps AS (                                  -- one row per event\n  SELECT user_id, event_id, event_ts,\n    LAG(event_ts) OVER (PARTITION BY user_id    -- the gap comes from the same user\n                        ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n), flagged AS (                                 -- one row per event\n  SELECT user_id, event_id, event_ts,\n    CASE WHEN prev_ts IS NULL                   -- the first event starts a session\n           OR event_ts - prev_ts > INTERVAL '30 minutes'\n         THEN 1 ELSE 0 END AS new_session       -- 1 opens a session, 0 continues one\n  FROM gaps\n)\nSELECT user_id, event_id, event_ts,\n  SUM(new_session) OVER (PARTITION BY user_id ORDER BY event_ts, event_id\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS session_no\nFROM flagged;\n```\n\n- Group by `user_id, session_no` for one row per session: `MIN(event_ts)` starts it, `MAX(event_ts)` ends it.\n- `>=` instead of `>` when exactly 30 minutes starts a new session.\n- Report a local day with `timezone('Europe/Brussels', event_ts)`, after the gaps are worked out.",
+  "dialect_note": "Subtracting one timestamp from another gives an interval in DuckDB and PostgreSQL, so `event_ts - prev_ts > INTERVAL '30 minutes'` reads the same in both. `epoch(x)` is DuckDB's; PostgreSQL writes `EXTRACT(EPOCH FROM x)`. A function that counts boundaries, such as DuckDB's `date_diff('minute', a, b)`, is not the number of minutes between two moments in any engine.",
+  "worked_examples": [
+    {
+      "title": "Number each user's sessions",
+      "prompt": "For each app event in November 2025, show its session number for its user. A user's first event starts session 1, and an event more than 30 minutes after the same user's previous event starts the next one. Return event_id, user_id, event_ts and session_no.",
+      "clauses": [
+        {
+          "text": "WITH gaps AS (",
+          "subgoal": "source_grain",
+          "why": "The first step works out each event's gap; a CTE keeps each step readable."
+        },
+        {
+          "text": "  SELECT event_id, user_id, event_ts, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_id) AS prev_ts",
+          "subgoal": "metrics",
+          "why": "LAG reads the same user's previous event; event_id breaks a tie at the same moment."
+        },
+        {
+          "text": "  FROM app_events WHERE event_ts >= TIMESTAMPTZ '2025-11-01 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-12-01 00:00:00+00'",
+          "subgoal": "row_filter",
+          "why": "Only November's events, so each user's first November event has no LAG and starts session 1."
+        },
+        {
+          "text": "), flagged AS (SELECT event_id, user_id, event_ts,",
+          "subgoal": "metrics",
+          "why": "The second step keeps every event and adds the flag."
+        },
+        {
+          "text": "  CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session FROM gaps)",
+          "subgoal": "metrics",
+          "why": "1 marks a session start: a first event, or a gap of more than 30 minutes measured as time."
+        },
+        {
+          "text": "SELECT event_id, user_id, event_ts, SUM(new_session) OVER (PARTITION BY user_id ORDER BY event_ts, event_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS session_no",
+          "subgoal": "metrics",
+          "why": "Adding the flags up in time order gives every event the number of the session it belongs to."
+        },
+        {
+          "text": "FROM flagged",
+          "subgoal": "source_grain",
+          "why": "One row per event, now with its flag."
+        }
+      ]
+    },
+    {
+      "title": "Count each user's sessions on one day",
+      "prompt": "For each Mailvora user with activation events on 14 October 2025 (UTC), count that day's sessions, using only that day's events. Return user_id and sessions.",
+      "clauses": [
+        {
+          "text": "WITH gaps AS (SELECT user_id, event_ts, LAG(event_ts) OVER (PARTITION BY user_id ORDER BY event_ts, event_name) AS prev_ts",
+          "subgoal": "metrics",
+          "why": "Each user's previous activation event that day; Mailvora has no event ID, so event_name breaks a tie."
+        },
+        {
+          "text": "  FROM activation_events WHERE event_ts >= TIMESTAMPTZ '2025-10-14 00:00:00+00' AND event_ts < TIMESTAMPTZ '2025-10-15 00:00:00+00')",
+          "subgoal": "row_filter",
+          "why": "WHERE runs before the window, so LAG sees only that UTC day."
+        },
+        {
+          "text": "SELECT user_id, COUNT(*) FILTER (WHERE prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes') AS sessions",
+          "subgoal": "metrics",
+          "why": "Counting the session starts counts the sessions: each session has exactly one."
+        },
+        {
+          "text": "FROM gaps",
+          "subgoal": "source_grain",
+          "why": "One row per event with its gap."
+        },
+        {
+          "text": "GROUP BY user_id",
+          "subgoal": "output_grain",
+          "why": "One row per user."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-PAT-08-E1-01",
+    "EX-SQL-PAT-08-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-PAT-08-E1-03",
+    "EX-SQL-PAT-08-E1-04",
+    "EX-SQL-PAT-08-E2-01",
+    "EX-SQL-PAT-08-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-PAT-08-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-PAT-08-E1-06",
+    "EX-SQL-PAT-08-E1-07",
+    "EX-SQL-PAT-08-E2-03",
+    "EX-SQL-PAT-08-E2-04",
+    "EX-SQL-PAT-08-E2-05",
+    "EX-SQL-PAT-08-E2-06",
+    "EX-SQL-PAT-08-E3-01",
+    "EX-SQL-PAT-08-E3-02",
+    "EX-SQL-PAT-08-E2-31",
+    "EX-SQL-PAT-08-E2-32",
+    "EX-SQL-PAT-08-E1-42",
+    "EX-SQL-PAT-08-E2-41",
+    "EX-SQL-PAT-08-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "why_clause": {
+    "clause": "  CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session FROM gaps)",
+    "stem": "Why does the flag test prev_ts IS NULL before the gap?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A user's first event has no previous event, so its gap is missing and the comparison alone would give it 0."
+      },
+      {
+        "id": "b",
+        "text": "To leave out the events whose time was not recorded."
+      },
+      {
+        "id": "c",
+        "text": "Because LAG returns 0 on the first row, which would look like a gap of 0 minutes."
+      },
+      {
+        "id": "d",
+        "text": "To stop two users' events from being compared with each other."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "LAG gives a missing value on each user's first row, and a comparison with a missing value is never true, so without the IS NULL test the CASE falls to 0 and the first session is never counted. LAG returns missing, not 0, and keeping users apart is the job of PARTITION BY."
+  }
+}

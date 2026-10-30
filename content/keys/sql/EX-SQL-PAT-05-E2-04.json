@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E2-04",
+  "item_version": 2,
+  "reference_sql": "SELECT sa.order_month AS month,\n  SUM(CASE WHEN st.country_code = 'NL' THEN sa.net_revenue_eur ELSE 0 END) AS nl_revenue_eur,\n  SUM(CASE WHEN st.country_code = 'BE' THEN sa.net_revenue_eur ELSE 0 END) AS be_revenue_eur,\n  SUM(CASE WHEN st.country_code = 'LU' THEN sa.net_revenue_eur ELSE 0 END) AS lu_revenue_eur\nFROM sales sa\nJOIN stores st ON st.store_code = sa.store_code\nWHERE sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY sa.order_month",
+  "alternatives": [
+    "SELECT month, COALESCE(nl, 0) AS nl_revenue_eur, COALESCE(be, 0) AS be_revenue_eur, COALESCE(lu, 0) AS lu_revenue_eur\nFROM (\n  -- one row per order line of 2025\n  SELECT sa.order_month AS month, st.country_code, sa.net_revenue_eur\n  FROM sales sa\n  JOIN stores st ON st.store_code = sa.store_code\n  WHERE sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n) AS r\nPIVOT (SUM(net_revenue_eur) FOR country_code IN ('NL' AS nl, 'BE' AS be, 'LU' AS lu) GROUP BY month)",
+    "SELECT sa.order_month AS month,\n  COALESCE(SUM(sa.net_revenue_eur) FILTER (WHERE st.country_code = 'NL'), 0) AS nl_revenue_eur,\n  COALESCE(SUM(sa.net_revenue_eur) FILTER (WHERE st.country_code = 'BE'), 0) AS be_revenue_eur,\n  COALESCE(SUM(sa.net_revenue_eur) FILTER (WHERE st.country_code = 'LU'), 0) AS lu_revenue_eur\nFROM sales sa\nJOIN stores st ON st.store_code = sa.store_code\nWHERE sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY sa.order_month"
+  ],
+  "other_way": {
+    "sql": "SELECT month, COALESCE(nl, 0) AS nl_revenue_eur, COALESCE(be, 0) AS be_revenue_eur, COALESCE(lu, 0) AS lu_revenue_eur\nFROM (\n  -- one row per order line of 2025\n  SELECT sa.order_month AS month, st.country_code, sa.net_revenue_eur\n  FROM sales sa\n  JOIN stores st ON st.store_code = sa.store_code\n  WHERE sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n) AS r\nPIVOT (SUM(net_revenue_eur) FOR country_code IN ('NL' AS nl, 'BE' AS be, 'LU' AS lu) GROUP BY month)",
+    "tradeoff": "PIVOT with an IN list writes the three columns for you, but it is DuckDB only, and its sums still need COALESCE for 0."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT sa.order_month AS month, SUM(CASE WHEN st.country_code = 'NL' THEN sa.net_revenue_eur END) AS nl_revenue_eur, SUM(CASE WHEN st.country_code = 'BE' THEN sa.net_revenue_eur END) AS be_revenue_eur, SUM(CASE WHEN st.country_code = 'LU' THEN sa.net_revenue_eur END) AS lu_revenue_eur FROM sales sa JOIN stores st ON st.store_code = sa.store_code WHERE sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY sa.order_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT sa.order_month AS month, SUM(CASE WHEN st.country_code = 'NL' THEN sa.net_revenue_eur ELSE 0 END) AS nl_revenue_eur, SUM(CASE WHEN st.country_code = 'BE' THEN sa.net_revenue_eur ELSE 0 END) AS be_revenue_eur, SUM(CASE WHEN st.country_code = 'LU' THEN sa.net_revenue_eur ELSE 0 END) AS lu_revenue_eur FROM sales sa JOIN stores st ON st.store_code = sa.store_code WHERE sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY sa.order_month, sa.channel"
+    }
+  ],
+  "hint3_partial": "SELECT sa.order_month AS month,\n  SUM(CASE WHEN st.country_code = 'NL' THEN sa.net_revenue_eur ELSE 0 END) AS nl_revenue_eur,\n  SUM(CASE WHEN ___ THEN sa.net_revenue_eur ELSE 0 END) AS be_revenue_eur,\n  SUM(CASE WHEN st.country_code = 'LU' THEN sa.net_revenue_eur ELSE 0 END) AS lu_revenue_eur\nFROM sales sa\nJOIN stores st ON st.store_code = sa.store_code\nWHERE sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY sa.order_month",
+  "solver": {
+    "prompt_hash": "cf2d08f0c5439f69",
+    "schema_version": "5dbd771f9d51",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT date_trunc('month', s.order_date)::DATE AS month,\n  COALESCE(SUM(CASE WHEN st.country_code = 'NL' THEN s.net_revenue_eur END), 0) AS nl_revenue_eur,\n  COALESCE(SUM(CASE WHEN st.country_code = 'BE' THEN s.net_revenue_eur END), 0) AS be_revenue_eur,\n  COALESCE(SUM(CASE WHEN st.country_code = 'LU' THEN s.net_revenue_eur END), 0) AS lu_revenue_eur\nFROM sales s JOIN stores st ON st.store_code = s.store_code\nWHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01'\n  AND st.country_code IN ('NL','BE','LU')\nGROUP BY 1\n",
+    "at": "2026-10-28T16:44:11.337Z"
+  }
+}

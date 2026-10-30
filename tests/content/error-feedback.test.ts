@@ -284,8 +284,9 @@ test('S7-24: ERR-LOG-40 to ERR-LOG-43 carry the names ERRATA E-200 gives them, u
     assert.equal(levelOf.get(w.concept), 5, `${w.concept} is a level 5 concept`);
     assert.ok(NEW_ERRORS.some((x) => x.id === id), `${id} is one of the extract's NEW_ERRORS, so npm run extract keeps it`);
   }
-  // S7-C02: averaging a ratio over a rolling window is ERR-LOG-20's mechanism, so S7-24's ERR-LOG-44 is not created.
-  assert.ok(!byId.has('ERR-LOG-44'), 'no ERR-LOG-44: ERR-LOG-20 names averaging ratios');
+  // S7-C02: averaging a ratio over a rolling window is ERR-LOG-20's mechanism, so S7-24's ERR-LOG-44 was not created. Sprint 8 (S8-08)
+  // gives the number to level 6's funnel step, so ERR-LOG-44 is never the rolling ratio.
+  assert.equal(byId.get('ERR-LOG-44')?.name, 'A funnel step counted without the step before it', 'ERR-LOG-44 is S8-08\'s funnel ID, not the rolling ratio');
   assert.match(byId.get('ERR-LOG-20')!.name, /Averaging ratios instead of dividing sums/);
   assert.match(errata, /^\| E-200 \| fix \|[^\n]*ERR-LOG-20's mechanism/m, 'E-200 keeps ERR-LOG-20 for the rolling ratio');
 });
@@ -389,4 +390,195 @@ test('every level 5 must-have trap is in the catalogue with feedback, under a co
     }
   }
   assert.deepEqual(Object.keys(LEVEL5_TRAPS), curriculum.concepts.filter((c) => c.level === 5).map((c) => c.id), 'every level 5 concept, in order');
+});
+
+// ---- S8-08: the level 6 IDs (sprint 8, Task A1; ERRATA E-209) ---------------------------------------------------------------------
+
+/**
+ * S8-08: level 6's new IDs, in the shape of S6-11's and S7-24's: ERR-LOG-44 to -47 from S8-08, and ERR-LOG-48 to -51 from the
+ * controller's ruling S8-C06. The names are the rulings', typed here because the controller writes ERRATA E-209 after the task: once
+ * E-209 is there, it must give each ID the same name. Each fact behind the templates and the feedback was checked on DuckDB 1.5.6 in
+ * memory (Task A1 report): 1 February to 1 March is 28 days and one calendar month, 15 January to 14 March is 58 days and two months on
+ * first-of-month dates, 31 January to 1 February is 1 day and one month, a ROWS frame that ends at 1 PRECEDING gives MAX a missing value
+ * on a group's first row, 20 / 120 is 16.7%, and 1,200 / 12 is 100.
+ */
+const LEVEL6_IDS: Record<string, { concept: string; name: string; mistake: string; fix: string; says: RegExp; model: RegExp }> = {
+  'ERR-LOG-44': { concept: 'SQL-PAT-07', name: 'A funnel step counted without the step before it',
+    mistake: 'Counting each step\'s users on their own counts a user who reached a later step without the step before it, such as a purchase with no view, so a later step can hold users the step before it never had.',
+    fix: 'Count a user at a step only when the same user reached the step before it, and after it when the question says the steps happen in order.',
+    says: /without|no product view/, model: /MIN\(CASE WHEN event_name = '\w+' THEN event_ts END\)[\s\S]*COUNT\(CASE WHEN \w+ >= \w+ THEN 1 END\)/ },
+  'ERR-LOG-45': { concept: 'SQL-PAT-07', name: 'A funnel rate divided by the wrong step',
+    mistake: 'A step rate divides a step\'s users by the users of the step right before it, and an overall rate divides them by the top of the funnel, so dividing by the other one gives a real-looking rate that answers a different question.',
+    fix: 'Read which base the question names, the step before or the first step, and divide by that step\'s count.',
+    says: /step right before|top of the funnel/, model: /NULLIF\(carts, 0\)[\s\S]*NULLIF\(viewers, 0\)/ },
+  'ERR-LOG-46': { concept: 'SQL-PAT-06', name: 'Cohort months worked out from days divided by 30',
+    mistake: 'Months have 28 to 31 days, so a day count divided by 30 drifts away from calendar months and puts some activity in the wrong month of its cohort.',
+    fix: 'Count calendar months instead, with date_diff(\'month\', cohort_month, activity_month) on dates cut to the first of their month.',
+    says: /28 to 31 days|divided by 30/, model: /date_diff\('month', date_trunc\('month', \w+\), date_trunc\('month', \w+\)\)/ },
+  'ERR-LOG-47': { concept: 'SQL-PAT-10', name: 'A returning account booked as new',
+    mistake: 'An account that comes back after it churned goes from 0 MRR to more than 0, just as a new one does, so a rule that looks only at the month before books its return as new business instead of a reactivation.',
+    fix: 'Call a move from 0 new only when the account never had MRR in an earlier month, and a reactivation when it did.',
+    says: /churned|comes back/, model: /ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING[\s\S]*'reactivation'/ },
+  // S8-C06 (controller ruling on Task A1's concern 4): four more, where no existing ID fits a LVL-06 mistake.
+  'ERR-LOG-48': { concept: 'SQL-PAT-03', name: 'A partial period compared with a full one',
+    mistake: 'The data ends partway through its last period, so that period holds fewer days than the full one before it, and a change between them shows a fall that is only the missing days.',
+    fix: 'Leave out a period that is not complete, or compare the same days in each, as the question says.',
+    says: /fewer days|ends on/, model: /MAX\(order_date\) FROM sales[\s\S]*order_date < date_trunc\('month', \(SELECT MAX\(order_date\) FROM sales\)\)/ },
+  'ERR-LOG-49': { concept: 'SQL-PAT-03', name: 'A change worked out the wrong way round',
+    mistake: 'A change is the new value minus the old one, and growth divides it by the old value, so old minus new flips the sign and dividing by the new value gives another number.',
+    fix: 'Subtract the earlier value from the later one and divide by the earlier one: (new - old) / old, which is new / old - 1.',
+    says: /Old minus new|by the new/, model: /revenue \/ NULLIF\(LAG\(revenue\) OVER \(ORDER BY order_month\), 0\) - 1/ },
+  'ERR-LOG-50': { concept: 'SQL-PAT-06', name: 'A cohort dated by the wrong event',
+    mistake: 'A cohort is the month of the event the question names, such as the signup or the first payment, so dating it by another event puts customers in the wrong cohort or leaves them out.',
+    fix: 'Take the cohort date from the event the question names, as each customer\'s first one with MIN, and check one customer by hand.',
+    says: /signed up in January/, model: /MIN\(p\.paid_at\)[\s\S]*signup_ts/ },
+  'ERR-LOG-51': { concept: 'SQL-PAT-10', name: 'An annual plan\'s price counted as one month\'s MRR',
+    mistake: 'An annual plan\'s price pays for 12 months, so counting it as one month\'s MRR makes that account\'s MRR 12 times too big.',
+    fix: 'Divide an annual plan\'s price by 12, after any annual discount, before you add it to MRR.',
+    says: /12 months/, model: /price_eur \/ 12\.0/ },
+};
+/** E-209's fix row, once the controller has written it; until then the ERRATA half of the name test is skipped. */
+const e209 = errata.match(/^\| E-209 \| fix \|[^\n]*/m)?.[0];
+
+test('S8-08, S8-C06: ERR-LOG-44 to ERR-LOG-51 carry the rulings\' names, under their level 6 concepts, detected by a planted match', () => {
+  for (const [id, w] of Object.entries(LEVEL6_IDS)) {
+    const e = byId.get(id);
+    assert.ok(e, `${id} is in errors.json: run npm run extract`);
+    assert.deepEqual({ ...e, feedback_template: '' }, { id, category: 'LOG', name: w.name, detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '', concept_id: w.concept });
+    assert.equal(concepts[id], w.concept, `${id} in error-concepts.json`);
+    assert.equal(levelOf.get(w.concept), 6, `${w.concept} is a level 6 concept`);
+    assert.ok(NEW_ERRORS.some((x) => x.id === id), `${id} is one of the extract's NEW_ERRORS, so npm run extract keeps it`);
+  }
+  // The eight come last in errors.json, after sprint 7's, so the catalogue only grows.
+  assert.deepEqual(Object.keys(LEVEL6_IDS), Array.from({ length: 8 }, (_, i) => `ERR-LOG-${44 + i}`));
+  assert.deepEqual(errors.slice(-8).map((e) => e.id), Object.keys(LEVEL6_IDS));
+});
+
+test('S8-08: E-209 gives each level 6 ID the name errors.json holds', { skip: !e209 && 'ERRATA E-209 is written by the controller after Task A1' }, () => {
+  for (const [id, w] of Object.entries(LEVEL6_IDS)) assert.equal(e209!.match(new RegExp(`${id} "([^"]+)"`))?.[1], w.name, `E-209 names ${id}`);
+});
+
+test('S8-08: each level 6 ID\'s template is its whole line: the mistake, then its fix, in two sentences', () => {
+  for (const [id, w] of Object.entries(LEVEL6_IDS)) {
+    const t = byId.get(id)?.feedback_template ?? '';
+    assert.equal(t, `${w.mistake} ${w.fix}`, `${id}: the template names the mistake, then the fix`);
+    for (const s of [w.mistake, w.fix]) assert.equal(sentences(s), 1, `${id}: one sentence each`);
+    assert.doesNotMatch(t, /—|\{[a-z_]+\}/, `${id}: no em dash, no placeholder`);
+    assert.doesNotMatch(t, /\bqualify\b|\bpivot\b/i, `${id}: portable`);
+  }
+});
+
+test('S8-08: each level 6 ID has its own refutation feedback: what was assumed, why it fails, and the fix', () => {
+  const assumed = new Set<string>([...Object.keys(NEW_IDS), ...Object.keys(LEVEL5_IDS)].map((id) => feedback[id]!.assumed));
+  for (const [id, w] of Object.entries(LEVEL6_IDS)) {
+    const f = feedback[id];
+    houseShape(id, f);
+    assert.notEqual(f!.assumed, feedback['ERR-LOG-00']!.assumed, `${id} is not the fallback text`);
+    assert.ok(!assumed.has(f!.assumed), `${id} repeats another ID's text`);
+    assumed.add(f!.assumed);
+    assert.match(`${f!.assumed} ${f!.why}`, w.says, `${id}: the feedback names the mistake`);
+    assert.match(f!.model, w.model, `${id}: the model names the fix`);
+    assert.doesNotMatch(f!.model, /\bqualify\b|\bpivot\b/i, `${id}: the model is portable`);
+    assert.doesNotMatch(JSON.stringify(f), /\{[a-z_]+\}/, `${id} needs no placeholder`);
+  }
+});
+
+test('the level 6 feedback wording teaches what DuckDB 1.5.6 does (wording only: tests/grader/error-ids-8a.test.ts runs the plants)', () => {
+  const f = (id: string) => text(feedback[id]!);
+  // A later step counted on its own can be bigger than the one before it.
+  assert.match(f('ERR-LOG-44'), /over 100%/);
+  // 120 buyers over 300 carts is 40%; over 2,000 viewers it is 6%; the step rates multiplied give the overall rate.
+  assert.match(f('ERR-LOG-45'), /120 buyers out of 300[^.]*40%/);
+  assert.match(f('ERR-LOG-45'), /2,000 viewers is 6%/);
+  assert.match(feedback['ERR-LOG-45']!.model, /multiplied together/);
+  // 1 February to 1 March: 28 days, month 0 by days / 30; 15 January to 14 March: 58 days, 1 by days / 30, month 2 by calendar.
+  assert.match(f('ERR-LOG-46'), /1 February to 1 March is 28 days/);
+  assert.match(f('ERR-LOG-46'), /58 days/);
+  assert.match(f('ERR-LOG-46'), /31 January to 1 February is 1 day/);
+  assert.match(feedback['ERR-LOG-46']!.model, /January to March is 2/);
+  // The bridge still adds up, so nothing warns; the model keeps the first month's missing values apart with COALESCE.
+  assert.match(f('ERR-LOG-47'), /still adds up/);
+  assert.match(feedback['ERR-LOG-47']!.model, /COALESCE\(mrr_before, 0\) = 0 THEN 'new'/);
+  // F2 seam 2 (M-2, M-3): the model's step pair is in the order Mailvora's activation_events holds it (DuckDB 1.5.6, read-only:
+  // 17,745 users create an automation at or after their first campaign; no user imports a list before it), and a step with a time
+  // window counts only the users inside it.
+  assert.match(feedback['ERR-LOG-44']!.model, /'first_campaign_sent'[\s\S]*'automation_created'[\s\S]*COUNT\(CASE WHEN automation_at >= sent_at THEN 1 END\)/);
+  assert.doesNotMatch(feedback['ERR-LOG-44']!.model, /list_imported/, 'no Mailvora user imports a list at or before the first campaign');
+  assert.match(feedback['ERR-LOG-44']!.model, /time window, such as within 7 days[^.]*later is not at that step[\s\S]*automation_at <= sent_at \+ INTERVAL 7 DAY/);
+  // Data that ends on 10 March gives March 10 days against February's 28.
+  assert.match(f('ERR-LOG-48'), /ends on 10 March, March holds 10 days and February 28/);
+  // F2 seam 2 (I-1): a store or account there for only part of a period is a partial period too, so compare like for like.
+  assert.match(feedback['ERR-LOG-48']!.assumed, /every store or account/);
+  assert.match(feedback['ERR-LOG-48']!.why, /opened or closed during one of the periods is a partial period too/);
+  assert.match(feedback['ERR-LOG-48']!.model, /like for like[^.]*whole of both periods[^.]*opened_on <= DATE '2024-01-01' AND close_date IS NULL/);
+  // 100 to 120 is +20 and 20%; old minus new is -20; over the new 120 it is 16.7%.
+  assert.match(f('ERR-LOG-49'), /gives -20/);
+  assert.match(f('ERR-LOG-49'), /16\.7% instead of 20%/);
+  // A January signup who first pays in March is in two different cohorts; a customer with no payment has no first-payment month.
+  assert.match(f('ERR-LOG-50'), /January cohort by signup and the March cohort by first payment/);
+  assert.match(f('ERR-LOG-50'), /leaves that customer out/);
+  // 1,200 a year is 100 of MRR.
+  assert.match(f('ERR-LOG-51'), /1,200 a year is 100 of MRR, not 1,200/);
+});
+
+test('S8-C08: ERR-LOG-18\'s feedback holds when the rows match and when the other direction picks other rows; it never says the rows are right', () => {
+  const f = feedback['ERR-LOG-18']!;
+  houseShape('ERR-LOG-18', f);
+  assert.doesNotMatch(text(f), /rows are right/, 'a ranking or LIMIT in the wrong direction has the wrong rows');
+  // The order check's case (server/grader/grade.ts, source 'order'): every row matches, only the order is off.
+  assert.match(f.why, /even if every row is right/);
+  // A plant's case (level 5 ranks, a top N, the row kept per key): the other direction picks other rows.
+  assert.match(f.why, /picks the rows from the other end, so the rows themselves come out wrong too/);
+  assert.match(f.model, /\bDESC\b[\s\S]*\bASC\b/);
+  assert.match(f.model, /inside OVER/);
+  assert.match(f.model, /ROW_NUMBER\(\) OVER \(PARTITION BY product_id ORDER BY valid_from DESC\)/);
+});
+
+/**
+ * S8-08 (E-209): every mistake on 01's LVL-06 cards, in card order, with the ID a planted query uses for it. The eight new IDs where
+ * S8-08 and S8-C06 put them; an existing ID everywhere else; ERR-LOG-00 only for revenue uplift reported without the margin loss, as the
+ * prompt names the measure (S8-C06). PIVOT in a portable answer is no wrong result: DuckDB 1.5.6 runs a PIVOT with an IN list with
+ * S8-09's note and refuses one without (tests/runner/gate.test.ts).
+ */
+const LEVEL6_MAPPING: [concept: string, mistake: number, ids: string[]][] = [
+  ['SQL-PAT-01', 1, ['ERR-LOG-07']], ['SQL-PAT-01', 2, ['ERR-LOG-37']], ['SQL-PAT-01', 3, ['ERR-LOG-40']],
+  ['SQL-PAT-02', 1, ['ERR-LOG-36']], ['SQL-PAT-02', 2, ['ERR-LOG-41', 'ERR-LOG-18']], ['SQL-PAT-02', 3, ['ERR-LOG-36']],
+  ['SQL-PAT-03', 1, ['ERR-LOG-39']], ['SQL-PAT-03', 2, ['ERR-LOG-48']], ['SQL-PAT-03', 3, ['ERR-LOG-21', 'ERR-LOG-49']],
+  ['SQL-PAT-04', 1, ['ERR-LOG-39']], ['SQL-PAT-04', 2, ['ERR-LOG-07', 'ERR-LOG-01']], ['SQL-PAT-04', 3, ['ERR-LOG-17']],
+  ['SQL-PAT-05', 1, ['ERR-LOG-03']], ['SQL-PAT-05', 2, ['ERR-LOG-17']], ['SQL-PAT-05', 3, []],
+  ['SQL-PAT-06', 1, ['ERR-LOG-50']], ['SQL-PAT-06', 2, ['ERR-LOG-04']], ['SQL-PAT-06', 3, ['ERR-LOG-46']],
+  ['SQL-PAT-07', 1, ['ERR-LOG-04']], ['SQL-PAT-07', 2, ['ERR-LOG-44']], ['SQL-PAT-07', 3, ['ERR-LOG-45']],
+  ['SQL-PAT-08', 1, ['ERR-LOG-37']], ['SQL-PAT-08', 2, ['ERR-LOG-03']], ['SQL-PAT-08', 3, ['ERR-LOG-34']],
+  ['SQL-PAT-09', 1, ['ERR-LOG-01']], ['SQL-PAT-09', 2, ['ERR-LOG-34', 'ERR-LOG-06']], ['SQL-PAT-09', 3, ['ERR-LOG-00']],
+  ['SQL-PAT-10', 1, ['ERR-LOG-39']], ['SQL-PAT-10', 2, ['ERR-LOG-47']], ['SQL-PAT-10', 3, ['ERR-LOG-51']],
+];
+/** ERR-LOG-39's concept, SQL-PAT-04, comes right after SQL-PAT-03; S7-24 already names it for date gaps before its own concept. */
+const LEVEL6_LATER = new Map([['SQL-PAT-03', new Set(['ERR-LOG-39'])]]);
+
+test('S8-08: every mistake on 01\'s LVL-06 cards has its ID: in the catalogue, with feedback, under a concept at or before its own', async () => {
+  const bank = await readFile('knowledge/01_sql_curriculum.md', 'utf8');
+  const level6 = bank.slice(bank.indexOf('#### LVL-06 Business patterns'), bank.indexOf('#### LVL-07'));
+  const cards = [...level6.matchAll(/\*\*(SQL-PAT-\d\d) [^*]+\*\*[\s\S]*?\| Mistakes \| ([^\n]*) \|/g)].map((m) => [m[1]!, (m[2]!.match(/(?:^|\s)\d\. /g) ?? []).length] as const);
+  assert.deepEqual(cards.map(([c]) => c), curriculum.concepts.filter((c) => c.level === 6).map((c) => c.id), 'every level 6 card, in order');
+  for (const [concept, n] of cards) {
+    assert.deepEqual(LEVEL6_MAPPING.filter(([c]) => c === concept).map(([, i]) => i), Array.from({ length: n }, (_, i) => i + 1), `${concept}: one row per card mistake`);
+  }
+  for (const [concept, n, ids] of LEVEL6_MAPPING) {
+    for (const id of ids) {
+      const e = byId.get(id);
+      assert.ok(e, `${concept} mistake ${n}: ${id} is in errors.json`);
+      assert.ok(feedback[id], `${id} has feedback`);
+      if (LEVEL6_LATER.get(concept)?.has(id)) assert.equal(orderOf.get(e.concept_id), orderOf.get(concept)! + 1, `${id} is the one later ID at ${concept}`);
+      else assert.ok(orderOf.get(e.concept_id)! <= orderOf.get(concept)!, `${concept} mistake ${n}: ${id} (${e.concept_id}) comes at or before it`);
+    }
+  }
+  // Each new ID maps exactly the mistake S8-08 or S8-C06 gives it, and nothing else.
+  const where = (id: string) => LEVEL6_MAPPING.filter(([, , ids]) => ids.includes(id)).map(([c, n]) => `${c} ${n}`);
+  assert.deepEqual(Object.keys(LEVEL6_IDS).map(where), [['SQL-PAT-07 2'], ['SQL-PAT-07 3'], ['SQL-PAT-06 3'], ['SQL-PAT-10 2'],
+    ['SQL-PAT-03 2'], ['SQL-PAT-03 3'], ['SQL-PAT-06 1'], ['SQL-PAT-10 3']]);
+  // S8-C06: revenue uplift without the margin loss stays ERR-LOG-00, as the prompt names the measure; nothing else falls back.
+  assert.deepEqual(where('ERR-LOG-00'), ['SQL-PAT-09 3']);
+  assert.deepEqual(where('ERR-LOG-43'), [], 'the partial month is ERR-LOG-48, not the moving-average ID');
+  // The brief's own example: a spine joined with INNER JOIN is ERR-LOG-39.
+  assert.deepEqual(where('ERR-LOG-39'), ['SQL-PAT-03 1', 'SQL-PAT-04 1', 'SQL-PAT-10 1']);
 });

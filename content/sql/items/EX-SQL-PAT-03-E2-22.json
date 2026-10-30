@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-PAT-03-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "year_over_year",
+    "like_for_like",
+    "stores",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-like-for-like",
+  "template_params": {
+    "table": "sales",
+    "period": "year"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each country Voltmarkt's stores are in (the store's own country_code in stores), compare like-for-like net revenue in 2025 with 2024. Like for like means only stores open for the whole of both years: stores that opened on or before 1 January 2024 and have no close_date (the webshop counts as a store in its own country). Order dates are UTC days. Return four columns, in this order: country_code, revenue_2024_eur, revenue_2025_eur and growth_pct, the change as a percentage of the 2024 revenue (12.5 for 12.5%), rounded to 1 decimal. Return one row for each country with such a store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_2024_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_2025_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "growth_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_2024_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "revenue_2025_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "growth_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list the stores open for both whole years with their country, then add up their revenue per country and year.",
+    "A store that opened in 2024 sold for only part of that year, so it would turn its new months into growth; 2024 is the base."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 683,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 684,
+      "to": 740,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 741,
+      "to": 831,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 832,
+      "to": 850,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Only stores open for both whole years count, so growth compares the same stores over the same months, with 2024 as the base."
+}

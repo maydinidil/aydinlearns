@@ -1,0 +1,204 @@
+{
+  "id": "EX-SQL-PAT-02-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "latest_per_key",
+    "row_number",
+    "plans"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-predict-result-latest-row",
+  "template_params": {
+    "table": "plans",
+    "key": "plan_name"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Which result does this query return? plans holds six rows: Starter at 290.00 from 2019-01-01 and at 349.00 from 2025-02-01; Growth 890.00, Scale 2400.00 and Enterprise with a missing price, each from 2019-01-01; AP Automation 300.00 from 2022-03-01.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "WITH ranked AS (\n  SELECT plan_name, list_price_eur_month, valid_from,\n         ROW_NUMBER() OVER (PARTITION BY plan_name ORDER BY valid_from DESC) AS rn\n  FROM plans\n)\nSELECT plan_name, list_price_eur_month\nFROM ranked\nWHERE rn = 1",
+  "options": [
+    {
+      "oid": "o6da5b2b",
+      "text": "5 rows, Starter at 290.00",
+      "misconception_id": "ERR-LOG-18",
+      "table": {
+        "columns": [
+          "plan_name",
+          "list_price_eur_month"
+        ],
+        "rows": [
+          [
+            "Starter",
+            "290.00"
+          ],
+          [
+            "Growth",
+            "890.00"
+          ],
+          [
+            "Scale",
+            "2400.00"
+          ],
+          [
+            "Enterprise",
+            null
+          ],
+          [
+            "AP Automation",
+            "300.00"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oe8f9853",
+      "text": "6 rows, both Starter prices",
+      "misconception_id": "ERR-LOG-36",
+      "table": {
+        "columns": [
+          "plan_name",
+          "list_price_eur_month"
+        ],
+        "rows": [
+          [
+            "Starter",
+            "290.00"
+          ],
+          [
+            "Starter",
+            "349.00"
+          ],
+          [
+            "Growth",
+            "890.00"
+          ],
+          [
+            "Scale",
+            "2400.00"
+          ],
+          [
+            "Enterprise",
+            null
+          ],
+          [
+            "AP Automation",
+            "300.00"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "obda3557",
+      "text": "5 rows, Starter at 349.00",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "plan_name",
+          "list_price_eur_month"
+        ],
+        "rows": [
+          [
+            "Starter",
+            "349.00"
+          ],
+          [
+            "Growth",
+            "890.00"
+          ],
+          [
+            "Scale",
+            "2400.00"
+          ],
+          [
+            "Enterprise",
+            null
+          ],
+          [
+            "AP Automation",
+            "300.00"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oe99e8eb",
+      "text": "4 rows, Starter at 349.00 and no Enterprise",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "plan_name",
+          "list_price_eur_month"
+        ],
+        "rows": [
+          [
+            "Starter",
+            "349.00"
+          ],
+          [
+            "Growth",
+            "890.00"
+          ],
+          [
+            "Scale",
+            "2400.00"
+          ],
+          [
+            "AP Automation",
+            "300.00"
+          ]
+        ]
+      }
+    }
+  ]
+}

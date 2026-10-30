@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-04",
+  "item_version": 1,
+  "reference_sql": "WITH days AS (\n  -- one row per day, 1 to 14 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.revenue_eur, 0) AS revenue_eur\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n), moving AS (\n  -- one row per day, with the 7 days ending that day\n  SELECT day, AVG(revenue_eur) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d_eur\n  FROM filled\n)\nSELECT day, ROUND(avg_7d_eur, 2) AS avg_7d_eur\nFROM moving\nWHERE day >= DATE '2025-03-07'",
+  "alternatives": [
+    "WITH days AS (\n  -- one row per day, 1 to 14 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.revenue_eur, 0) AS revenue_eur\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n)\nSELECT f.day, ROUND(SUM(p.revenue_eur) / 7, 2) AS avg_7d_eur\nFROM filled f\nJOIN filled p ON p.day BETWEEN f.day - 6 AND f.day\nWHERE f.day >= DATE '2025-03-07'\nGROUP BY f.day",
+    "WITH days AS (\n  -- one row per day, 1 to 14 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.revenue_eur, 0) AS revenue_eur\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n), moving AS (\n  -- one row per day, with the 7 days ending that day\n  SELECT day, SUM(revenue_eur) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) / 7 AS avg_7d_eur\n  FROM filled\n)\nSELECT day, ROUND(avg_7d_eur, 2) AS avg_7d_eur\nFROM moving\nWHERE day >= DATE '2025-03-07'"
+  ],
+  "other_way": {
+    "sql": "WITH days AS (\n  -- one row per day, 1 to 14 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.revenue_eur, 0) AS revenue_eur\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n)\nSELECT f.day, ROUND(SUM(p.revenue_eur) / 7, 2) AS avg_7d_eur\nFROM filled f\nJOIN filled p ON p.day BETWEEN f.day - 6 AND f.day\nWHERE f.day >= DATE '2025-03-07'\nGROUP BY f.day",
+    "tradeoff": "A self-join on the six days before adds up the window by date, but it is longer and slower than a ROWS frame over a full spine."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH daily AS (SELECT order_date AS day, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE store_code = 'NL-01' AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14' GROUP BY order_date), moving AS (SELECT day, AVG(revenue_eur) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d_eur FROM daily) SELECT day, ROUND(avg_7d_eur, 2) AS avg_7d_eur FROM moving WHERE day >= DATE '2025-03-07'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH days AS (\n  -- one row per day, 1 to 14 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, s.revenue_eur\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n), moving AS (SELECT day, AVG(revenue_eur) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d_eur FROM filled) SELECT day, ROUND(avg_7d_eur, 2) AS avg_7d_eur FROM moving WHERE day >= DATE '2025-03-07'"
+    }
+  ],
+  "hint3_partial": "WITH days AS (\n  -- one row per day, 1 to 14 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n  GROUP BY order_date\n), filled AS (\n  -- one row per day of the range\n  SELECT d.day, COALESCE(s.revenue_eur, 0) AS revenue_eur\n  FROM days d\n  LEFT JOIN daily s ON s.day = d.day\n), moving AS (\n  -- one row per day, with the 7 days ending that day\n  SELECT day, AVG(revenue_eur) OVER (ORDER BY day ROWS BETWEEN ___ AND CURRENT ROW) AS avg_7d_eur\n  FROM filled\n)\nSELECT day, ROUND(avg_7d_eur, 2) AS avg_7d_eur\nFROM moving\nWHERE day >= DATE '2025-03-07'",
+  "solver": {
+    "prompt_hash": "3f6c57186253e1c2",
+    "schema_version": "bfa72b600579",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH days AS (\n  SELECT CAST(d AS DATE) AS day FROM generate_series(DATE '2025-03-01', DATE '2025-03-14', INTERVAL 1 DAY) t(d)\n), r AS (\n  SELECT order_date AS day, SUM(net_revenue_eur) AS rev\n  FROM sales\n  WHERE store_code = 'NL-01' AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-14'\n  GROUP BY order_date\n), w AS (\n  SELECT d.day, AVG(COALESCE(r.rev, 0)) OVER (ORDER BY d.day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d\n  FROM days d LEFT JOIN r ON r.day = d.day\n)\nSELECT day, ROUND(avg_7d, 2) AS avg_7d_eur\nFROM w\nWHERE day >= DATE '2025-03-07'\n",
+    "at": "2026-10-28T14:57:05.090Z"
+  }
+}

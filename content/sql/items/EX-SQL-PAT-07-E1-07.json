@@ -1,0 +1,158 @@
+{
+  "id": "EX-SQL-PAT-07-E1-07",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "users_per_step",
+    "leads",
+    "opportunities"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-lead-funnel-by-source",
+  "template_params": {
+    "funnel": "lead, opportunity, won",
+    "unit": "contact",
+    "period": "2024",
+    "by": "source"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each lead source, how many contacts reached each step of the 2024 sales funnel? Take the leads created in 2024 (created_at, Brussels local time); a contact counts under every source it had a 2024 lead from. A contact is one email address, compared exactly as stored. A contact counts as with_opportunity when one of its leads from that source has an opportunity, and as won when one of those opportunities is won. The steps need no date order: an opportunity counts whenever it was created, and a won one whenever it closed, even in a later year. Return four columns, in this order: source, contacts, with_opportunity and won, each count a number of contacts. Return one row for each source. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "contacts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "with_opportunity",
+        "type_class": "numeric"
+      },
+      {
+        "name": "won",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "contacts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "with_opportunity",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "won",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "source"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the three step counts per source as numbers of distinct email addresses.",
+    "A contact can have two leads, so count distinct emails, keep the leads with no opportunity through an outer join, and group by the lead's source."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 92,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 95,
+      "to": 147,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 150,
+      "to": 215,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 218,
+      "to": 322,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 325,
+      "to": 539,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 540,
+      "to": 555,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 556,
+      "to": 571,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Distinct emails count contacts, not leads, and the outer join keeps the contacts whose leads never became an opportunity."
+}

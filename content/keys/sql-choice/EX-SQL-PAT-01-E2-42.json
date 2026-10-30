@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "oa71951f",
+  "explanation": "ROW_NUMBER restarted in each segment, the highest MRR first and account_id settling a tie, numbers every account apart, so rn <= 2 keeps exactly 2 per segment. RANK gives tied accounts the same number and keeps a third account when two tie for second, a numbering with no PARTITION BY keeps 2 accounts in all, and the ascending order keeps the 2 lowest.",
+  "solver": {
+    "prompt_hash": "fea8c7e472a5881b",
+    "grader_version": "choice.3",
+    "chosen": "oa71951f",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.747Z"
+  }
+}

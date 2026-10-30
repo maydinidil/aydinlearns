@@ -567,3 +567,11 @@ test('GET /api/progress reads only, agrees with GET /api/goals/progress on every
   for (const k of ['active_ms', 'minutes', 'window_weeks', 'time_target_ms', 'days', 'study_time']) assert.match(k, DURATION_KEY, k);
   for (const k of ['iso_week', 'week', 'starts', 'effective_date', 'today', 'from', 'to']) assert.doesNotMatch(k, DURATION_KEY, k);
 });
+
+test('S8-18 Progress: the SaaS criterion reads "SaaS cases solved" with 4 of 5, the opener not counted (S8-C27)', () => {
+  const g = goalOf('G-SQL-LEVEL-6', '2026-12-23', [{ kind: 'case_solved', world: 'SAAS', count: 5 }]);
+  const mk = (n: number, kind: 'inbox' | 'opener') => ({ case_id: `C-${n}`, level: 6, exported: false, real: false, world: 'SAAS', kind });
+  const solved = [mk(0, 'opener'), mk(1, 'inbox'), mk(2, 'inbox'), mk(3, 'inbox'), mk(4, 'inbox')];
+  const c = progressGoals([g], fakeView({}, { casesSolved: solved }), {}, TODAY, titleOf)[0]!.criteria[0]!;
+  assert.deepEqual([c.label, c.done, c.total, c.met], ['SaaS cases solved', 4, 5, false]);
+});

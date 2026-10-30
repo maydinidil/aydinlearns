@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-PAT-03-E3-21",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "quarter_over_quarter",
+    "mrr",
+    "fx_rates",
+    "percent_change",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-qoq-mrr-fx",
+  "template_params": {
+    "table": "subscription_events",
+    "period": "quarter end"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each quarter end of 2025, show LedgerLoop's total MRR in euros and its growth since the quarter end before, as a percentage of the earlier MRR (12.5 for 12.5%), rounded to 1 decimal. A subscription's MRR on a date is the sum of its subscription_events.mrr_delta_local with event_date on or before that date, in the subscription's currency. Convert every amount at one fixed rate: the fx_rates row of 31 December 2025 for its currency, whatever the quarter. fx_rates holds a row for every day of 2024 and 2025, so it can also list the quarter ends. The quarter end before 31 March 2025 is 31 December 2024, so the first quarter has a growth too. Return three columns, in this order: quarter_end, mrr_eur rounded to 2 decimals, and growth_pct, worked out from the unrounded MRR. Return one row for each quarter end of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "quarter_end",
+        "type_class": "temporal"
+      },
+      {
+        "name": "mrr_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "growth_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "quarter_end",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "growth_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "quarter_end"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list the quarter ends from December 2024 on (the last day fx_rates holds in each quarter), then convert each event at the fixed 31 December 2025 rate and sum the events up to each quarter end.",
+    "Work out the quarter before with a window over all five quarter ends, then keep only 2025; the earlier quarter end is the base."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 844,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 845,
+      "to": 894,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 895,
+      "to": 968,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 969,
+      "to": 982,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 983,
+      "to": 1021,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "One fixed rate keeps currency moves out of the growth, the window sees December 2024 before the filter, and the earlier quarter end is the base."
+}

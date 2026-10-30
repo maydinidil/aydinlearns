@@ -1,0 +1,93 @@
+{
+  "id": "EX-SQL-PAT-05-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "pivot",
+    "conditional_aggregation",
+    "subscriptions"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-choose-wide-counts",
+  "template_params": {
+    "table": "subscriptions"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Finance wants one row for each account segment with the number of LedgerLoop subscriptions running on 31 December 2025, billed monthly and billed annually, and 0 where a segment has none of a kind. A subscription runs on that day when its start_date is on or before it and its end_date is missing or after it. Which query returns that, with the columns segment, monthly_subs and annual_subs?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o964ae2e",
+      "text": "SELECT a.segment,\n  SUM(CASE WHEN s.billing_period = 'monthly' THEN 1 END) AS monthly_subs,\n  SUM(CASE WHEN s.billing_period = 'annual' THEN 1 END) AS annual_subs\nFROM subscriptions s\nJOIN accounts a ON a.account_id = s.account_id\nWHERE s.start_date <= DATE '2025-12-31'\n  AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31')\nGROUP BY a.segment",
+      "misconception_id": "ERR-LOG-17"
+    },
+    {
+      "oid": "oda058ea",
+      "text": "SELECT a.segment,\n  COUNT(*) FILTER (WHERE s.billing_period = 'monthly') AS monthly_subs,\n  COUNT(*) FILTER (WHERE s.billing_period = 'annual') AS annual_subs\nFROM subscriptions s\nJOIN accounts a ON a.account_id = s.account_id\nWHERE s.start_date <= DATE '2025-12-31'\n  AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31')\nGROUP BY a.segment",
+      "misconception_id": null
+    },
+    {
+      "oid": "o506535b",
+      "text": "SELECT a.segment,\n  COUNT(*) FILTER (WHERE s.billing_period = 'monthly') AS monthly_subs,\n  COUNT(*) FILTER (WHERE s.billing_period = 'annual') AS annual_subs\nFROM subscriptions s\nJOIN accounts a ON a.account_id = s.account_id\nWHERE s.start_date <= DATE '2025-12-31'\n  AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31')\nGROUP BY a.segment, s.billing_period",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "o768bd18",
+      "text": "SELECT a.segment,\n  COUNT(s.billing_period = 'monthly') AS monthly_subs,\n  COUNT(s.billing_period = 'annual') AS annual_subs\nFROM subscriptions s\nJOIN accounts a ON a.account_id = s.account_id\nWHERE s.start_date <= DATE '2025-12-31'\n  AND (s.end_date IS NULL OR s.end_date > DATE '2025-12-31')\nGROUP BY a.segment",
+      "misconception_id": "ERR-LOG-04"
+    }
+  ]
+}

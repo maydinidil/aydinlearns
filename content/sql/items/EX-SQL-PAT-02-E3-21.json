@@ -1,0 +1,174 @@
+{
+  "id": "EX-SQL-PAT-02-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "row_number",
+    "tie_break",
+    "range_join",
+    "competitor_prices",
+    "price_history"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-JOIN-04",
+    "SQL-DATE-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-PAT-02-latest-per-key-joined",
+  "template_params": {
+    "table": "competitor_prices",
+    "key": "product",
+    "scope": "TV & Video",
+    "join": "price_history"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "How does the latest competitor price of each TV & Video product compare with Voltmarkt's own list price? Use each product's competitor check with the latest observed_ts, exactly one per product; observed_ts holds UTC time. When two checks of a product tie on observed_ts, the one whose competitor comes first alphabetically is kept. Compare its price_eur with the product's list_price_eur in price_history on the UTC day of that check: the version whose valid_from is on or before that day and whose valid_to is missing or on or after it. Return four columns, in this order: product_id, competitor_price (the check's price_eur), list_price_eur and gap_eur, competitor_price minus list_price_eur. Return one row for each TV & Video product with a competitor check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "competitor_price",
+        "type_class": "numeric"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "gap_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "competitor_price",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "gap_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep each TV & Video product's latest check, then join price_history on the product and on the day of the check falling inside the version's dates.",
+    "Pick the check first, with the stated tie-break, and only then join the price version in force that day."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 233,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 234,
+      "to": 364,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 365,
+      "to": 405,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 409,
+      "to": 468,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 469,
+      "to": 539,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 540,
+      "to": 553,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 554,
+      "to": 568,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 571,
+      "to": 686,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 687,
+      "to": 844,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The keep-one step picks one latest check per product before the range join finds the list price in force on that day."
+}

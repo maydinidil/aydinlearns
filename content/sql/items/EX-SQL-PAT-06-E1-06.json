@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-PAT-06-E1-06",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "cohort_size",
+    "activation"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-cohort-size-and-conversion",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "event": "first_campaign_sent",
+    "period": "2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each signup month of 2025, how many users signed up, and how many of them have been activated? A user's cohort month is the month of signup_ts, a UTC instant, read in UTC. A user is activated at the user's first_campaign_sent event, whenever it happened. Return three columns, in this order: cohort_month (the first day of the month), cohort_users and activated_users. Return one row for each month of 2025 in which at least one user signed up. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "cohort_users",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activated_users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "cohort_users",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activated_users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find the users who have a first_campaign_sent event, each once.",
+    "Keep every user of the cohort, activated or not, so the join to the activated users must not drop anyone; then count both groups per signup month."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 50,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 53,
+      "to": 76,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 79,
+      "to": 101,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 104,
+      "to": 144,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 147,
+      "to": 293,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 294,
+      "to": 355,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 356,
+      "to": 468,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 469,
+      "to": 490,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The LEFT JOIN keeps every user who signed up, and COUNT(a.user_id) counts only those with an activation, each once."
+}

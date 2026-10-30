@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-07-E2-42",
+  "item_version": 1,
+  "correct_oid": "od2df7a7",
+  "explanation": "The step rate divides the paid users by the step right before them, the activated users: 20 over 80 is 0.25. The overall rate divides them by the top of the funnel: 20 over 200 is 0.1. 0.4 is the activation rate, 80 over 200, and swapping the two bases gives the two numbers the wrong way round.",
+  "solver": {
+    "prompt_hash": "18807f1368776928",
+    "grader_version": "choice.3",
+    "chosen": "od2df7a7",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.790Z"
+  }
+}

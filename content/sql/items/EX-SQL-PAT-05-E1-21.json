@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-PAT-05-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "pivot",
+    "conditional_aggregation",
+    "accounts",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-DATE-01",
+    "SQL-PAT-05"
+  ],
+  "template_id": "T-PAT-05-segment-by-year",
+  "template_params": {
+    "table": "accounts",
+    "columns": "year"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each account segment, how many LedgerLoop accounts were created in 2024 and how many in 2025? created_at holds Brussels time: take the year as stored. Return three columns, in this order: segment, created_2024 and created_2025. A year with no new account in a segment shows 0. Return one row for each segment with an account created in either year. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "created_2024",
+        "type_class": "numeric"
+      },
+      {
+        "name": "created_2025",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "created_2024",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "created_2025",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the accounts by segment and count each year in its own column.",
+    "Each count keeps only the accounts created in its year, so a segment with no new account that year shows 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 15,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 16,
+      "to": 148,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 149,
+      "to": 162,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 163,
+      "to": 265,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 266,
+      "to": 282,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Two filtered counts give each segment one row with both years, and 0 for a year with no new account."
+}

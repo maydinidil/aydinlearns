@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT segment,\n  COUNT(*) FILTER (WHERE year(created_at) = 2024) AS created_2024,\n  COUNT(*) FILTER (WHERE year(created_at) = 2025) AS created_2025\nFROM accounts\nWHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'\n  AND created_at < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY segment",
+  "alternatives": [
+    "SELECT segment, \"2024\" AS created_2024, \"2025\" AS created_2025\nFROM (\n  -- one row per account created in 2024 or 2025\n  SELECT segment, year(created_at) AS yr\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'\n    AND created_at < TIMESTAMP '2026-01-01 00:00:00'\n) AS a\nPIVOT (COUNT(*) FOR yr IN (2024, 2025) GROUP BY segment)",
+    "SELECT segment,\n  SUM(CASE WHEN year(created_at) = 2024 THEN 1 ELSE 0 END) AS created_2024,\n  SUM(CASE WHEN year(created_at) = 2025 THEN 1 ELSE 0 END) AS created_2025\nFROM accounts\nWHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'\n  AND created_at < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY segment"
+  ],
+  "other_way": {
+    "sql": "SELECT segment, \"2024\" AS created_2024, \"2025\" AS created_2025\nFROM (\n  -- one row per account created in 2024 or 2025\n  SELECT segment, year(created_at) AS yr\n  FROM accounts\n  WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'\n    AND created_at < TIMESTAMP '2026-01-01 00:00:00'\n) AS a\nPIVOT (COUNT(*) FOR yr IN (2024, 2025) GROUP BY segment)",
+    "tradeoff": "PIVOT with an IN list of the two years is shorter, but it runs only on DuckDB."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT segment, SUM(CASE WHEN year(created_at) = 2024 THEN 1 END) AS created_2024, SUM(CASE WHEN year(created_at) = 2025 THEN 1 END) AS created_2025 FROM accounts WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'   AND created_at < TIMESTAMP '2026-01-01 00:00:00' GROUP BY segment"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT segment, COUNT(year(created_at) = 2024) AS created_2024, COUNT(year(created_at) = 2025) AS created_2025 FROM accounts WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'   AND created_at < TIMESTAMP '2026-01-01 00:00:00' GROUP BY segment"
+    }
+  ],
+  "hint3_partial": "SELECT segment,\n  COUNT(*) FILTER (WHERE ___) AS created_2024,\n  COUNT(*) FILTER (WHERE year(created_at) = 2025) AS created_2025\nFROM accounts\nWHERE created_at >= TIMESTAMP '2024-01-01 00:00:00'\n  AND created_at < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY segment",
+  "solver": {
+    "prompt_hash": "ebc853cee646a00a",
+    "schema_version": "29886570d1a0",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT segment,\n  COUNT(*) FILTER (WHERE created_at >= TIMESTAMP '2024-01-01 00:00:00' AND created_at < TIMESTAMP '2025-01-01 00:00:00') AS created_2024,\n  COUNT(*) FILTER (WHERE created_at >= TIMESTAMP '2025-01-01 00:00:00' AND created_at < TIMESTAMP '2026-01-01 00:00:00') AS created_2025\nFROM accounts\nWHERE created_at >= TIMESTAMP '2024-01-01 00:00:00' AND created_at < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY segment\n",
+    "at": "2026-10-28T14:57:05.844Z"
+  }
+}

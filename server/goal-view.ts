@@ -35,7 +35,7 @@ export function goalView(s: GoalViewSource): GoalView {
   const recordOf = (id: string) => content.case?.(id) ?? content.opener?.(id);
   const casesSolved = [...replay.cases.values()].filter((c) => c.solved).flatMap((c) => {
     const record = recordOf(c.case_id);
-    return record ? [{ case_id: c.case_id, level: record.level, exported: c.exports.length > 0, real: record.data_source?.real === true }] : [];
+    return record ? [{ case_id: c.case_id, level: record.level, exported: c.exports.length > 0, real: record.data_source?.real === true, world: record.world, kind: record.kind }] : [];
   });
   // S6-26: the inbox's own availability (S6-13), counted over the cases on real data.
   const realCasesAvailable = (content.cases?.() ?? content.openers?.() ?? []).filter((r) => r.data_source?.real === true && caseUnavailable(content, r) === null).length;

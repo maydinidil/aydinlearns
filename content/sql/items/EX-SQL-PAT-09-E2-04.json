@@ -1,0 +1,204 @@
+{
+  "id": "EX-SQL-PAT-09-E2-04",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "margin"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-margin-per-unit",
+  "template_params": {
+    "table": "sales",
+    "baseline": "same_length",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "What did each unit earn during a promotion compared with before it? For each promotion that started in 2025 (start_date from 1 January to 31 December 2025), give the gross margin per unit sold on promotion and per unit sold in the baseline, each rounded to 2 decimals with ROUND. A line's gross margin is its net_revenue_eur minus units times unit_cost_eur. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale shows its margin per unit as missing. Return three columns, in this order: promo_id, promo_margin_per_unit and baseline_margin_per_unit. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_margin_per_unit",
+        "type_class": "numeric"
+      },
+      {
+        "name": "baseline_margin_per_unit",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_margin_per_unit",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "baseline_margin_per_unit",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up margin and units in each period, then divide the margin by the units.",
+    "A line's margin is its revenue minus units times unit cost; divide the summed margin by the summed units, not an average of line ratios."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 128,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 129,
+      "to": 146,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 213,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 277,
+      "to": 381,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 382,
+      "to": 396,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 397,
+      "to": 446,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 447,
+      "to": 499,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 500,
+      "to": 521,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 587,
+      "to": 691,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 692,
+      "to": 706,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 707,
+      "to": 763,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 764,
+      "to": 810,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 811,
+      "to": 867,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 868,
+      "to": 889,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 892,
+      "to": 1024,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1025,
+      "to": 1037,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1038,
+      "to": 1083,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1084,
+      "to": 1131,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Margin and units are summed per period before the division, so the margin per unit weighs every unit once."
+}

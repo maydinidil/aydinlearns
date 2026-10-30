@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-PAT-07-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "users_per_step",
+    "app_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-users-per-step",
+  "template_params": {
+    "funnel": "upload, match, export",
+    "period": "2025-11"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How many users reached each step of the month-end close funnel in the app in November 2025? Use the app events whose event_ts, a UTC instant, falls in November 2025 in UTC. A user counts as uploaded with an upload_statement event, as matched with a match_transaction event, and as exported with an export_report event; a user counts at a step only when the user also reached every step before it, in any order within November. Return three columns, in this order: uploaded, matched and exported, each a number of users. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "uploaded",
+        "type_class": "numeric"
+      },
+      {
+        "name": "matched",
+        "type_class": "numeric"
+      },
+      {
+        "name": "exported",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "uploaded",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "matched",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "exported",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, reduce November's events to one row per user, with a 1 or 0 for each step.",
+    "Then add up the users per step, multiplying the flags so a step counts only with every step before it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 82,
+      "to": 360,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 363,
+      "to": 378,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 381,
+      "to": 487,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 490,
+      "to": 506,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 509,
+      "to": 651,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 652,
+      "to": 667,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "One row per user makes every count a count of users, and multiplying the flags requires every step before."
+}

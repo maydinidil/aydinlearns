@@ -1,0 +1,195 @@
+{
+  "id": "EX-SQL-PAT-08-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "running_sum",
+    "app_events",
+    "session_share"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-WIN-04",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-export-session-share",
+  "template_params": {
+    "table": "app_events",
+    "group": "account",
+    "event": "export_report"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Product wants to know how often a session leads to a report. Use every app event in the data. A user's first app event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant, never between clock times. For each account, give its users' number of sessions and the percentage of those sessions that include at least one export_report event, rounded to 1 decimal with ROUND (12.5 for 12.5%). Return three columns, in this order: account_id, sessions and export_session_pct. Return one row for each account with app events. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "account_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "export_session_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "account_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "export_session_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "account_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build one row per session with its number of exports, then work out each account's share.",
+    "The share is the sessions with an export over all sessions, times 100, rounded after the division."
+  ],
+  "subgoals": [
+    {
+      "from": 42,
+      "to": 103,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 104,
+      "to": 188,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 189,
+      "to": 206,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 250,
+      "to": 311,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 312,
+      "to": 420,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 421,
+      "to": 432,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 477,
+      "to": 518,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 519,
+      "to": 658,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 659,
+      "to": 673,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 716,
+      "to": 821,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 822,
+      "to": 837,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 838,
+      "to": 880,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 883,
+      "to": 1012,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1013,
+      "to": 1026,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1027,
+      "to": 1046,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Counting at the session grain first means each session weighs the same in the share, however many events it holds."
+}

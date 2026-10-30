@@ -1,0 +1,201 @@
+{
+  "id": "EX-SQL-PAT-09-E3-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "uplift",
+    "year_over_year"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-uplift-vs-last-year",
+  "template_params": {
+    "table": "order_lines",
+    "baseline": "same_days_last_year",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Days just before a promotion can be unusual, so Pricing also compares each promotion with the same calendar days a year earlier. For each promotion that started in 2025 (start_date from 1 January to 31 December 2025), take the units sold on promotion, and the units its products sold from start_date moved back one year to end_date moved back one year, both days included, whatever promotion those lines carry. A line counts for a promotion when it carries it in order_lines.promo_id, and every such line falls within the promotion's dates; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0 units. Give uplift_units, this year's units minus last year's, and uplift_pct, that difference as a percentage of last year's units, rounded to 1 decimal with ROUND (12.5 for 12.5%), or missing when last year's units are 0. Return three columns, in this order: promo_id, uplift_units and uplift_pct. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "uplift_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "uplift_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "uplift_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "uplift_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the units of the promotion's products on the same days one year earlier.",
+    "Move both ends of the promotion back one year with an interval, and keep both end days."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 103,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 104,
+      "to": 121,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 122,
+      "to": 188,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 252,
+      "to": 298,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 299,
+      "to": 313,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 314,
+      "to": 363,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 364,
+      "to": 385,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 475,
+      "to": 517,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 518,
+      "to": 532,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 533,
+      "to": 589,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 590,
+      "to": 636,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 637,
+      "to": 733,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 734,
+      "to": 755,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 758,
+      "to": 951,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 952,
+      "to": 964,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 965,
+      "to": 1010,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1011,
+      "to": 1059,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The same calendar days a year earlier make a baseline of the same length and season, so the uplift is not just a seasonal swing."
+}

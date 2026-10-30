@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-05-E1-41",
+  "item_version": 1,
+  "correct_oid": "o10e13d5",
+  "explanation": "Each CASE gives 1 for an order of its channel and, with no ELSE, a missing value for the rest. SUM skips missing values, and when every value in a group is missing it returns a missing value, not 0: store 1 has no web order, so its web_orders is missing. ELSE 0, or COUNT(*) FILTER (WHERE ...), would show 0 there. The query groups by store only, so it returns one row per store with the channels as columns.",
+  "solver": {
+    "prompt_hash": "e3a3d1f367342c09",
+    "grader_version": "choice.3",
+    "chosen": "o10e13d5",
+    "typed": null,
+    "at": "2026-10-28T14:57:24.769Z"
+  }
+}

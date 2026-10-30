@@ -1,0 +1,151 @@
+{
+  "id": "EX-SQL-PAT-02-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "dedup",
+    "distinct_trap",
+    "fix",
+    "raw_data",
+    "Q-02-01",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-fix-distinct-over-differing-rows",
+  "template_params": {
+    "table": "subscription_events",
+    "per": "event_type",
+    "period": "2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop_raw",
+  "edge_schema": "ledgerloop_edge_clean",
+  "uses_raw": true,
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each event_type, how many rows dated in 2025 arrived, and how many events are left once the copies are removed? These tables may hold errors. Some subscription events arrived twice: two rows of subscription_events are copies of one event when subscription_id, event_type, event_date and mrr_delta_local all match. Keep the row with the lowest event_id. Clean nothing else. Use the rows whose event_date falls in 2025. Return three columns, in this order: event_type, rows_arrived and events. Return one row for each event_type with a row dated in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_type",
+        "type_class": "text"
+      },
+      {
+        "name": "rows_arrived",
+        "type_class": "numeric"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "rows_arrived",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at the columns the copies are matched on: a copy arrived later, so one of those columns differs between the copies.",
+    "Two rows are one event when the four columns the question names match; any other column in the comparison keeps the copies apart."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 80,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 81,
+      "to": 229,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 230,
+      "to": 256,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 257,
+      "to": 331,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 334,
+      "to": 424,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 425,
+      "to": 438,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 439,
+      "to": 458,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH arrived AS (  -- one row per event type of 2025, as the rows arrived\n  SELECT event_type, COUNT(*) AS rows_arrived\n  FROM subscription_events\n  WHERE event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n  GROUP BY event_type\n),\nevents AS (  -- one row per event of 2025\n  SELECT DISTINCT subscription_id, event_type, event_date, mrr_delta_local, recorded_at\n  FROM subscription_events\n  WHERE event_date >= DATE '2025-01-01' AND event_date < DATE '2026-01-01'\n)\nSELECT a.event_type, a.rows_arrived, COUNT(*) AS events\nFROM arrived a\nJOIN events e ON e.event_type = a.event_type\nGROUP BY a.event_type, a.rows_arrived",
+  "time_target_ms": 240000,
+  "why_this_works": "A copy arrived later, so its recorded_at differs: matching on the four event columns alone finds the copies, and only then does each event count once.",
+  "starter_error_id": "ERR-LOG-36"
+}

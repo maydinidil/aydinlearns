@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E1-07",
+  "item_version": 1,
+  "reference_sql": "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(units) AS units\n  FROM weekly_units\n  WHERE week_start BETWEEN DATE '2025-01-06' AND DATE '2025-03-24'\n  GROUP BY week_start\n)\nSELECT week_start, units,\n  units - LAG(units) OVER (ORDER BY week_start) AS change_units\nFROM weekly",
+  "alternatives": [
+    "WITH weeks AS (\n  -- one row per week of the range\n  SELECT DISTINCT week_start\n  FROM calendar\n  WHERE week_start BETWEEN DATE '2025-01-06' AND DATE '2025-03-24'\n), sold AS (\n  -- one row per week with orders\n  SELECT order_week AS week_start, SUM(units) AS units\n  FROM sales\n  WHERE order_week BETWEEN DATE '2025-01-06' AND DATE '2025-03-24'\n  GROUP BY order_week\n), weekly AS (\n  -- one row per week of the range\n  SELECT w.week_start, COALESCE(s.units, 0) AS units\n  FROM weeks w\n  LEFT JOIN sold s ON s.week_start = w.week_start\n)\nSELECT week_start, units,\n  units - LAG(units) OVER (ORDER BY week_start) AS change_units\nFROM weekly",
+    "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(units) AS units\n  FROM weekly_units\n  WHERE week_start BETWEEN DATE '2025-01-06' AND DATE '2025-03-24'\n  GROUP BY week_start\n)\nSELECT w.week_start, w.units, w.units - p.units AS change_units\nFROM weekly w\nLEFT JOIN weekly p ON p.week_start = w.week_start - INTERVAL 7 DAY"
+  ],
+  "other_way": {
+    "sql": "WITH weeks AS (\n  -- one row per week of the range\n  SELECT DISTINCT week_start\n  FROM calendar\n  WHERE week_start BETWEEN DATE '2025-01-06' AND DATE '2025-03-24'\n), sold AS (\n  -- one row per week with orders\n  SELECT order_week AS week_start, SUM(units) AS units\n  FROM sales\n  WHERE order_week BETWEEN DATE '2025-01-06' AND DATE '2025-03-24'\n  GROUP BY order_week\n), weekly AS (\n  -- one row per week of the range\n  SELECT w.week_start, COALESCE(s.units, 0) AS units\n  FROM weeks w\n  LEFT JOIN sold s ON s.week_start = w.week_start\n)\nSELECT week_start, units,\n  units - LAG(units) OVER (ORDER BY week_start) AS change_units\nFROM weekly",
+    "tradeoff": "Building the weeks from calendar and the sales yourself shows where the zeros come from, but weekly_units already holds every week."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH weekly AS (SELECT order_week AS week_start, SUM(units) AS units FROM sales WHERE order_week BETWEEN DATE '2025-01-06' AND DATE '2025-03-24' GROUP BY order_week) SELECT week_start, units, units - LAG(units) OVER (ORDER BY week_start) AS change_units FROM weekly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(units) AS units\n  FROM weekly_units\n  WHERE week_start BETWEEN DATE '2025-01-06' AND DATE '2025-03-24'\n  GROUP BY week_start\n) SELECT week_start, units, LAG(units) OVER (ORDER BY week_start) - units AS change_units FROM weekly"
+    }
+  ],
+  "hint3_partial": "WITH weekly AS (\n  -- one row per week of the range\n  SELECT week_start, SUM(units) AS units\n  FROM weekly_units\n  WHERE week_start BETWEEN DATE '2025-01-06' AND DATE '2025-03-24'\n  GROUP BY week_start\n)\nSELECT week_start, units,\n  units - LAG(units) OVER (ORDER BY ___) AS change_units\nFROM weekly",
+  "solver": {
+    "prompt_hash": "aa0dcdb0176a7161",
+    "schema_version": "821c01e22b59",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH weeks AS (\n  SELECT CAST(w AS DATE) AS week_start\n  FROM generate_series(DATE '2025-01-06', DATE '2025-03-24', INTERVAL 7 DAY) t(w)\n), u AS (\n  SELECT w.week_start, COALESCE(SUM(s.units), 0) AS units\n  FROM weeks w\n  LEFT JOIN sales s ON s.order_week = w.week_start\n  GROUP BY w.week_start\n)\nSELECT week_start, units, units - LAG(units) OVER (ORDER BY week_start) AS change_units\nFROM u\n",
+    "at": "2026-10-28T14:57:02.260Z"
+  }
+}

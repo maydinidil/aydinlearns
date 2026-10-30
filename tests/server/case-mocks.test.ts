@@ -946,3 +946,47 @@ test('S7D-03: an ended case mock whose case the content no longer holds answers 
   const r = await get(again, `/api/mocks/${run.block_id}/review`);
   assert.deepEqual([r.status, (await r.json()).error], [404, "This run's case is no longer in the course."]);
 });
+
+test('S8-19: a take-home open under 24 hours whose case left the content is closed at the next start: one block_close, no run is current, the tutor does not wait, and a second start writes nothing', async () => {
+  const { app, d, run, clock } = await started('take_home');
+  await plan(app, run.block_id);
+  await answerCp(app, run.block_id, 'CP1', true);
+  clock.advance(30);
+  await d.session.end('explicit');                                   // as shutdown() does: the take-home stays open
+  const gone: ContentStore = { ...content, mockCase: (id: string) => (id === run.case.case_id ? undefined : content.mockCase?.(id)) };
+  const closes = async () => (await records(d)).filter((x) => x.record === 'block_close').map((b) => b.block_id);
+  assert.deepEqual(await closes(), [], 'open before the restart');
+  const again = createApp({ ...await deps(clock, d.dir), content: gone });
+  for (let i = 0; i < 100 && (await closes()).length === 0; i++) await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(await closes(), [run.block_id], 'one block_close, written at the start');
+  // The same close a 24-hour one writes: the block_close and the run_end item closes, apart from ids and times.
+  const shape = async (dd: { logger: AttemptLogger }, block: string) => {
+    const rs = await records(dd);
+    const strip = ({ ts: _ts, block_id: _b, item_instance_id: _i, item_id: _it, ...rest }: any) => rest;
+    return { block_close: rs.filter((x) => x.record === 'block_close' && x.block_id === block).map(strip),
+      item_close: rs.filter((x) => x.record === 'item_close').map((x) => strip(x)).filter((x, i, all) => all.findIndex((y) => JSON.stringify(y) === JSON.stringify(x)) === i) };
+  };
+  const ref = await started('take_home');
+  await plan(ref.app, ref.run.block_id);
+  await answerCp(ref.app, ref.run.block_id, 'CP1', true);
+  ref.clock.advance(24 * 60 + 5);
+  await ref.d.session.end('explicit');
+  const refAgain = createApp(await deps(ref.clock, ref.d.dir));
+  await json(get(refAgain, '/api/mocks'));
+  const refCloses = async () => (await records(ref.d)).filter((x) => x.record === 'block_close').length;
+  for (let i = 0; i < 100 && (await refCloses()) === 0; i++) await new Promise((r) => setTimeout(r, 10));
+  const mine = await shape(d, run.block_id), twentyFour = await shape(ref.d, ref.run.block_id);
+  assert.equal(mine.block_close.length, 1);
+  assert.deepEqual(mine.block_close, twentyFour.block_close, 'the block_close has the 24-hour close fields');
+  const reasons = (x: { item_close: any[] }) => [...new Set(x.item_close.map((c) => c.reason))];
+  assert.deepEqual(reasons(mine), reasons(twentyFour), 'and its item closes carry the same reason');
+  assert.deepEqual(reasons(mine), ['run_end']);
+  assert.equal((await json(get(again, '/api/mocks'))).run, null, 'no run is current');
+  assert.equal((await json(get(again, '/api/tutor/status'))).run_on, false, 'the tutor does not wait');
+  const before = (await records(d)).filter((x) => x.record === 'block_close' || x.record === 'item_close').length;
+  const third = createApp({ ...await deps(clock, d.dir), content: gone });
+  await json(get(third, '/api/mocks'));
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal((await records(d)).filter((x) => x.record === 'block_close' || x.record === 'item_close').length, before, 'a second start writes nothing');
+  assert.equal((await get(third, `/api/mocks/${run.block_id}/review`)).status, 404, 'its review keeps the 404');
+});

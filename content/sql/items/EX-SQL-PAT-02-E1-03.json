@@ -1,0 +1,156 @@
+{
+  "id": "EX-SQL-PAT-02-E1-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "row_number",
+    "tie_break",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02"
+  ],
+  "template_id": "T-PAT-02-latest-per-key",
+  "template_params": {
+    "table": "subscription_events",
+    "key": "subscription",
+    "scope": "DE accounts"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "What was the latest recorded MRR change of each subscription of an account in Germany (country_code DE)? A subscription belongs to the country_code of its account. recorded_at is Brussels local time. Keep exactly one change per subscription, the one with the latest recorded_at. When two changes of a subscription tie on recorded_at, the lower event_id is kept. Return four columns, in this order: subscription_id, event_type, mrr_delta_local and recorded_at, from that change. Return one row for each such subscription. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "subscription_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "event_type",
+        "type_class": "text"
+      },
+      {
+        "name": "mrr_delta_local",
+        "type_class": "numeric"
+      },
+      {
+        "name": "recorded_at",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per subscription"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "subscription_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "event_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_delta_local",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "recorded_at",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "subscription_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the outer query: it reads the numbered changes and keeps number 1 of each subscription.",
+    "The number exists only after the CTE has run, so the keep-one filter goes in the outer query's WHERE."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 81,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 82,
+      "to": 263,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 264,
+      "to": 341,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 342,
+      "to": 371,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 374,
+      "to": 438,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 439,
+      "to": 450,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 451,
+      "to": 463,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 374,
+    "stage2": 158
+  },
+  "faded_shape": "WITH ranked AS (  -- one row per MRR change of a subscription of a German account\n  SELECT e.subscription_id, e.event_type, e.mrr_delta_local, e.recorded_at,\n         ROW_NUMBER() OVER (PARTITION BY e.subscription_id ORDER BY e.recorded_at DESC, e.event_id) AS rn\n  FROM subscription_events e\n  JOIN accounts a ON a.account_id = e.account_id\n  WHERE a.country_code = 'DE'\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The outer filter keeps each subscription's change numbered 1, the latest recorded first with event_id settling a tie."
+}

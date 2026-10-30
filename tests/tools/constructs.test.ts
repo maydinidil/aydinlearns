@@ -188,3 +188,34 @@ test('helperCalls lists every helper call by its SQL name, with :: as CAST (fix 
   // Kept in step with the detectors: every example of a helper construct shows at least one call.
   for (const c of map.constructs) if (helperCalls('', c.construct)) for (const ex of c.examples) assert.ok(helperCalls(ex, c.construct)!.length > 0, ex);
 });
+
+// Sprint 8 Task A1 (S8-09): level 6's one syntax the earlier levels lack is DuckDB's PIVOT, named on 01's SQL-PAT-05 card. Its keys use
+// conditional aggregation and PIVOT appears only in an other way (C11), so a key of a concept before SQL-PAT-05 that uses PIVOT or
+// UNPIVOT fails C09. Every other LVL-06 card's syntax is an earlier construct's: QUALIFY and ranking (level 5), LAG, CASE, FILTER,
+// date_diff, BETWEEN and joins. A date spine's generate_series is not new either: ten shipped level 5 keys (SQL-WIN-03, SQL-WIN-05) use
+// it, so it cannot become a level 6 construct without failing them (Task A1 report).
+test('sprint 8 Task A1: pivot (SQL-PAT-05) fires on DuckDB\'s PIVOT and UNPIVOT in each form, and never on conditional aggregation or a look-alike', () => {
+  const entry = map.constructs.find((c: Entry) => c.construct === 'pivot') as Entry;
+  assert.equal(entry?.concept_id, 'SQL-PAT-05');
+  for (const sql of [
+    "PIVOT stores ON country_code IN ('NL', 'BE') USING count(*) GROUP BY city",
+    "pivot_wider stores ON country_code IN ('NL') USING count(*)",
+    "SELECT * FROM stores PIVOT (count(*) FOR country_code IN ('NL', 'BE'))",
+    "WITH s AS (SELECT city, country_code FROM stores) PIVOT s ON country_code IN ('NL') USING count(*)",
+    'UNPIVOT stores ON city, store_code INTO NAME field VALUE val',
+    'SELECT * FROM stores UNPIVOT (val FOR field IN (city, store_code))',
+    'PIVOT_LONGER stores ON city, store_code INTO NAME field VALUE val',
+  ]) assert.ok(detectConstructs(sql).includes('pivot'), sql);
+  for (const sql of [
+    "SELECT city, SUM(CASE WHEN country_code = 'NL' THEN 1 END) AS nl, COUNT(*) FILTER (WHERE country_code = 'BE') AS be FROM stores GROUP BY city",
+    'SELECT city AS pivot_point, store_code AS "pivot" FROM stores',
+    "SELECT city FROM stores WHERE city <> 'PIVOT' -- PIVOT stores ON city",
+  ]) assert.ok(!detectConstructs(sql).includes('pivot'), sql);
+  for (const ex of entry.examples) assert.deepEqual(laterConstructs(ex, 'SQL-PAT-05', map.constructs, curriculum), [], ex);
+  // A key of SQL-AGG-04 (conditional aggregation, SQL-PAT-05's prerequisite) that uses PIVOT fires it as a later construct: C09 fails it.
+  assert.deepEqual(laterConstructs("PIVOT stores ON country_code IN ('NL') USING count(*)", 'SQL-AGG-04', map.constructs, curriculum), ['pivot']);
+});
+test('sprint 8 Task A1: pivot is the one level 6 construct', () => {
+  const level6 = new Set(curriculum.concepts.filter((c) => c.level === 6).map((c) => c.id));
+  assert.deepEqual(map.constructs.filter((c: Entry) => level6.has(c.concept_id)).map((c: Entry) => c.construct), ['pivot']);
+});

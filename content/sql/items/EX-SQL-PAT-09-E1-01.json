@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-PAT-09-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "case",
+    "order_lines",
+    "sales"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-tag-lines",
+  "template_params": {
+    "table": "sales",
+    "from": "2025-04-03",
+    "to": "2025-04-10"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Pricing wants to see which sales of the April promotions' products were made on promotion. Take the products of the promotions that started in April 2025 (start_date from 1 to 30 April 2025), and their sales lines from 3 to 10 April 2025 (both days included). Days are sales.order_date, the UTC day of the order. For each line, show price_type: 'promo' when the line carries a promotion in order_lines.promo_id, and 'full price' when its promo_id is missing. List each line once, even for a product in two such promotions. Return five columns, in this order: order_line_id, product_id, order_date, units and price_type. Return one row for each line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "price_type",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per sales line of those products from 3 to 10 April 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "price_type",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the CASE that names a line 'promo' or 'full price' from its promo_id.",
+    "order_lines holds the promotion each line carries; a missing promo_id means the line sold at full price."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 61,
+      "to": 141,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 142,
+      "to": 154,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 155,
+      "to": 212,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 213,
+      "to": 484,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The promotion a line carries is stored on the line itself, so a CASE on its promo_id tags it without any join to the promotions."
+}

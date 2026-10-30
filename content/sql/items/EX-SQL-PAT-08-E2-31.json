@@ -1,0 +1,156 @@
+{
+  "id": "EX-SQL-PAT-08-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "lag",
+    "app_events",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-fix-partition",
+  "template_params": {
+    "table": "app_events",
+    "month": "2025-10"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many app sessions did the users of each account have in October 2025? Use only the app events from 1 to 31 October 2025 (UTC days of event_ts), so a user's first event in October starts a session. A user's first app event starts a session, and an event more than 30 minutes after the same user's previous event starts a new one; an event exactly 30 minutes later stays in the same session. Measure each gap as the time between the two moments in event_ts, a UTC instant, never between clock times. Return two columns, in this order: account_id and sessions. Return one row for each account with app events in October. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "account_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "account_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "account_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check which rows LAG compares: each gap must come from the same user's previous event.",
+    "Without a partition, the row before can belong to another user of another account, so two users' events look like one session."
+  ],
+  "subgoals": [
+    {
+      "from": 58,
+      "to": 97,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 98,
+      "to": 182,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 183,
+      "to": 200,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 201,
+      "to": 313,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 373,
+      "to": 412,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 413,
+      "to": 521,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 522,
+      "to": 533,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 536,
+      "to": 583,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 584,
+      "to": 596,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 597,
+      "to": 616,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH gaps AS (\n  -- one row per app event in October 2025\n  SELECT user_id, account_id, event_ts,\n    LAG(event_ts) OVER (ORDER BY event_ts, event_id) AS prev_ts\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-01 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n), flagged AS (\n  -- one row per app event in October 2025\n  SELECT user_id, account_id, event_ts,\n    CASE WHEN prev_ts IS NULL OR event_ts - prev_ts > INTERVAL '30 minutes' THEN 1 ELSE 0 END AS new_session\n  FROM gaps\n)\nSELECT account_id, SUM(new_session) AS sessions\nFROM flagged\nGROUP BY account_id",
+  "time_target_ms": 210000,
+  "why_this_works": "PARTITION BY user_id makes LAG read each user's own previous event, so another user's activity never joins a session.",
+  "starter_error_id": "ERR-LOG-37"
+}

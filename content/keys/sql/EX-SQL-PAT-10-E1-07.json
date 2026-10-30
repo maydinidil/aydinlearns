@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-10-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(date_trunc('quarter', e.event_date) AS DATE) AS quarter_start, COUNT(DISTINCT e.account_id) AS accounts,\n  ROUND(SUM(e.mrr_delta_local * f.eur_per_unit), 2) AS reactivation_mrr\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nJOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\nWHERE e.event_type = 'reactivation'\n  AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY CAST(date_trunc('quarter', e.event_date) AS DATE)",
+  "alternatives": [
+    "SELECT CAST(date_trunc('quarter', e.event_date) AS DATE) AS quarter_start,\n  COUNT(DISTINCT e.account_id) FILTER (WHERE e.event_type = 'reactivation') AS accounts,\n  ROUND(SUM(e.mrr_delta_local * f.eur_per_unit) FILTER (WHERE e.event_type = 'reactivation'), 2) AS reactivation_mrr\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nJOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\nWHERE e.event_type <> 'opening'\n  AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY CAST(date_trunc('quarter', e.event_date) AS DATE)\nHAVING COUNT(*) FILTER (WHERE e.event_type = 'reactivation') > 0",
+    "WITH back AS (\n  -- one row per reactivation event in 2025, in euros\n  SELECT CAST(date_trunc('quarter', e.event_date) AS DATE) AS quarter_start, e.account_id, e.mrr_delta_local * f.eur_per_unit AS mrr_eur\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\n  WHERE e.event_type = 'reactivation'\n    AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n)\nSELECT quarter_start, COUNT(DISTINCT account_id) AS accounts, ROUND(SUM(mrr_eur), 2) AS reactivation_mrr\nFROM back\nGROUP BY quarter_start"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(date_trunc('quarter', e.event_date) AS DATE) AS quarter_start,\n  COUNT(DISTINCT e.account_id) FILTER (WHERE e.event_type = 'reactivation') AS accounts,\n  ROUND(SUM(e.mrr_delta_local * f.eur_per_unit) FILTER (WHERE e.event_type = 'reactivation'), 2) AS reactivation_mrr\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nJOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\nWHERE e.event_type <> 'opening'\n  AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY CAST(date_trunc('quarter', e.event_date) AS DATE)\nHAVING COUNT(*) FILTER (WHERE e.event_type = 'reactivation') > 0",
+    "tradeoff": "Filtering inside each aggregate keeps every quarter in the scan, so a HAVING must drop the quarters with no reactivation."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT CAST(date_trunc('quarter', e.event_date) AS DATE) AS quarter_start, COUNT(DISTINCT e.account_id) AS accounts, ROUND(SUM(e.mrr_delta_local * f.eur_per_unit), 2) AS reactivation_mrr FROM subscription_events e JOIN subscriptions s ON s.subscription_id = e.subscription_id JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31' WHERE e.event_type IN ('new', 'reactivation') AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY CAST(date_trunc('quarter', e.event_date) AS DATE)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT CAST(date_trunc('quarter', e.event_date) AS DATE) AS quarter_start, COUNT(DISTINCT e.account_id) AS accounts, ROUND(SUM(e.mrr_delta_local * f.eur_per_unit), 2) AS reactivation_mrr FROM subscription_events e JOIN subscriptions s ON s.subscription_id = e.subscription_id JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = e.event_date WHERE e.event_type = 'reactivation' AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY CAST(date_trunc('quarter', e.event_date) AS DATE)"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(date_trunc('quarter', e.event_date) AS DATE) AS quarter_start, COUNT(___) AS accounts,\n  ROUND(SUM(e.mrr_delta_local * f.eur_per_unit), 2) AS reactivation_mrr\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nJOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\nWHERE e.event_type = ___\n  AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY CAST(date_trunc('quarter', e.event_date) AS DATE)",
+  "solver": {
+    "prompt_hash": "65c26fc21eb3e55e",
+    "schema_version": "cb4c6b99576d",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH ev AS (SELECT e.account_id, a.segment, e.event_type, e.event_date, s.currency, e.mrr_delta_local AS d, e.mrr_delta_local * f.eur_per_unit AS eur\n  FROM subscription_events e JOIN subscriptions s ON s.subscription_id = e.subscription_id JOIN accounts a ON a.account_id = e.account_id\n  JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31') SELECT CAST(date_trunc('quarter', event_date) AS DATE) AS quarter_start, COUNT(DISTINCT account_id) AS accounts, ROUND(SUM(eur), 2) AS reactivation_mrr FROM ev WHERE event_type = 'reactivation' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY 1\n",
+    "at": "2026-10-28T14:57:21.866Z"
+  }
+}

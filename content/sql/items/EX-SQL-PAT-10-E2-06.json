@@ -1,0 +1,222 @@
+{
+  "id": "EX-SQL-PAT-10-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "logos",
+    "spine",
+    "lag"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-WIN-04",
+    "SQL-PAT-04",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-logo-movements",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Count customers rather than euros: for each month of 2025, how many accounts were new, how many came back and how many churned? MRR comes from subscription_events: a subscription's MRR on a date is the sum of its mrr_delta_local with event_date on or before that date, in its subscriptions.currency. Compare each account's MRR at a month end with its MRR at the month end before: from 0 to above 0 is a reactivation when the account had MRR above 0 at an earlier month end (from 31 January 2024 on) and new when it did not; from above 0 to 0 is churn. An account's MRR is the sum over its subscriptions, opening events included, in its own currency. Count each account in the month whose month end shows the change. Return four columns, in this order: month_start (the first day of the month), new_accounts, reactivated_accounts and churned_accounts. Return one row for each month of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "new_accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "reactivated_accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churned_accounts",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "new_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "reactivated_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "churned_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build every account's MRR at every month end, compare each with the one before, and name the change.",
+    "The spine of month ends gives an account a row even at 0, so the history test can see an earlier month above 0."
+  ],
+  "subgoals": [
+    {
+      "from": 83,
+      "to": 197,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 257,
+      "to": 335,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 336,
+      "to": 353,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 354,
+      "to": 379,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 380,
+      "to": 476,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 477,
+      "to": 513,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 570,
+      "to": 606,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 607,
+      "to": 682,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 683,
+      "to": 809,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 810,
+      "to": 828,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 895,
+      "to": 941,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 942,
+      "to": 1251,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1252,
+      "to": 1267,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1268,
+      "to": 1306,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1309,
+      "to": 1376,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1377,
+      "to": 1578,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1579,
+      "to": 1594,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1595,
+      "to": 1648,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Comparing month ends on a full spine, with the history test first, counts a returning account as a reactivation, never as new."
+}

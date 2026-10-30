@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-02-E1-07",
+  "item_version": 1,
+  "reference_sql": "WITH numbered AS (  -- one row per subscription_events row as it arrived\n  SELECT event_id, subscription_id, event_type, event_date,\n         COUNT(*) OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local) AS n_copies,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n)\nSELECT event_id AS kept_event_id, subscription_id, event_type, event_date, n_copies AS copies\nFROM numbered\nWHERE copy_no = 1 AND n_copies > 1",
+  "alternatives": [
+    "SELECT MIN(event_id) AS kept_event_id, subscription_id, event_type, event_date, COUNT(*) AS copies\nFROM subscription_events\nGROUP BY subscription_id, event_type, event_date, mrr_delta_local\nHAVING COUNT(*) > 1",
+    "SELECT t.event_id AS kept_event_id, t.subscription_id, t.event_type, t.event_date, t.n_copies AS copies\nFROM (\n  -- one row per subscription_events row as it arrived\n  SELECT event_id, subscription_id, event_type, event_date,\n         COUNT(*) OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local) AS n_copies,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n) AS t\nWHERE t.copy_no = 1 AND t.n_copies > 1"
+  ],
+  "other_way": {
+    "sql": "SELECT MIN(event_id) AS kept_event_id, subscription_id, event_type, event_date, COUNT(*) AS copies\nFROM subscription_events\nGROUP BY subscription_id, event_type, event_date, mrr_delta_local\nHAVING COUNT(*) > 1",
+    "tradeoff": "GROUP BY on the four event columns with HAVING finds the same copies in one step, but it cannot return the kept row's other columns."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH numbered AS (  -- one row per subscription_events row as it arrived\n  SELECT event_id, subscription_id, event_type, event_date,\n         COUNT(*) OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local) AS n_copies,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id DESC) AS copy_no\n  FROM subscription_events\n)\nSELECT event_id AS kept_event_id, subscription_id, event_type, event_date, n_copies AS copies FROM numbered WHERE copy_no = 1 AND n_copies > 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-36",
+      "sql": "SELECT MIN(event_id) AS kept_event_id, subscription_id, event_type, event_date, COUNT(*) AS copies FROM subscription_events GROUP BY subscription_id, event_type, event_date, mrr_delta_local, recorded_at HAVING COUNT(*) > 1"
+    }
+  ],
+  "hint3_partial": "WITH numbered AS (  -- one row per subscription_events row as it arrived\n  SELECT event_id, subscription_id, event_type, event_date,\n         COUNT(*) OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local) AS n_copies,\n         ROW_NUMBER() OVER (PARTITION BY subscription_id, event_type, event_date, mrr_delta_local ORDER BY event_id) AS copy_no\n  FROM subscription_events\n)\nSELECT event_id AS kept_event_id, subscription_id, event_type, event_date, n_copies AS copies\nFROM numbered\nWHERE ___",
+  "solver": {
+    "prompt_hash": "4c878b163b258597",
+    "schema_version": "3cbf032d825b",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT MIN(event_id) AS kept_event_id, subscription_id, event_type, event_date, COUNT(*) AS copies\nFROM subscription_events\nGROUP BY subscription_id, event_type, event_date, mrr_delta_local\nHAVING COUNT(*) > 1\n",
+    "at": "2026-10-28T14:57:00.563Z"
+  }
+}

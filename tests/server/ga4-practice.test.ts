@@ -69,6 +69,9 @@ const post = (app: Hono, path: string, body: unknown) => app.request(`http://127
 const json = async (r: Response | Promise<Response>): Promise<any> => (await r).json();
 const DAY = 86_400_000;
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+// An instant `ms` ago that is still on today's Amsterdam day: the daily cap counts Amsterdam days, so 60 seconds ago must not be yesterday just after midnight.
+const amsterdamDay = (t: Date) => t.toLocaleDateString('en-CA', { timeZone: 'Europe/Amsterdam' });
+const agoToday = (ms: number) => { const t = new Date(Date.now() - ms); return (amsterdamDay(t) === amsterdamDay(new Date()) ? t : new Date()).toISOString(); };
 
 /** `seed` records are in the attempt log before the app starts, as a learner's earlier history. */
 async function deps(seed: object[] = [], over: Partial<AppDeps> = {}): Promise<AppDeps & { servings: Servings }> {
@@ -276,7 +279,7 @@ test('the GA4 plan\'s step order: reviews due, then the new concept, then practi
 });
 
 test('GA4 has no intake guard; the daily cap of 3 holds the fourth new concept, which the map still starts', async () => {
-  const d = await deps([reading(FIRST, ago(60_000)), reading(SECOND, ago(60_000)), reading(LATE, ago(60_000))]);
+  const d = await deps([reading(FIRST, agoToday(60_000)), reading(SECOND, agoToday(60_000)), reading(LATE, agoToday(60_000))]);
   const input = composerInput({ content, replay: d.state.current(), section: 'ga4', now: new Date(), examDate: null, sessionId: null, pairs: [], retest: null, openers: [] });
   assert.deepEqual([input.useIntakeGuard, input.stats, input.newConceptsToday], [false, { completedPerStudyDay: [], scheduledLast7: { passed: 0, total: 0 } }, 3]);
   const app = createApp(d);

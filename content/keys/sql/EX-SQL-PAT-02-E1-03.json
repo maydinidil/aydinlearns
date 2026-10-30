@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-PAT-02-E1-03",
+  "item_version": 2,
+  "reference_sql": "WITH ranked AS (  -- one row per MRR change of a subscription of a German account\n  SELECT e.subscription_id, e.event_type, e.mrr_delta_local, e.recorded_at,\n         ROW_NUMBER() OVER (PARTITION BY e.subscription_id ORDER BY e.recorded_at DESC, e.event_id) AS rn\n  FROM subscription_events e\n  JOIN accounts a ON a.account_id = e.account_id\n  WHERE a.country_code = 'DE'\n)\nSELECT subscription_id, event_type, mrr_delta_local, recorded_at\nFROM ranked\nWHERE rn = 1",
+  "alternatives": [
+    "SELECT e.subscription_id, e.event_type, e.mrr_delta_local, e.recorded_at\nFROM subscription_events e\nJOIN accounts a ON a.account_id = e.account_id\nWHERE a.country_code = 'DE'\n  AND NOT EXISTS (SELECT 1 FROM subscription_events e2\n                  WHERE e2.subscription_id = e.subscription_id\n                    AND (e2.recorded_at > e.recorded_at OR (e2.recorded_at = e.recorded_at AND e2.event_id < e.event_id)))",
+    "SELECT t.subscription_id, t.event_type, t.mrr_delta_local, t.recorded_at\nFROM (\n  -- one row per MRR change of a subscription of a German account\n  SELECT e.subscription_id, e.event_type, e.mrr_delta_local, e.recorded_at,\n         ROW_NUMBER() OVER (PARTITION BY e.subscription_id ORDER BY e.recorded_at DESC, e.event_id) AS rn\n  FROM subscription_events e\n  JOIN accounts a ON a.account_id = e.account_id\n  WHERE a.country_code = 'DE'\n) AS t\nWHERE t.rn = 1"
+  ],
+  "other_way": {
+    "sql": "SELECT e.subscription_id, e.event_type, e.mrr_delta_local, e.recorded_at\nFROM subscription_events e\nJOIN accounts a ON a.account_id = e.account_id\nWHERE a.country_code = 'DE'\n  AND NOT EXISTS (SELECT 1 FROM subscription_events e2\n                  WHERE e2.subscription_id = e.subscription_id\n                    AND (e2.recorded_at > e.recorded_at OR (e2.recorded_at = e.recorded_at AND e2.event_id < e.event_id)))",
+    "tradeoff": "NOT EXISTS keeps the change no later one beats, which suits engines without windows, but the tie-break is spelled out by hand."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (  -- one row per MRR change of a subscription of a German account\n  SELECT e.subscription_id, e.event_type, e.mrr_delta_local, e.recorded_at,\n         RANK() OVER (PARTITION BY e.subscription_id ORDER BY e.recorded_at DESC) AS rn\n  FROM subscription_events e\n  JOIN accounts a ON a.account_id = e.account_id\n  WHERE a.country_code = 'DE'\n)\nSELECT subscription_id, event_type, mrr_delta_local, recorded_at\nFROM ranked\nWHERE rn = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (  -- one row per MRR change of a subscription of a German account\n  SELECT e.subscription_id, e.event_type, e.mrr_delta_local, e.recorded_at,\n         ROW_NUMBER() OVER (PARTITION BY e.subscription_id ORDER BY e.recorded_at, e.event_id) AS rn\n  FROM subscription_events e\n  JOIN accounts a ON a.account_id = e.account_id\n  WHERE a.country_code = 'DE'\n)\nSELECT subscription_id, event_type, mrr_delta_local, recorded_at\nFROM ranked\nWHERE rn = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH ranked AS (  -- one row per MRR change of a subscription of a German account\n  SELECT e.subscription_id, e.event_type, e.mrr_delta_local, e.recorded_at,\n         ROW_NUMBER() OVER (ORDER BY e.recorded_at DESC, e.event_id) AS rn\n  FROM subscription_events e\n  JOIN accounts a ON a.account_id = e.account_id\n  WHERE a.country_code = 'DE'\n)\nSELECT subscription_id, event_type, mrr_delta_local, recorded_at\nFROM ranked\nWHERE rn = 1"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per MRR change of a subscription of a German account\n  SELECT e.subscription_id, e.event_type, e.mrr_delta_local, e.recorded_at,\n         ROW_NUMBER() OVER (PARTITION BY e.subscription_id ORDER BY e.recorded_at DESC, e.event_id) AS rn\n  FROM subscription_events e\n  JOIN accounts a ON a.account_id = e.account_id\n  WHERE a.country_code = 'DE'\n)\nSELECT subscription_id, event_type, mrr_delta_local, recorded_at\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "085637b1f0eb93a3",
+    "schema_version": "e8f95a91a2bb",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT subscription_id, event_type, mrr_delta_local, recorded_at\nFROM (\n  SELECT e.subscription_id, e.event_type, e.mrr_delta_local, e.recorded_at,\n         ROW_NUMBER() OVER (PARTITION BY e.subscription_id ORDER BY e.recorded_at DESC, e.event_id ASC) AS rn\n  FROM subscription_events e\n  JOIN subscriptions s ON s.subscription_id = e.subscription_id\n  JOIN accounts a ON a.account_id = s.account_id\n  WHERE a.country_code = 'DE'\n) t\nWHERE rn = 1\n",
+    "at": "2026-10-28T16:44:10.619Z"
+  }
+}

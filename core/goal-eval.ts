@@ -16,7 +16,7 @@ export interface GoalView {
   /** S2-38, S7-04: the mocks a start can take now; an unpassed one is open (available, not met), any other "not yet available". */
   mocksAvailable: ReadonlySet<string>;
   /** S4B-20: every solved case (replay, S4B-08) with its level, and whether a case_export event names it. */
-  casesSolved: { case_id: string; level: number; exported: boolean; real: boolean }[];
+  casesSolved: { case_id: string; level: number; exported: boolean; real: boolean; world?: string; kind?: string }[];
   /** S6-26: how many cases on real data (data_source.real) can be opened now, their dataset being in the database. */
   realCasesAvailable: number;
   /** S4B-26: one entry per live rep (a closed `live-` block): its Amsterdam date, and whether it passed. */
@@ -27,6 +27,7 @@ export interface CriterionResult { label: string; met: boolean; available: boole
 
 const SECTION: Record<Section, string> = { sql: 'SQL', ga4: 'GA4', methodology: 'Methodology' };
 const MOCK: Record<string, string> = { screen: 'Screen', knowledge: 'Knowledge', case_round: 'Case-round', take_home: 'Take-home', ga4_readiness: 'GA4 readiness' };
+const WORLD: Record<string, string> = { SAAS: 'SaaS' };
 const RANK: Record<ConceptStateName, number> = { new: 0, learning: 1, practised: 2, mastered: 3, retained: 4 };
 /** `conceptsOf` with this level asks for every concept of the section, including those with no level (D58). */
 export const EVERY_LEVEL = Number.MAX_SAFE_INTEGER;
@@ -92,7 +93,10 @@ function evaluateCriterion(c: GoalCriterion, view: GoalView, today: string): Cri
       return { label, met: reps.length >= c.min_logged && passed >= c.min_passed, available: true, done, total: c.min_logged };
     }
     case 'case_solved': {
-      const solved = view.casesSolved.filter((s) => (c.level_min === undefined || s.level >= c.level_min) && (!c.exported || s.exported));
+      // S8-18, S8-C27: with a world, only inbox cases of that world count; an opener never does.
+      const solved = view.casesSolved.filter((s) => (c.level_min === undefined || s.level >= c.level_min) && (!c.exported || s.exported)
+        && (c.world === undefined || (s.world === c.world && s.kind === 'inbox')));
+      if (c.world !== undefined) return { label: `${WORLD[c.world] ?? c.world} cases solved${c.exported ? ' and exported' : ''}`, met: solved.length >= c.count, available: true, done: solved.length, total: c.count };
       const label = `${plural(c.count, 'case', 'cases')}${c.level_min !== undefined ? ` of level ${c.level_min} or above` : ''} solved${c.exported ? ' and exported' : ''}`;
       return { label, met: solved.length >= c.count, available: true, done: solved.length, total: c.count };
     }

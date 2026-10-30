@@ -1,0 +1,181 @@
+{
+  "id": "EX-SQL-PAT-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "top_n_per_group",
+    "per_period",
+    "row_number",
+    "tie_break",
+    "sales"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-PAT-01",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-PAT-01-top-n-per-group-and-period",
+  "template_params": {
+    "table": "sales",
+    "group": "category and quarter",
+    "n": 1,
+    "measure": "revenue 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "In each quarter of 2025, which product of each category earned the most net revenue? Use the sales rows whose order_date falls in 2025 (order_date is a UTC day); the quarter is that of order_date, 1 to 4. Keep exactly one product per category and quarter, among the products that sold in that quarter. When products tie on revenue, the lower product_id comes first. Return four columns, in this order: qtr (1 to 4), category_name, product_id and revenue, the product's net revenue in that quarter. Return one row for each quarter and category with sales. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "qtr",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per quarter and category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "qtr",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "qtr",
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the outer query that keeps the product numbered 1 in each category and quarter.",
+    "The group the number restarts in is the category and the quarter together; the outer filter keeps one row for each."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 76,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 77,
+      "to": 172,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 173,
+      "to": 185,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 186,
+      "to": 260,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 261,
+      "to": 318,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 322,
+      "to": 388,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 389,
+      "to": 539,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 540,
+      "to": 558,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 561,
+      "to": 607,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 608,
+      "to": 619,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 620,
+      "to": 632,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 561,
+    "stage2": 439
+  },
+  "faded_shape": "WITH product_rev AS (  -- one row per quarter and product with sales in 2025\n  SELECT quarter(order_date) AS qtr, category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY quarter(order_date), category_name, product_id\n),\nranked AS (  -- one row per quarter and product with sales in 2025\n  SELECT qtr, category_name, product_id, revenue,\n         ROW_NUMBER() OVER (PARTITION BY qtr, category_name ORDER BY revenue DESC, product_id) AS rn\n  FROM product_rev\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Partitioning by the quarter and the category restarts the number for each pair, so rn = 1 keeps one leader per category per quarter."
+}

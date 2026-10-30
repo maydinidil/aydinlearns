@@ -1,0 +1,249 @@
+{
+  "id": "EX-CASE-MKT-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "case",
+    "inbox",
+    "marketing",
+    "funnel",
+    "cost_per_won",
+    "leads",
+    "opportunities",
+    "marketing_spend_monthly"
+  ],
+  "level": 6,
+  "source_ids": [
+    "04:CASE-MKT-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-29",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-CLEAN-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-CASE-MKT-05-lead-funnel-cost-per-won",
+  "template_params": {
+    "cohort": "leads created 2025-01-01 to 2025-06-30",
+    "stages": [
+      "lead",
+      "opportunity",
+      "won deal"
+    ],
+    "later_stages": "whenever, up to 2025-12-31",
+    "spend": "paid media, January to June 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_cases",
+  "prompt": "Nele, the growth marketing manager, has to defend the mix of lead sources to the CMO at the end of the week and asks how the leads created in the first half of 2025 moved through the funnel by source, and what paid media cost per won deal. The cohort is every lead with a created_at from 2025-01-01 00:00:00 up to but not including 2025-07-01 00:00:00, in Brussels local time; each lead counts once by its lead_id, even when two leads share an email. A lead reaches the opportunity stage when opportunities has a row with its lead_id, and becomes a won deal when that opportunity's is_won is true; an opportunity that was lost or is still open is not won. These later stages count whenever they happened, up to the last day of the data, 31 December 2025, so a deal won after June still counts. Each rate divides by the stage before it. Spend is paid media only: the total spend_eur in marketing_spend_monthly for the months January to June 2025 whose channel equals the lead's source, and a source with no such spend has spend 0. Return one row for each source with at least one of these leads, with eight columns in this order: source; leads; lead_to_opp_pct, 100 times the leads with an opportunity divided by leads; opp_to_won_pct, 100 times won divided by the leads with an opportunity, missing when there is none; won, the won deals; won_amount, the total amount_eur of the won opportunities, 0 when there is none; spend; and cost_per_won, spend divided by won, missing when won is 0. Round the two rates to 1 decimal and the three amounts in euros to 2 decimals. Sort by won from high to low; when sources tie on won, by source from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "leads",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lead_to_opp_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "opp_to_won_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "won",
+        "type_class": "numeric"
+      },
+      {
+        "name": "won_amount",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cost_per_won",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "won",
+        "desc": true
+      },
+      {
+        "column": "source",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "leads",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "lead_to_opp_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "opp_to_won_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "won",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "won_amount",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "cost_per_won",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "source"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, take the leads created in the first half of 2025 and bring in each one's opportunity, keeping the leads that have none.",
+    "Add the spend up to one row per channel before you join it to the sources, and divide each rate by the stage just before it."
+  ],
+  "subgoals": [
+    {
+      "from": 75,
+      "to": 97,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 100,
+      "to": 110,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 113,
+      "to": 217,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 259,
+      "to": 464,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 467,
+      "to": 539,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 542,
+      "to": 559,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 606,
+      "to": 645,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 648,
+      "to": 676,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 679,
+      "to": 741,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 744,
+      "to": 760,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 763,
+      "to": 1111,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1112,
+      "to": 1173,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1174,
+      "to": 1203,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The cohort is fixed by the lead's date, later stages count whenever they happened, and the spend is added up per channel before the join, so nothing repeats."
+}

@@ -54,7 +54,7 @@ export function buildCurriculum(j: { concepts: any[]; levels: any[] }): Curricul
 }
 
 // New error IDs for levels 1-3 (design §12), recorded in ERRATA (E-142, E-143, E-152, E-153, E-162, E-163, E-164, E-168, E-171, E-172; templates E-173),
-// from sprint 6 (E-188, E-189) and from sprint 7 (E-200).
+// from sprint 6 (E-188, E-189), from sprint 7 (E-200) and from sprint 8 (E-209).
 export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
   { id: 'ERR-LOG-20', category: 'LOG', name: 'Averaging ratios instead of dividing sums', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
   { id: 'ERR-LOG-21', category: 'LOG', name: 'Percent scale (0.15 vs 15)', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
@@ -100,7 +100,7 @@ export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
   { id: 'ERR-LOG-39', category: 'LOG', name: 'No date spine: periods with no rows vanish', detection_checks: ['CHK-MUTANT-MATCH'],
     feedback_template: 'Grouping only the rows that exist leaves out every period with no rows, so it does not appear instead of showing 0. Start from a full list of periods, such as the calendar table, and LEFT JOIN the data to it.' },
   // Sprint 7 Task A2 (ERRATA E-200, S7-24): level 5's window mistakes that no ID held. Names as E-200 gives them. Averaging a ratio over
-  // a rolling window keeps ERR-LOG-20 (ruling S7-C02), so there is no ERR-LOG-44.
+  // a rolling window keeps ERR-LOG-20 (ruling S7-C02), so S7-24's ERR-LOG-44 was not made; sprint 8 gives the number to the funnel.
   { id: 'ERR-LOG-40', category: 'LOG', name: 'RANK where exactly N rows were asked, or ROW_NUMBER where ties must share a place', detection_checks: ['CHK-MUTANT-MATCH'],
     feedback_template: 'RANK and DENSE_RANK give tied rows the same number, so a filter on them can keep more than N rows, while ROW_NUMBER numbers tied rows apart and keeps only some of them. Use ROW_NUMBER with the question\'s tie-break when it asks for exactly N rows, and RANK or DENSE_RANK when tied rows share a place.' },
   { id: 'ERR-LOG-41', category: 'LOG', name: 'A running total or LAG over rows in no stated order, or ordered by the wrong column', detection_checks: ['CHK-MUTANT-MATCH'],
@@ -109,14 +109,35 @@ export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
     feedback_template: 'With an ORDER BY and no frame, the window ends at the current row and the rows tied with it, so LAST_VALUE returns that row\'s value (or its last tie\'s), and the last value of the group only on the group\'s last row. Write the frame ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING, or take FIRST_VALUE with the order reversed.' },
   { id: 'ERR-LOG-43', category: 'LOG', name: 'A moving average over a partial early window with no flag or filter', detection_checks: ['CHK-MUTANT-MATCH'],
     feedback_template: 'On the first rows of a series a moving average has fewer rows than its window, so a 7-day average on the third day is the average of 3 days. Count the rows in the same frame with COUNT(*), and flag or leave out the rows where the count is below the window\'s size.' },
+  // Sprint 8 Task A1 (ERRATA E-209, S8-08; E-036's level 6 part): level 6's funnel, cohort and MRR mistakes that no ID held. Names as
+  // S8-08 gives them. ERR-LOG-44 was never S7-24's rolling ratio, which kept ERR-LOG-20 (S7-C02).
+  { id: 'ERR-LOG-44', category: 'LOG', name: 'A funnel step counted without the step before it', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'Counting each step\'s users on their own counts a user who reached a later step without the step before it, such as a purchase with no view, so a later step can hold users the step before it never had. Count a user at a step only when the same user reached the step before it, and after it when the question says the steps happen in order.' },
+  { id: 'ERR-LOG-45', category: 'LOG', name: 'A funnel rate divided by the wrong step', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'A step rate divides a step\'s users by the users of the step right before it, and an overall rate divides them by the top of the funnel, so dividing by the other one gives a real-looking rate that answers a different question. Read which base the question names, the step before or the first step, and divide by that step\'s count.' },
+  { id: 'ERR-LOG-46', category: 'LOG', name: 'Cohort months worked out from days divided by 30', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'Months have 28 to 31 days, so a day count divided by 30 drifts away from calendar months and puts some activity in the wrong month of its cohort. Count calendar months instead, with date_diff(\'month\', cohort_month, activity_month) on dates cut to the first of their month.' },
+  { id: 'ERR-LOG-47', category: 'LOG', name: 'A returning account booked as new', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'An account that comes back after it churned goes from 0 MRR to more than 0, just as a new one does, so a rule that looks only at the month before books its return as new business instead of a reactivation. Call a move from 0 new only when the account never had MRR in an earlier month, and a reactivation when it did.' },
+  // Sprint 8 Task A1, controller ruling S8-C06 (ERRATA E-209): four more LVL-06 mistakes that no existing ID fits. Names as S8-C06 gives them.
+  { id: 'ERR-LOG-48', category: 'LOG', name: 'A partial period compared with a full one', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'The data ends partway through its last period, so that period holds fewer days than the full one before it, and a change between them shows a fall that is only the missing days. Leave out a period that is not complete, or compare the same days in each, as the question says.' },
+  { id: 'ERR-LOG-49', category: 'LOG', name: 'A change worked out the wrong way round', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'A change is the new value minus the old one, and growth divides it by the old value, so old minus new flips the sign and dividing by the new value gives another number. Subtract the earlier value from the later one and divide by the earlier one: (new - old) / old, which is new / old - 1.' },
+  { id: 'ERR-LOG-50', category: 'LOG', name: 'A cohort dated by the wrong event', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'A cohort is the month of the event the question names, such as the signup or the first payment, so dating it by another event puts customers in the wrong cohort or leaves them out. Take the cohort date from the event the question names, as each customer\'s first one with MIN, and check one customer by hand.' },
+  { id: 'ERR-LOG-51', category: 'LOG', name: 'An annual plan\'s price counted as one month\'s MRR', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'An annual plan\'s price pays for 12 months, so counting it as one month\'s MRR makes that account\'s MRR 12 times too big. Divide an annual plan\'s price by 12, after any annual discount, before you add it to MRR.' },
 ];
 
 /**
  * Owner decision D46 (sprint 4c Task C1, ERRATA E-173): ERR-LOG-06's template is widened from timestamps to DATE ranges and period boundaries
  * such as weeks, as its refutation feedback is (`content/sql/error-feedback.json`). The knowledge file keeps 02's text.
+ * Sprint 8 (Task A1, S8-C08, A1-M2): ERR-LOG-18's template no longer says the rows are right, as its feedback no longer does.
  */
 export const TEMPLATE_FIXES: Record<string, string> = {
   'ERR-LOG-06': 'The rows you missed or added all fall on {boundary_date}, the first or last day of the range or of a period. For timestamps, DATE ranges and periods such as weeks, use >= the first day AND < the day after the last one.',
+  'ERR-LOG-18': 'The order, or the rows an order picks, do not match what the question asks for. Add ORDER BY {sort_col} {direction}, and sort the same way inside OVER or before a LIMIT when the order also picks the rows.',
 };
 
 export function buildErrors(j: { error_types: any[] }, concepts: Record<string, string>): ErrorCatalog {

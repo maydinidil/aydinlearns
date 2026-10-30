@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-PAT-01-E1-41",
+  "item_version": 1,
+  "value": 6,
+  "explanation": "PARTITION BY segment restarts the numbering in each of the three segments, so rn <= 2 keeps the 2 oldest accounts of every segment: 3 segments times 2 is 6 rows. Without PARTITION BY the numbering would run over all accounts at once and keep only 2 rows.",
+  "solver": {
+    "prompt_hash": "cb15c7ca4fe11faf",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "6",
+    "at": "2026-10-28T14:57:24.741Z"
+  }
+}

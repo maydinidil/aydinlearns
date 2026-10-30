@@ -125,9 +125,22 @@ class MailvoraEdgeClean(unittest.TestCase):
         k2_moves = {"voltmarkt_edge_win.order_lines", "voltmarkt_edge_win.promotions", "voltmarkt_edge_win.promotion_products", "voltmarkt_edge_win.sales"}
         moved = sorted(name for name, entry in BEFORE_SPRINT7B.items() if self.manifest["tables"].get(name) != entry and name not in k2_moves)
         self.assertEqual(moved, [], "objects built at the end of Part 1 whose rows or hash changed")
-        added = sorted(set(self.manifest["tables"]) - set(BEFORE_SPRINT7B))
-        self.assertEqual(added, sorted(f"{EDGE}.{t}" for t in self.names(RAW)[0]), f"only {EDGE}'s tables are new")
-        self.assertEqual(len(added), 7)
+        # Sprint 8 Part 2 (Task V1, S8-C31): its four objects, voltmarkt's and voltmarkt_edge_pat's inventory_chain_daily and
+        # ledgerloop's and ledgerloop_edge_saas's mrr_monthly, are held by pipeline/tests/test_edge_pat.py.
+        part2 = {"inventory_chain_daily", "mrr_monthly"}
+        # Task D1 (S8-16): the two dataset edge schemas, olist_edge and maven_toy_store_edge, are held by pipeline/tests/test_datasets.py.
+        # Task E1 (S8-C39): ledgerloop_edge_cases, the six LedgerLoop inbox cases' edge schema, is held by pipeline/tests/test_edge_cases.py.
+        datasets = {"olist_edge", "maven_toy_store_edge"}
+        cases = {"ledgerloop_edge_cases"}
+        added = sorted(n for n in set(self.manifest["tables"]) - set(BEFORE_SPRINT7B)
+                       if n.split(".")[1] not in part2 and n.split(".")[0] not in datasets | cases)
+        # Sprint 8 (Task L1, S8-01): since G1 the build also holds LedgerLoop's clean and raw schemas (16 tables each), and (Task A2,
+        # S8-07, S8-C14) the four level 6 edge schemas, each with its schema's table and view names (pipeline/tests/test_edge_pat.py).
+        ledgerloop = [f"{s}.{t}" for s in ("ledgerloop", "ledgerloop_raw") for t in build_course_db.ll.CLEAN_TABLES]
+        level6 = [f"{s}.{t}" for s in ("voltmarkt_edge_pat", "mailvora_edge_pat", "ledgerloop_edge_saas", "ledgerloop_edge_clean")
+                  for t in set().union(*self.names(s)) - part2]
+        self.assertEqual(added, sorted([*(f"{EDGE}.{t}" for t in self.names(RAW)[0]), *ledgerloop, *level6]), f"only {EDGE}'s tables, LedgerLoop's two schemas and the four level 6 edge schemas are new")
+        self.assertEqual(len(added), 7 + 32 + 59)
 
     # ---- Q-03-01 to Q-03-07, one test each: a case mailvora_raw does not show, which a query fitted to mailvora_raw fails ----
 

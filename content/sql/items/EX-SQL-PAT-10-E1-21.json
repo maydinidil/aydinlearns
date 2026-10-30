@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-PAT-10-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "mrr",
+    "churn",
+    "fx",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-churn-month",
+  "template_params": {
+    "table": "subscription_events",
+    "from": "2024-01",
+    "to": "2025-12",
+    "fx_date": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "How much MRR churned in each month of 2024 and 2025 (event_date from 1 January 2024 to 31 December 2025)? Add up the churn events' mrr_delta_local and report the loss as a positive amount in euros, rounded to 2 decimals with ROUND. Convert every amount to euros at one fixed rate, that of 31 December 2025: multiply by fx_rates.eur_per_unit for the subscription's currency on 2025-12-31. Count an event in the month of its event_date. Return two columns, in this order: month_start (the first day of the month) and churned_mrr. Return one row for each month with churn. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "churned_mrr",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "churned_mrr",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, convert each churn event at the fixed rate and add them up by month.",
+    "Churn changes are negative; flip the sign to report the loss as a positive amount."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 70,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 71,
+      "to": 138,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 139,
+      "to": 165,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 166,
+      "to": 227,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 228,
+      "to": 306,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 307,
+      "to": 335,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 336,
+      "to": 402,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 403,
+      "to": 459,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Every churn event is converted at one fixed rate, so the months can be compared without exchange rate noise."
+}

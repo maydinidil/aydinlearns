@@ -1,0 +1,168 @@
+{
+  "id": "EX-SQL-PAT-09-E2-31",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "overlap",
+    "fan_out",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-fix-overlap",
+  "template_params": {
+    "table": "order_lines",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each promotion that started in 2025 (start_date from 1 January to 31 December 2025), how many units and how much net revenue (sales.net_revenue_eur) were sold on promotion? A line counts for a promotion when it carries it in order_lines.promo_id, and every such line falls within the promotion's dates; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. Days are sales.order_date, the UTC day of the order. A promotion with no sale shows 0 for both. Return three columns, in this order: promo_id, promo_units and promo_revenue. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "promo_revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check how lines are matched to a promotion: by the dates, or by the promotion the line carries?",
+    "A date range catches a line sold during two overlapping promotions twice; the line's own promo_id names one promotion."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 93,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 94,
+      "to": 111,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 112,
+      "to": 178,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 242,
+      "to": 319,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 320,
+      "to": 334,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 335,
+      "to": 384,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 385,
+      "to": 437,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 438,
+      "to": 459,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 462,
+      "to": 557,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 558,
+      "to": 570,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 571,
+      "to": 616,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH promo AS (\n  -- one row per promotion that started in 2025\n  SELECT promo_id, start_date\n  FROM promotions\n  WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n), during AS (\n  -- one row per promotion that started in 2025\n  SELECT p.promo_id, SUM(s.units) AS units, SUM(s.net_revenue_eur) AS revenue\n  FROM promo p\n  JOIN promotions pr ON pr.promo_id = p.promo_id\n  JOIN promotion_products pp ON pp.promo_id = p.promo_id\n  JOIN sales s ON s.product_id = pp.product_id\n    AND s.order_date BETWEEN pr.start_date AND pr.end_date\n  GROUP BY p.promo_id\n)\nSELECT p.promo_id, COALESCE(d.units, 0) AS promo_units, COALESCE(d.revenue, 0) AS promo_revenue\nFROM promo p\nLEFT JOIN during d ON d.promo_id = p.promo_id",
+  "time_target_ms": 210000,
+  "why_this_works": "Matching each line on the promotion it carries counts it once, even where two promotions overlap on its product.",
+  "starter_error_id": "ERR-LOG-01"
+}

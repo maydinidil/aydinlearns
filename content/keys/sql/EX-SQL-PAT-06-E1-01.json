@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-06-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(date_trunc('month', created_at) AS DATE) AS cohort_month,\n       COUNT(*) AS accounts\nFROM accounts\nWHERE created_at >= TIMESTAMP '2024-01-01 00:00:00' AND created_at < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY CAST(date_trunc('month', created_at) AS DATE)",
+  "alternatives": [
+    "SELECT CAST(date_trunc('month', created_at) AS DATE) AS cohort_month, COUNT(DISTINCT account_id) AS accounts\nFROM accounts\nWHERE date_part('year', created_at) IN (2024, 2025)\nGROUP BY 1",
+    "SELECT CAST(date_trunc('month', event_date) AS DATE) AS cohort_month, COUNT(DISTINCT account_id) AS accounts\nFROM subscription_events\nWHERE event_type = 'new'\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(date_trunc('month', event_date) AS DATE) AS cohort_month, COUNT(DISTINCT account_id) AS accounts\nFROM subscription_events\nWHERE event_type = 'new'\nGROUP BY 1",
+    "tradeoff": "Counting each account's new event gives the same cohorts here, but it trusts that every new account has exactly one new event."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-50",
+      "sql": "SELECT CAST(date_trunc('month', first_event) AS DATE) AS cohort_month, COUNT(*) AS accounts FROM (SELECT account_id, MIN(event_date) AS first_event FROM subscription_events GROUP BY account_id) AS f WHERE first_event < DATE '2026-01-01' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT CAST(date_trunc('month', a.created_at) AS DATE) AS cohort_month, COUNT(*) AS accounts FROM accounts a JOIN subscriptions s ON s.account_id = a.account_id WHERE a.created_at >= TIMESTAMP '2024-01-01 00:00:00' AND a.created_at < TIMESTAMP '2026-01-01 00:00:00' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(date_trunc('month', created_at) AS DATE) AS cohort_month,\n       COUNT(*) AS accounts\nFROM accounts\nWHERE created_at >= ___ AND created_at < ___\nGROUP BY CAST(date_trunc('month', created_at) AS DATE)",
+  "solver": {
+    "prompt_hash": "894ff403e39edcb6",
+    "schema_version": "29886570d1a0",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT CAST(date_trunc('month', created_at) AS DATE) AS cohort_month, COUNT(*) AS accounts\nFROM accounts\nWHERE created_at >= TIMESTAMP '2024-01-01 00:00:00' AND created_at < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY 1\n",
+    "at": "2026-10-28T14:57:06.685Z"
+  }
+}

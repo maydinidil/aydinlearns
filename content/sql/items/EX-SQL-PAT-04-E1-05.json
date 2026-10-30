@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-PAT-04-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "zero_fill",
+    "accounts",
+    "range"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-month-spine",
+  "template_params": {
+    "table": "accounts",
+    "spine": "range"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each month of 2024 and 2025, how many LedgerLoop accounts were created? created_at holds Brussels time: take the month as stored. Every month of the two years has a row, and a month with no new account shows 0. Return two columns, in this order: month (the first day of the month) and new_accounts. Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "new_accounts",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "new_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list all 24 months, then attach the number of accounts created in each.",
+    "A month with no new account has no row of its own, so the months must come from a generated list; show 0 for them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 492,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 493,
+      "to": 552,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 553,
+      "to": 566,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 567,
+      "to": 607,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "range() lists all 24 months, the LEFT JOIN keeps a month with no new account, and COALESCE shows it as 0."
+}

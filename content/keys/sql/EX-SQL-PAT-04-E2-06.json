@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E2-06",
+  "item_version": 1,
+  "reference_sql": "WITH weeks AS (\n  -- one row per week, the weeks of 6 October to 29 December 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-10-06', DATE '2026-01-05', INTERVAL 7 DAY)\n), weekly AS (\n  -- one row per week with app events\n  SELECT CAST(date_trunc('week', event_ts) AS DATE) AS week_start, COUNT(*) AS events\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-06 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2026-01-05 00:00:00+00'\n  GROUP BY CAST(date_trunc('week', event_ts) AS DATE)\n)\nSELECT w.week_start, COALESCE(e.events, 0) AS events\nFROM weeks w\nLEFT JOIN weekly e ON e.week_start = w.week_start",
+  "alternatives": [
+    "WITH weeks AS (\n  -- one row per week, the weeks of 6 October to 29 December 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-10-06', DATE '2026-01-05', INTERVAL 7 DAY)\n)\nSELECT w.week_start,\n  (SELECT COUNT(*) FROM app_events e WHERE CAST(date_trunc('week', e.event_ts) AS DATE) = w.week_start) AS events\nFROM weeks w",
+    "WITH weeks AS (\n  -- one row per week, the weeks of 6 October to 29 December 2025\n  SELECT CAST(generate_series AS DATE) AS week_start\n  FROM generate_series(DATE '2025-10-06', DATE '2025-12-29', INTERVAL 7 DAY)\n)\nSELECT w.week_start, COUNT(e.event_id) AS events\nFROM weeks w\nLEFT JOIN app_events e ON CAST(date_trunc('week', e.event_ts) AS DATE) = w.week_start\nGROUP BY w.week_start"
+  ],
+  "other_way": {
+    "sql": "WITH weeks AS (\n  -- one row per week, the weeks of 6 October to 29 December 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-10-06', DATE '2026-01-05', INTERVAL 7 DAY)\n)\nSELECT w.week_start,\n  (SELECT COUNT(*) FROM app_events e WHERE CAST(date_trunc('week', e.event_ts) AS DATE) = w.week_start) AS events\nFROM weeks w",
+    "tradeoff": "A count subquery for each Monday gives 0 by itself, but it scans the events once per week."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH weeks AS (\n  -- one row per week, the weeks of 6 October to 29 December 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-10-06', DATE '2026-01-05', INTERVAL 7 DAY)\n), weekly AS (\n  -- one row per week with app events\n  SELECT CAST(date_trunc('week', event_ts) AS DATE) AS week_start, COUNT(*) AS events\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-06 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2026-01-05 00:00:00+00'\n  GROUP BY CAST(date_trunc('week', event_ts) AS DATE)\n) SELECT week_start, events FROM weekly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH days AS (SELECT CAST(range AS DATE) AS week_start FROM range(DATE '2025-10-06', DATE '2026-01-05', INTERVAL 1 DAY)), weekly AS (SELECT CAST(date_trunc('week', event_ts) AS DATE) AS week_start, COUNT(*) AS events FROM app_events WHERE event_ts >= TIMESTAMPTZ '2025-10-06 00:00:00+00' AND event_ts < TIMESTAMPTZ '2026-01-05 00:00:00+00' GROUP BY CAST(date_trunc('week', event_ts) AS DATE)) SELECT d.week_start, COALESCE(e.events, 0) AS events FROM days d LEFT JOIN weekly e ON e.week_start = d.week_start"
+    }
+  ],
+  "hint3_partial": "WITH weeks AS (\n  -- one row per week, the weeks of 6 October to 29 December 2025\n  SELECT CAST(range AS DATE) AS week_start\n  FROM range(DATE '2025-10-06', DATE '2026-01-05', INTERVAL 7 DAY)\n), weekly AS (\n  -- one row per week with app events\n  SELECT CAST(date_trunc('week', event_ts) AS DATE) AS week_start, COUNT(*) AS events\n  FROM app_events\n  WHERE event_ts >= TIMESTAMPTZ '2025-10-06 00:00:00+00'\n    AND event_ts < TIMESTAMPTZ '2026-01-05 00:00:00+00'\n  GROUP BY CAST(date_trunc('week', event_ts) AS DATE)\n)\nSELECT w.week_start, COALESCE(e.events, 0) AS events\nFROM weeks w\nLEFT JOIN weekly e ON ___",
+  "solver": {
+    "prompt_hash": "942a13ed781b1436",
+    "schema_version": "c66411aea2e3",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH weeks AS (\n  SELECT CAST(d AS DATE) AS week_start FROM generate_series(DATE '2025-10-06', DATE '2025-12-29', INTERVAL 7 DAY) t(d)\n), e AS (\n  SELECT CAST(date_trunc('week', event_ts AT TIME ZONE 'UTC') AS DATE) AS week_start, COUNT(*) AS events\n  FROM app_events\n  WHERE (event_ts AT TIME ZONE 'UTC') >= TIMESTAMP '2025-10-06 00:00:00'\n    AND (event_ts AT TIME ZONE 'UTC') < TIMESTAMP '2026-01-05 00:00:00'\n  GROUP BY 1\n)\nSELECT w.week_start, COALESCE(e.events, 0) AS events\nFROM weeks w LEFT JOIN e ON e.week_start = w.week_start\n",
+    "at": "2026-10-28T14:57:05.205Z"
+  }
+}

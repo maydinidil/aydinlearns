@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-PAT-03-E2-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "month_over_month",
+    "mrr",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-mom-mrr",
+  "template_params": {
+    "table": "subscription_events",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each month end of 2025, show LedgerLoop's MRR from subscriptions billed in euros (currency EUR) and the change from the month end before: this month end's MRR minus the previous month end's. A subscription's MRR on a date is the sum of its subscription_events.mrr_delta_local with event_date on or before that date; every event counts, opening events included. fx_rates holds a row for every day of 2024 and 2025, so it can list the month ends. The month end before January 2025 is 31 December 2024, so January has a change too. Return three columns, in this order: month_end (the last day of the month), mrr_eur and change_eur. Return one row for each month end of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_end",
+        "type_class": "temporal"
+      },
+      {
+        "name": "mrr_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_end",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_end"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list the month ends from December 2024 on (the last day fx_rates holds in each month), work out the MRR at each, then compare each month end with the one before.",
+    "Take the change before you keep only 2025: if you filter first, January loses December 2024's month end."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 705,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 706,
+      "to": 743,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 744,
+      "to": 757,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 758,
+      "to": 794,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Summing every event up to each month end gives the MRR in force; the window runs before the 2025 filter, so January compares with December 2024."
+}

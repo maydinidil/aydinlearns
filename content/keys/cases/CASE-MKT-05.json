@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-MKT-05",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM leads AS l\nJOIN opportunities AS o ON o.lead_id = l.lead_id\nWHERE l.created_at >= TIMESTAMP '2025-01-01 00:00:00'\n  AND l.created_at < TIMESTAMP '2025-07-01 00:00:00'\n  AND o.is_won\n  AND o.closed_at >= TIMESTAMP '2025-07-01 00:00:00'",
+    "CP4": "WITH won AS (\n  -- one row: the won deals of the leads from the five paid sources created in the first half of 2025\n  SELECT COUNT(*) AS won\n  FROM leads AS l\n  JOIN opportunities AS o ON o.lead_id = l.lead_id\n  WHERE l.created_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND l.created_at < TIMESTAMP '2025-07-01 00:00:00'\n    AND l.source IN ('display', 'events', 'paid_search', 'paid_social', 'review_sites')\n    AND o.is_won\n),\nspend AS (\n  -- one row: the paid media of January to June 2025\n  SELECT SUM(spend_eur) AS spend\n  FROM marketing_spend_monthly\n  WHERE month >= DATE '2025-01-01' AND month < DATE '2025-07-01'\n)\nSELECT ROUND(s.spend / w.won, 2)\nFROM spend AS s\nCROSS JOIN won AS w"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o66b060f",
+      "explanation": "Fixing the cohort by the lead's date and following its later stages to the end of the data gives every source the same chance; starting from opportunities mixes in leads from other months."
+    },
+    "CP5": {
+      "correct_oid": "ob9e36a0",
+      "explanation": "The cost holds paid media only, so a cost of 0 means no media spend, not a free deal; and the most deals or the most leads do not make a source the cheapest way to win one."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "7f070b3bb0ef765b",
+      "key_hash": "da93e6bdd4e7b694",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "c0a3d90421f4ca9c",
+      "key_hash": "95b25be7b00a3029",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "d1f5b5ad32f02ceb",
+      "key_hash": "5a1a25d67551e53f",
+      "at": "2026-10-29T22:26:59.071Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "472292c404211d4a",
+      "key_hash": "bafbc3ba25613fd4",
+      "at": "2026-10-29T22:26:59.071Z"
+    }
+  }
+}

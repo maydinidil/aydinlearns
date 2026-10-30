@@ -1,0 +1,15 @@
+{
+  "case_id": "CASE-DAILY-L6-02",
+  "truths": {
+    "CP4": "WITH user_payments AS (\n  -- one row per payment that was not refunded, with its user and its UTC month\n  SELECT s.user_id, CAST(date_trunc('month', p.paid_at) AS DATE) AS pay_month\n  FROM payments AS p\n  JOIN subscriptions AS s ON s.subscription_id = p.subscription_id\n  WHERE NOT p.refunded\n),\ncohorts AS (\n  -- one row per paying user: the UTC month of the first payment\n  SELECT user_id, MIN(pay_month) AS cohort_month\n  FROM user_payments\n  GROUP BY user_id\n),\nretained AS (\n  -- one row per user who paid in the third month after the cohort month\n  SELECT DISTINCT c.user_id\n  FROM cohorts AS c\n  JOIN user_payments AS up\n    ON up.user_id = c.user_id\n   AND up.pay_month = CAST(c.cohort_month + INTERVAL 3 MONTH AS DATE)\n)\nSELECT ROUND(100.0 * COUNT(r.user_id) / COUNT(*), 1)\nFROM cohorts AS c\nLEFT JOIN retained AS r ON r.user_id = c.user_id\nWHERE c.cohort_month >= DATE '2025-01-01'\n  AND c.cohort_month < DATE '2025-07-01'"
+  },
+  "choices": {},
+  "solver": {
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "645470dec8a42232",
+      "key_hash": "7e9609f36630adaf",
+      "at": "2026-10-28T14:57:26.929Z"
+    }
+  }
+}

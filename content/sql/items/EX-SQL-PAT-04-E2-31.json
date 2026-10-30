@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-PAT-04-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "date_spine",
+    "zero_fill",
+    "users",
+    "fix"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04"
+  ],
+  "template_id": "T-PAT-04-fix-inner-spine",
+  "template_params": {
+    "table": "users",
+    "spine": "range"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each month of 2025, how many users were invited to LedgerLoop accounts? invited_at holds Brussels time: take the month as stored. Every month of 2025 has a row, and a month with no invited users shows 0. Return two columns, in this order: month (the first day of the month) and users_invited. Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "users_invited",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "users_invited",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at the join between the months and the counts: which months can it lose?",
+    "An inner join keeps only months that have a count, so a month nobody was invited in disappears before COALESCE can turn it into 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 482,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 483,
+      "to": 544,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 545,
+      "to": 558,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 559,
+      "to": 599,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH months AS (\n  -- one row per month of 2025\n  SELECT CAST(range AS DATE) AS month\n  FROM range(DATE '2025-01-01', DATE '2026-01-01', INTERVAL 1 MONTH)\n), invited AS (\n  -- one row per month with invited users\n  SELECT CAST(date_trunc('month', invited_at) AS DATE) AS month, COUNT(*) AS users_invited\n  FROM users\n  WHERE invited_at >= TIMESTAMP '2025-01-01 00:00:00'\n    AND invited_at < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', invited_at) AS DATE)\n)\nSELECT m.month, COALESCE(i.users_invited, 0) AS users_invited\nFROM months m\nJOIN invited i ON i.month = m.month",
+  "starter_error_id": "ERR-LOG-39",
+  "time_target_ms": 240000,
+  "why_this_works": "With LEFT JOIN every month of the spine stays, so a month with no invited users reaches COALESCE and shows 0."
+}

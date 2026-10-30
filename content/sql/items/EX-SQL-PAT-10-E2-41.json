@@ -1,0 +1,92 @@
+{
+  "id": "EX-SQL-PAT-10-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "mrr",
+    "new"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-choose-new-mrr",
+  "template_params": {
+    "table": "subscription_events"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Which query gives the new MRR LedgerLoop booked in each month of 2024, in each subscription's own currency, with one row per month and currency?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oe1a897e",
+      "text": "SELECT CAST(date_trunc('month', e.event_date) AS DATE) AS month_start, s.currency, SUM(e.mrr_delta_local) AS new_mrr\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nWHERE e.event_type IN ('new', 'reactivation')\n  AND e.event_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\nGROUP BY CAST(date_trunc('month', e.event_date) AS DATE), s.currency",
+      "misconception_id": "ERR-LOG-47"
+    },
+    {
+      "oid": "od0d48de",
+      "text": "SELECT CAST(date_trunc('month', e.event_date) AS DATE) AS month_start, s.currency, SUM(e.mrr_delta_local) AS new_mrr\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nWHERE e.event_type = 'new'\n  AND e.event_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\nGROUP BY CAST(date_trunc('month', e.event_date) AS DATE), s.currency",
+      "misconception_id": null
+    },
+    {
+      "oid": "oaa996af",
+      "text": "SELECT CAST(date_trunc('month', e.event_date) AS DATE) AS month_start, s.currency, SUM(e.mrr_delta_local) AS new_mrr\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nWHERE e.event_type <> 'expansion' AND e.mrr_delta_local > 0\n  AND e.event_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\nGROUP BY CAST(date_trunc('month', e.event_date) AS DATE), s.currency",
+      "misconception_id": "ERR-LOG-47"
+    },
+    {
+      "oid": "od575af6",
+      "text": "SELECT CAST(date_trunc('month', e.event_date) AS DATE) AS month_start, SUM(e.mrr_delta_local) AS new_mrr\nFROM subscription_events e\nWHERE e.event_type = 'new'\n  AND e.event_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\nGROUP BY CAST(date_trunc('month', e.event_date) AS DATE)",
+      "misconception_id": "ERR-LOG-07"
+    }
+  ]
+}

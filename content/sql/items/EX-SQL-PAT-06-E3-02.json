@@ -1,0 +1,203 @@
+{
+  "id": "EX-SQL-PAT-06-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "cohort",
+    "retention_matrix",
+    "immature_cells",
+    "wide_table",
+    "percent",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-wide-percent-immature",
+  "template_params": {
+    "cohort_date": "signup_ts",
+    "activity": "payment",
+    "cohorts": "2025-07 to 2025-12",
+    "months": "m0-m3",
+    "unit": "percent"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "Build Mailvora's paying retention matrix for the users who signed up from July to December 2025, one row per signup cohort. A user's cohort month is the month of signup_ts, in UTC, and a user counts as paying in a month with at least one payment that was not refunded, by the UTC month of paid_at. Month 0 is the cohort month itself, month 1 the next calendar month, and so on to month 3. Each cell is the percentage of the cohort's users who paid that month, rounded to 1 decimal (12.5 for 12.5%). The as-of date is 5 January 2026: a month that ends after it is not known yet and shows missing, while a month that has ended with no paying user shows 0. Return five columns, in this order: cohort_month (the first day of the month), m0, m1, m2 and m3. Return one row for each cohort month that has signups. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "m0",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m1",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m2",
+        "type_class": "numeric"
+      },
+      {
+        "name": "m3",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cohort_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "m0",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "m1",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "m2",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "m3",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cohort_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the four month columns as percentages of the cohort, rounded to 1 decimal.",
+    "Count the distinct paying users at each offset over the cohort's distinct users, times 100; wrap months 1 to 3 in a CASE that leaves a month starting on or after 1 January 2026 missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 72,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 151,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 154,
+      "to": 166,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 169,
+      "to": 277,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 281,
+      "to": 365,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 368,
+      "to": 394,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 404,
+      "to": 500,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 503,
+      "to": 623,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 626,
+      "to": 646,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 649,
+      "to": 1454,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1455,
+      "to": 1510,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1511,
+      "to": 1534,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each cell is the paying users at one offset over the whole cohort, times 100 and rounded, and a month after the as-of date stays missing instead of 0."
+}

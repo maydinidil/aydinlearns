@@ -1,0 +1,169 @@
+{
+  "case_id": "CASE-REAL-03",
+  "kind": "inbox",
+  "level": 6,
+  "world": "RETAIL",
+  "company_id": "olist",
+  "schema": "olist",
+  "title": "Repeat buyers by first-order month in 2017",
+  "persona": {
+    "name": "Ruben",
+    "role": "Pricing analytics manager"
+  },
+  "brief": {
+    "decision": "A take-home task from our hiring team in the Netherlands, on a public dataset, Olist's orders from Brazilian marketplaces: of the people who placed their first delivered order in each month of 2017, what share came back for another delivered order on a later day, up to 31 August 2018. It helps us judge whether a discount on a customer's second order is worth testing. Count each person once, by customer_unique_id.",
+    "deadline": "Your second interview, on Tuesday"
+  },
+  "data_needed": [
+    "orders",
+    "customers"
+  ],
+  "expected_output": {
+    "columns": [
+      "cohort_month",
+      "cohort_customers",
+      "repeat_customers",
+      "repeat_pct"
+    ],
+    "grain": "one row per month of 2017, a month with no new customer included",
+    "sort": [
+      {
+        "column": "cohort_month",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-REAL-03:CP1",
+      "credits_concepts": [],
+      "prompt": "Ruben wants each 2017 month's new customers on Olist and how many of them came back. In orders, every order has its own customer_id, and customers gives each customer_id a customer_unique_id. How should the query tell that two orders came from the same person?",
+      "options": [
+        {
+          "oid": "o28a1465",
+          "text": "By customer_id in orders: it is the customer's own ID, so it is on every order that one person places."
+        },
+        {
+          "oid": "od964c82",
+          "text": "By customer_unique_id, reached through customers: it stays the same on every order one person places."
+        },
+        {
+          "oid": "o904d3e6",
+          "text": "By customer_zip_code_prefix and customer_city together, since one person orders from the same address."
+        },
+        {
+          "oid": "of2c7fb7",
+          "text": "By customer_id and customer_state together, since a person keeps one customer_id within one state."
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-REAL-03:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "In Olist, count only orders whose order_status is delivered, and follow each person by customer_unique_id in customers, never by customer_id, which changes with every order. A person's first delivered order is the earliest one over all of the person's orders in the data, 2016 included, by the day in order_purchase_timestamp as the data records it. How many people placed their first delivered order from 1 January to 31 December 2017? Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "people"
+      },
+      "truth_key": "CASE-REAL-03:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-REAL-03",
+      "credits_concepts": [
+        "SQL-PAT-06",
+        "SQL-PAT-04",
+        "SQL-JOIN-02",
+        "SQL-AGG-02"
+      ],
+      "prompt": "Write the query that answers Ruben's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-REAL-03:CP4",
+      "credits_concepts": [],
+      "prompt": "In Olist, count only orders whose order_status is delivered, and follow each person by customer_unique_id in customers. Take the people whose first delivered order, the earliest over all of the person's orders in the data, was placed from 1 January to 31 December 2017, by the day in order_purchase_timestamp as the data records it. What percentage of them placed another delivered order on a later day than that first order, up to and including 31 August 2018? A second order on the same day as the first does not count. Type the percentage rounded to 2 decimals, for example 12.34.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 2,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-REAL-03:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-REAL-03:CP5",
+      "credits_concepts": [],
+      "prompt": "In Ruben's table from Olist, the share of each month's new customers who placed another delivered order on a later day, up to 31 August 2018, is lower for the months late in 2017, with November and December the lowest. Nothing else has been checked yet. Ruben asks: does this show that the customers won late in 2017 are less loyal?",
+      "options": [
+        {
+          "oid": "obc65349",
+          "text": "Yes. A lower share means fewer of those customers ever ordered again, so the customers won late in 2017 were less loyal."
+        },
+        {
+          "oid": "o8d96d32",
+          "text": "Not from this table. Each month is counted up to 31 August 2018, so later months had less time to come back; compare them over equal windows."
+        },
+        {
+          "oid": "obaf9cfd",
+          "text": "No. November held a large sale, and people who buy in a sale never come back, so the low shares only show the one-time buyers of that one big sale."
+        },
+        {
+          "oid": "o14d5219",
+          "text": "No. The late months have more new customers, and a larger group always shows a smaller share, so the months cannot be compared at all."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Ruben: how the share of new customers who came back moved across 2017, the share for the whole year, one caveat about the comparison, and one next step."
+    }
+  ],
+  "model_plan": "Metric formula: per cohort month, cohort_customers counts the people whose first delivered order was placed in that month; repeat_customers counts those of them with another delivered order on a later day, up to and including 31 August 2018; repeat_pct is 100 times repeat_customers divided by cohort_customers, rounded to 2 decimals, and missing for a month with no new customer.\nOutput grain: one row per month of 2017, a month with no new customer included.\nTables and keys: orders joined to customers on customer_id for customer_unique_id; a step at one row per person with the day of the first delivered order; a list of the twelve months of 2017, with the people joined to it by LEFT JOIN on the cohort month.\nFilters: only delivered orders, for the first order and for the later one; first delivered orders from 1 January 2017 up to, not including, 1 January 2018; later orders on a later day and no later than 31 August 2018.\nEdge cases: customer_id changes with every order, so it never shows a return; a first order that was canceled or never delivered does not set the month; a second delivered order on the first day is not a return; a person whose first delivered order was in 2016 is in no 2017 month; a month with no new customer shows 0, 0 and a missing share.\nExpected row count: 12",
+  "model_answer_template": "Of the {CP2} people who placed their first delivered order on Olist in 2017, {CP4} percent came back for another delivered order on a later day by 31 August 2018, and the share is lowest for the months late in the year. A second-order discount would therefore reach a large group of one-time buyers, but the late months had less time to come back, so their low shares do not yet show weaker loyalty. Next, I would compare every month over the same window, such as the 180 days after the first order, and then test the discount on one month's new buyers against a group without it.",
+  "follow_up_question": "How do the months compare when each is counted over the same 180 days after the first order?",
+  "data_source": {
+    "label": "Real data: Olist's Brazilian e-commerce orders, about 100,000 orders made at several marketplaces in Brazil from 2016 to 2018, without the geolocation file. Source: Olist, on Kaggle. Licence: CC BY-NC-SA 4.0.",
+    "real": true,
+    "licence": "CC BY-NC-SA 4.0"
+  },
+  "difficulty": 4,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-04",
+    "SQL-PAT-06"
+  ],
+  "metric_ids": [
+    "MET-RETAIL-11"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-PAT-02-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "latest_per_key",
+    "row_number",
+    "tie_break",
+    "subscription_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06",
+    "SQL-PAT-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-PAT-02-latest-per-key-counted",
+  "template_params": {
+    "table": "subscription_events",
+    "key": "subscription",
+    "count_by": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "In which month did each subscription see its latest recorded MRR change, and how many subscriptions is that per month? Use recorded_at, which is Brussels local time, as stored; the month is the first day of its month. Every event counts, opening events included. Each subscription counts once, in the month of its change with the latest recorded_at. When two changes of a subscription tie on recorded_at, the lower event_id is kept. Return two columns, in this order: last_change_month and subscriptions. Return one row for each month that holds some subscription's latest change. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "last_change_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "subscriptions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "last_change_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "subscriptions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "last_change_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each subscription's changes from the latest recorded_at down, keep number 1, then count the kept rows by month.",
+    "Truncate the kept change's recorded_at to its month, and keep one change per subscription even on a tie."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 44,
+      "to": 182,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 183,
+      "to": 209,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 212,
+      "to": 299,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 300,
+      "to": 311,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 312,
+      "to": 324,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 325,
+      "to": 366,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "One change per subscription, the latest recorded, is kept with ROW_NUMBER = 1 before the months are counted."
+}

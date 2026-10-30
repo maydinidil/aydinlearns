@@ -1,0 +1,167 @@
+{
+  "id": "EX-SQL-PAT-06-E2-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "cohort",
+    "immature_cells"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-CASE-01",
+    "SQL-PAT-06"
+  ],
+  "template_id": "T-PAT-06-predict-immature",
+  "template_params": {
+    "cells": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Which result does this query return? It shows three cells of one cohort's row, with the number of active accounts counted in each month; the as-of date is 1 January 2026.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT month_offset,\n       CASE WHEN month_start >= DATE '2026-01-01' THEN NULL ELSE active END AS active_accounts\nFROM (VALUES (0, DATE '2025-11-01', 4),\n             (1, DATE '2025-12-01', 0),\n             (2, DATE '2026-01-01', 0)) AS t(month_offset, month_start, active)",
+  "options": [
+    {
+      "oid": "ob92ba2c",
+      "text": "Counts 4, 0 and missing",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month_offset",
+          "active_accounts"
+        ],
+        "rows": [
+          [
+            0,
+            4
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "of39e6be",
+      "text": "Counts 4, missing and missing",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "month_offset",
+          "active_accounts"
+        ],
+        "rows": [
+          [
+            0,
+            4
+          ],
+          [
+            1,
+            null
+          ],
+          [
+            2,
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "od50f317",
+      "text": "Counts 4, 0 and 0",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "month_offset",
+          "active_accounts"
+        ],
+        "rows": [
+          [
+            0,
+            4
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ob7292af",
+      "text": "Counts 4, missing and 0",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month_offset",
+          "active_accounts"
+        ],
+        "rows": [
+          [
+            0,
+            4
+          ],
+          [
+            1,
+            null
+          ],
+          [
+            2,
+            0
+          ]
+        ]
+      }
+    }
+  ]
+}

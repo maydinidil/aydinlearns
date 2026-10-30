@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-02-E3-21",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per competitor check of a TV & Video product\n  SELECT cp.product_id, cp.observed_ts, cp.price_eur,\n         ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts DESC, cp.competitor) AS rn\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n),\nlatest AS (  -- one row per TV & Video product with a check\n  SELECT product_id, CAST(observed_ts AS DATE) AS check_day, price_eur\n  FROM ranked\n  WHERE rn = 1\n)\nSELECT l.product_id, l.price_eur AS competitor_price, ph.list_price_eur, l.price_eur - ph.list_price_eur AS gap_eur\nFROM latest l\nJOIN price_history ph ON ph.product_id = l.product_id\n AND ph.valid_from <= l.check_day AND (ph.valid_to IS NULL OR ph.valid_to >= l.check_day)",
+  "alternatives": [
+    "WITH latest AS (  -- one row per TV & Video product with a check\n  SELECT cp.product_id, CAST(cp.observed_ts AS DATE) AS check_day, cp.price_eur\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n    AND NOT EXISTS (SELECT 1 FROM competitor_prices cp2\n                    WHERE cp2.product_id = cp.product_id\n                      AND (cp2.observed_ts > cp.observed_ts OR (cp2.observed_ts = cp.observed_ts AND cp2.competitor < cp.competitor)))\n)\nSELECT l.product_id, l.price_eur AS competitor_price, ph.list_price_eur, l.price_eur - ph.list_price_eur AS gap_eur\nFROM latest l\nJOIN price_history ph ON ph.product_id = l.product_id\n AND ph.valid_from <= l.check_day AND (ph.valid_to IS NULL OR ph.valid_to >= l.check_day)",
+    "SELECT t.product_id, t.price_eur AS competitor_price, ph.list_price_eur, t.price_eur - ph.list_price_eur AS gap_eur\nFROM (\n  -- one row per competitor check of a TV & Video product, numbered from the latest\n  SELECT cp.product_id, cp.observed_ts, cp.price_eur,\n         ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts DESC, cp.competitor) AS rn\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n) AS t\nJOIN price_history ph ON ph.product_id = t.product_id\n AND ph.valid_from <= CAST(t.observed_ts AS DATE) AND (ph.valid_to IS NULL OR ph.valid_to >= CAST(t.observed_ts AS DATE))\nWHERE t.rn = 1"
+  ],
+  "other_way": {
+    "sql": "WITH latest AS (  -- one row per TV & Video product with a check\n  SELECT cp.product_id, CAST(cp.observed_ts AS DATE) AS check_day, cp.price_eur\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n    AND NOT EXISTS (SELECT 1 FROM competitor_prices cp2\n                    WHERE cp2.product_id = cp.product_id\n                      AND (cp2.observed_ts > cp.observed_ts OR (cp2.observed_ts = cp.observed_ts AND cp2.competitor < cp.competitor)))\n)\nSELECT l.product_id, l.price_eur AS competitor_price, ph.list_price_eur, l.price_eur - ph.list_price_eur AS gap_eur\nFROM latest l\nJOIN price_history ph ON ph.product_id = l.product_id\n AND ph.valid_from <= l.check_day AND (ph.valid_to IS NULL OR ph.valid_to >= l.check_day)",
+    "tradeoff": "NOT EXISTS keeps the latest check without a window, but the tie-break on the competitor's name has to be spelled out by hand."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (SELECT cp.product_id, cp.observed_ts, cp.price_eur, RANK() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts DESC) AS rn FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.parent_category = 'TV & Video'), latest AS (SELECT product_id, CAST(observed_ts AS DATE) AS check_day, price_eur FROM ranked WHERE rn = 1) SELECT l.product_id, l.price_eur AS competitor_price, ph.list_price_eur, l.price_eur - ph.list_price_eur AS gap_eur FROM latest l JOIN price_history ph ON ph.product_id = l.product_id AND ph.valid_from <= l.check_day AND (ph.valid_to IS NULL OR ph.valid_to >= l.check_day)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH ranked AS (SELECT cp.product_id, cp.observed_ts, cp.price_eur, ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY cp.price_eur DESC, cp.competitor) AS rn FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.parent_category = 'TV & Video'), latest AS (SELECT product_id, CAST(observed_ts AS DATE) AS check_day, price_eur FROM ranked WHERE rn = 1) SELECT l.product_id, l.price_eur AS competitor_price, ph.list_price_eur, l.price_eur - ph.list_price_eur AS gap_eur FROM latest l JOIN price_history ph ON ph.product_id = l.product_id AND ph.valid_from <= l.check_day AND (ph.valid_to IS NULL OR ph.valid_to >= l.check_day)"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per competitor check of a TV & Video product\n  SELECT cp.product_id, cp.observed_ts, cp.price_eur,\n         ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts DESC, cp.competitor) AS rn\n  FROM competitor_prices cp\n  JOIN products p ON p.product_id = cp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE c.parent_category = 'TV & Video'\n),\nlatest AS (  -- one row per TV & Video product with a check\n  SELECT product_id, CAST(observed_ts AS DATE) AS check_day, price_eur\n  FROM ranked\n  WHERE rn = 1\n)\nSELECT l.product_id, l.price_eur AS competitor_price, ph.list_price_eur, l.price_eur - ph.list_price_eur AS gap_eur\nFROM latest l\nJOIN price_history ph ON ___",
+  "solver": {
+    "prompt_hash": "04bfe8c39b457b14",
+    "schema_version": "ed3be5110cd5",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH r AS (SELECT cp.product_id, cp.price_eur, CAST(cp.observed_ts AS DATE) AS d, ROW_NUMBER() OVER (PARTITION BY cp.product_id ORDER BY cp.observed_ts DESC, cp.competitor) AS rn FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.parent_category = 'TV & Video')\nSELECT r.product_id, r.price_eur AS competitor_price, ph.list_price_eur, r.price_eur - ph.list_price_eur AS gap_eur\nFROM r JOIN price_history ph ON ph.product_id = r.product_id AND ph.valid_from <= r.d AND (ph.valid_to IS NULL OR ph.valid_to >= r.d)\nWHERE r.rn = 1\n",
+    "at": "2026-10-28T14:57:01.854Z"
+  }
+}

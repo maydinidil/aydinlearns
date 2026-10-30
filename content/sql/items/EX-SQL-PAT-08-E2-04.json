@@ -1,0 +1,155 @@
+{
+  "id": "EX-SQL-PAT-08-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "sessionisation",
+    "lag",
+    "app_events",
+    "boundary"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-08"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-08",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-08"
+  ],
+  "template_id": "T-PAT-08-gap-30-or-more",
+  "template_params": {
+    "table": "app_events",
+    "month": "2025-11"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The analytics team defines sessions with a gap of 30 minutes or more. Count each account's app sessions in November 2025, using only the app events from 1 to 30 November 2025 (UTC days of event_ts). A user's first app event in November starts a session, and an event 30 minutes or more after the same user's previous event starts a new one, so a gap of exactly 30 minutes starts a new session. Measure each gap as the time between the two moments in event_ts, a UTC instant. Return two columns, in this order: account_id and sessions. Return one row for each account with app events in November. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "account_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "account_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "account_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, flag the session starts with the 30 minutes or more rule and add them up per account.",
+    "Compare the gap itself with an interval: a count of minute boundaries can reach 30 before 30 minutes have passed."
+  ],
+  "subgoals": [
+    {
+      "from": 59,
+      "to": 98,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 99,
+      "to": 183,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 184,
+      "to": 201,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 202,
+      "to": 314,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 375,
+      "to": 414,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 415,
+      "to": 524,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 525,
+      "to": 536,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 539,
+      "to": 586,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 587,
+      "to": 599,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 600,
+      "to": 619,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "With >= on the true gap, an event exactly 30 minutes after the one before opens a session, and 29 minutes 59 seconds does not."
+}

@@ -1,0 +1,219 @@
+{
+  "id": "EX-SQL-PAT-09-E2-03",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "uplift",
+    "promo_type"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-uplift-by-type",
+  "template_params": {
+    "table": "order_lines",
+    "baseline": "same_length",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Which kind of promotion lifts sales most? For each promo_type, take the promotions of that type that started in 2025 (start_date from 1 January to 31 December 2025), work out each promotion's units on promotion and its baseline units, and add them up per type. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. Then give uplift_pct, the type's promotion units minus its baseline units, as a percentage of its baseline units, rounded to 1 decimal with ROUND (12.5 for 12.5%), or missing when the baseline units add up to 0. Return four columns, in this order: promo_type, promo_units, baseline_units and uplift_pct. Return one row for each promo_type with a promotion that started in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "uplift_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "baseline_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "uplift_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add each type's promotion units and baseline units, then work the percentage out from the two sums.",
+    "Divide the summed difference by the summed baseline; an average of each promotion's percentage weighs a small promotion like a big one."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 140,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 141,
+      "to": 158,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 159,
+      "to": 225,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 289,
+      "to": 335,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 336,
+      "to": 350,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 351,
+      "to": 400,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 401,
+      "to": 422,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 488,
+      "to": 530,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 531,
+      "to": 545,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 546,
+      "to": 602,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 603,
+      "to": 649,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 650,
+      "to": 706,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 707,
+      "to": 728,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 731,
+      "to": 838,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 839,
+      "to": 967,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 968,
+      "to": 980,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 981,
+      "to": 1026,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1027,
+      "to": 1074,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1075,
+      "to": 1096,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Adding the units per type before dividing gives the type's real uplift, with every unit weighed once."
+}

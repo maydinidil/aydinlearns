@@ -1,0 +1,207 @@
+{
+  "id": "EX-SQL-PAT-09-E2-02",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "promo",
+    "baseline",
+    "uplift",
+    "margin"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-09"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-PAT-09",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-09"
+  ],
+  "template_id": "T-PAT-09-revenue-margin-uplift",
+  "template_params": {
+    "table": "sales",
+    "baseline": "same_length",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "A promotion can raise revenue and still cost margin. For each promotion that started in 2025 (start_date from 1 January to 31 December 2025), give revenue_uplift, the net revenue on promotion minus the baseline's, and margin_uplift, the gross margin on promotion minus the baseline's. Net revenue is sales.net_revenue_eur, and a line's gross margin is its net_revenue_eur minus units times unit_cost_eur. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0. Return three columns, in this order: promo_id, revenue_uplift and margin_uplift. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_uplift",
+        "type_class": "numeric"
+      },
+      {
+        "name": "margin_uplift",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion that started in 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_uplift",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "margin_uplift",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the same-length baseline window, then subtract revenue and margin period from period.",
+    "Margin is revenue minus units times unit cost, line by line; add it up in each period before you subtract."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 128,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 129,
+      "to": 146,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 213,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 277,
+      "to": 393,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 394,
+      "to": 408,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 409,
+      "to": 458,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 459,
+      "to": 511,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 512,
+      "to": 533,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 599,
+      "to": 715,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 716,
+      "to": 730,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 731,
+      "to": 787,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 788,
+      "to": 834,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 835,
+      "to": 891,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 892,
+      "to": 913,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 916,
+      "to": 1066,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1067,
+      "to": 1079,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1080,
+      "to": 1125,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1126,
+      "to": 1173,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 835,
+    "stage2": 835
+  },
+  "faded_shape": "WITH promo AS (\n  -- one row per promotion that started in 2025\n  SELECT promo_id, start_date, end_date - start_date + 1 AS days\n  FROM promotions\n  WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n), during AS (\n  -- one row per promotion that started in 2025\n  SELECT p.promo_id, SUM(s.net_revenue_eur) AS revenue, SUM(s.net_revenue_eur - s.units * s.unit_cost_eur) AS margin\n  FROM promo p\n  JOIN order_lines ol ON ol.promo_id = p.promo_id\n  JOIN sales s ON s.order_line_id = ol.order_line_id\n  GROUP BY p.promo_id\n), baseline AS (\n  -- one row per promotion with a baseline sale\n  SELECT p.promo_id, SUM(s.net_revenue_eur) AS revenue, SUM(s.net_revenue_eur - s.units * s.unit_cost_eur) AS margin\n  FROM promo p\n  JOIN promotion_products pp ON pp.promo_id = p.promo_id\n  JOIN sales s ON s.product_id = pp.product_id\n",
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Revenue and margin are added up per period on the same lines, so the margin uplift shows what the discount cost.",
+  "faded_suffix": "\n  GROUP BY p.promo_id\n)\nSELECT p.promo_id, COALESCE(d.revenue, 0) - COALESCE(b.revenue, 0) AS revenue_uplift,\n  COALESCE(d.margin, 0) - COALESCE(b.margin, 0) AS margin_uplift\nFROM promo p\nLEFT JOIN during d ON d.promo_id = p.promo_id\nLEFT JOIN baseline b ON b.promo_id = p.promo_id"
+}

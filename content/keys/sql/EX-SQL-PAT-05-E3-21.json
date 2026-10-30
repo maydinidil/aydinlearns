@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-05-E3-21",
+  "item_version": 1,
+  "reference_sql": "WITH by_channel AS (\n  -- one row per parent category with sales in 2025\n  SELECT parent_category,\n    SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur,\n    SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY parent_category\n)\nSELECT parent_category, store_revenue_eur, web_revenue_eur,\n  ROUND(100.0 * web_revenue_eur / (store_revenue_eur + web_revenue_eur), 1) AS web_share_pct\nFROM by_channel",
+  "alternatives": [
+    "SELECT parent_category,\n  COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'store'), 0) AS store_revenue_eur,\n  COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) AS web_revenue_eur,\n  ROUND(100.0 * COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) / SUM(net_revenue_eur), 1) AS web_share_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category",
+    "WITH by_channel AS (\n  -- one row per parent category with sales in 2025\n  SELECT parent_category,\n    SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur,\n    SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY parent_category\n)\nSELECT parent_category, store_revenue_eur, web_revenue_eur,\n  ROUND(web_revenue_eur * 100.0 / (store_revenue_eur + web_revenue_eur), 1) AS web_share_pct\nFROM by_channel"
+  ],
+  "other_way": {
+    "sql": "SELECT parent_category,\n  COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'store'), 0) AS store_revenue_eur,\n  COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) AS web_revenue_eur,\n  ROUND(100.0 * COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) / SUM(net_revenue_eur), 1) AS web_share_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category",
+    "tradeoff": "Filtered sums in one query skip the CTE, but they repeat the web total inside the share and need COALESCE for 0."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH by_channel AS (\n  -- one row per parent category with sales in 2025\n  SELECT parent_category,\n    SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur,\n    SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY parent_category\n) SELECT parent_category, store_revenue_eur, web_revenue_eur, ROUND(1.0 * web_revenue_eur / (store_revenue_eur + web_revenue_eur), 1) AS web_share_pct FROM by_channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT parent_category, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur, ROUND(100.0 * SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS web_share_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category, category_name"
+    }
+  ],
+  "hint3_partial": "WITH by_channel AS (\n  -- one row per parent category with sales in 2025\n  SELECT parent_category,\n    SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur,\n    SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY parent_category\n)\nSELECT parent_category, store_revenue_eur, web_revenue_eur,\n  ROUND(___, 1) AS web_share_pct\nFROM by_channel",
+  "solver": {
+    "prompt_hash": "072ddf96538aff32",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH t AS (\n  SELECT parent_category,\n    COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'store'), 0) AS store_revenue_eur,\n    COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) AS web_revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY parent_category\n)\nSELECT parent_category, store_revenue_eur, web_revenue_eur,\n  ROUND(100.0 * web_revenue_eur / (store_revenue_eur + web_revenue_eur), 1) AS web_share_pct\nFROM t\n",
+    "at": "2026-10-28T14:57:06.667Z"
+  }
+}

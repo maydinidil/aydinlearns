@@ -1,0 +1,77 @@
+{
+  "schema": "mailvora_edge_pat",
+  "mirrors": "mailvora",
+  "family": "pat",
+  "contains": [
+    "two channels, nonbrand search and Meta, where two campaigns tie for first place and two tie for third, by spend and by clicks in 2025",
+    "two channels, brand search and review sites, with a tie for second place between two campaigns, by spend and by clicks in 2025",
+    "two visitors whose first two sessions start at the same moment, from two channels",
+    "a user whose two latest activation events happened at the same moment",
+    "no ad spend in June 2024 in any channel, while the monthly budgets still hold June 2024",
+    "a campaign that spends on 3, 4, 5, 7, 8 and 9 March 2025 but not the 6th, and no spend in the week of 10 March 2025",
+    "users who signed up in November and December 2025, so their later months come after the as-of date",
+    "a user who signed up on 31 January 2025 and first paid on 1 March: two calendar months, but 29 days, later",
+    "subscriptions that ended, so their later months hold no payment",
+    "a user who pays without ever being activated, a user who pays before being activated, and an activated user who never pays",
+    "a user with activation events 35 minutes apart across the clock change of 26 October 2025, which look 25 minutes backwards on the local clock",
+    "two activation events of one user exactly 30 minutes apart on 14 October 2025",
+    "two activation events of another user exactly 30 minutes apart on 26 October 2025",
+    "a user with activation events 20 minutes apart across midnight UTC into 1 January 2025, one session that starts in 2024",
+    "a user with activation events 20 minutes apart across midnight UTC into 1 October 2025, then a second session later that day",
+    "a user with activation events 20 minutes apart across midnight UTC into 13 October 2025",
+    "a refunded payment"
+  ],
+  "tables": {
+    "channels": [
+      "two channels, nonbrand search and Meta, where two campaigns tie for first place and two tie for third, by spend and by clicks in 2025",
+      "two channels, brand search and review sites, with a tie for second place between two campaigns, by spend and by clicks in 2025"
+    ],
+    "campaigns": [
+      "two channels, nonbrand search and Meta, where two campaigns tie for first place and two tie for third, by spend and by clicks in 2025",
+      "two channels, brand search and review sites, with a tie for second place between two campaigns, by spend and by clicks in 2025",
+      "a campaign that spends on 3, 4, 5, 7, 8 and 9 March 2025 but not the 6th, and no spend in the week of 10 March 2025"
+    ],
+    "ad_spend_daily": [
+      "two channels, nonbrand search and Meta, where two campaigns tie for first place and two tie for third, by spend and by clicks in 2025",
+      "two channels, brand search and review sites, with a tie for second place between two campaigns, by spend and by clicks in 2025",
+      "no ad spend in June 2024 in any channel, while the monthly budgets still hold June 2024",
+      "a campaign that spends on 3, 4, 5, 7, 8 and 9 March 2025 but not the 6th, and no spend in the week of 10 March 2025"
+    ],
+    "budget_monthly": [
+      "no ad spend in June 2024 in any channel, while the monthly budgets still hold June 2024"
+    ],
+    "sessions": [
+      "two visitors whose first two sessions start at the same moment, from two channels"
+    ],
+    "signups": [
+      "users who signed up in November and December 2025, so their later months come after the as-of date",
+      "a user who signed up on 31 January 2025 and first paid on 1 March: two calendar months, but 29 days, later",
+      "a user who pays without ever being activated, a user who pays before being activated, and an activated user who never pays"
+    ],
+    "activation_events": [
+      "a user whose two latest activation events happened at the same moment",
+      "a user who pays without ever being activated, a user who pays before being activated, and an activated user who never pays",
+      "a user with activation events 35 minutes apart across the clock change of 26 October 2025, which look 25 minutes backwards on the local clock",
+      "two activation events of one user exactly 30 minutes apart on 14 October 2025",
+      "two activation events of another user exactly 30 minutes apart on 26 October 2025",
+      "a user with activation events 20 minutes apart across midnight UTC into 1 January 2025, one session that starts in 2024",
+      "a user with activation events 20 minutes apart across midnight UTC into 1 October 2025, then a second session later that day",
+      "a user with activation events 20 minutes apart across midnight UTC into 13 October 2025"
+    ],
+    "subscriptions": [
+      "a user who signed up on 31 January 2025 and first paid on 1 March: two calendar months, but 29 days, later",
+      "subscriptions that ended, so their later months hold no payment",
+      "a user who pays without ever being activated, a user who pays before being activated, and an activated user who never pays"
+    ],
+    "payments": [
+      "users who signed up in November and December 2025, so their later months come after the as-of date",
+      "a user who signed up on 31 January 2025 and first paid on 1 March: two calendar months, but 29 days, later",
+      "subscriptions that ended, so their later months hold no payment",
+      "a user who pays without ever being activated, a user who pays before being activated, and an activated user who never pays",
+      "a refunded payment"
+    ],
+    "countries": [
+      "a user with activation events 35 minutes apart across the clock change of 26 October 2025, which look 25 minutes backwards on the local clock"
+    ]
+  }
+}

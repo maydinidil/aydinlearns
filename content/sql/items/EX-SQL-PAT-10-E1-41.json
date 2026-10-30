@@ -1,0 +1,233 @@
+{
+  "id": "EX-SQL-PAT-10-E1-41",
+  "version": 2,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "predict_result",
+    "mrr",
+    "reactivation"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-10"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-PAT-10",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-PAT-10"
+  ],
+  "template_id": "T-PAT-10-predict-naive-new",
+  "template_params": {
+    "table": "subscription_events"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Account 125 was a customer when the data starts and churned on 7 August 2024. It came back on 14 April 2025 at 349.00 a month and churned again on 14 June 2025. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "WITH m AS (\n  SELECT month_end\n  FROM (VALUES (DATE '2025-02-28'), (DATE '2025-03-31'), (DATE '2025-04-30'), (DATE '2025-05-31'), (DATE '2025-06-30')) AS v(month_end)\n), mrr AS (\n  SELECT m.month_end, COALESCE(SUM(e.mrr_delta_local), 0) AS mrr\n  FROM m\n  LEFT JOIN subscription_events e ON e.account_id = 125 AND e.event_date <= m.month_end\n  GROUP BY m.month_end\n)\nSELECT month_end, mrr,\n  CASE WHEN LAG(mrr) OVER (ORDER BY month_end) = 0 AND mrr > 0 THEN 'new'\n       WHEN LAG(mrr) OVER (ORDER BY month_end) > 0 AND mrr = 0 THEN 'churn'\n       ELSE 'other' END AS movement\nFROM mrr",
+  "options": [
+    {
+      "oid": "o5ff1daf",
+      "text": "April 2025 shows reactivation",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month_end",
+          "mrr",
+          "movement"
+        ],
+        "rows": [
+          [
+            "2025-02-28",
+            "0.00",
+            "other"
+          ],
+          [
+            "2025-03-31",
+            "0.00",
+            "other"
+          ],
+          [
+            "2025-04-30",
+            "349.00",
+            "reactivation"
+          ],
+          [
+            "2025-05-31",
+            "349.00",
+            "other"
+          ],
+          [
+            "2025-06-30",
+            "0.00",
+            "churn"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o46a1a6d",
+      "text": "April 2025 shows new",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month_end",
+          "mrr",
+          "movement"
+        ],
+        "rows": [
+          [
+            "2025-02-28",
+            "0.00",
+            "other"
+          ],
+          [
+            "2025-03-31",
+            "0.00",
+            "other"
+          ],
+          [
+            "2025-04-30",
+            "349.00",
+            "new"
+          ],
+          [
+            "2025-05-31",
+            "349.00",
+            "other"
+          ],
+          [
+            "2025-06-30",
+            "0.00",
+            "churn"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o103f8ad",
+      "text": "February 2025 shows churn",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month_end",
+          "mrr",
+          "movement"
+        ],
+        "rows": [
+          [
+            "2025-02-28",
+            "0.00",
+            "churn"
+          ],
+          [
+            "2025-03-31",
+            "0.00",
+            "other"
+          ],
+          [
+            "2025-04-30",
+            "349.00",
+            "new"
+          ],
+          [
+            "2025-05-31",
+            "349.00",
+            "other"
+          ],
+          [
+            "2025-06-30",
+            "0.00",
+            "churn"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "obaf1630",
+      "text": "June 2025 shows other",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month_end",
+          "mrr",
+          "movement"
+        ],
+        "rows": [
+          [
+            "2025-02-28",
+            "0.00",
+            "other"
+          ],
+          [
+            "2025-03-31",
+            "0.00",
+            "other"
+          ],
+          [
+            "2025-04-30",
+            "349.00",
+            "new"
+          ],
+          [
+            "2025-05-31",
+            "349.00",
+            "other"
+          ],
+          [
+            "2025-06-30",
+            "0.00",
+            "other"
+          ]
+        ]
+      }
+    }
+  ]
+}

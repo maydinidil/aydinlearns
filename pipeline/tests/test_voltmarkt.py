@@ -550,5 +550,189 @@ class VoltmarktCompetitorPrices(unittest.TestCase):
         self.assertIn("competitor_prices", vm.validate(self.tables, self.truth))
 
 
+# Sprint 8 Part 2 (S8-15, E-212): the chain-wide daily stock table's columns, and the categories whose products it covers.
+INVENTORY = "inventory_chain_daily"
+INVENTORY_COLUMNS = [("snapshot_date", pa.date32()), ("store_id", pa.int32()), ("product_id", pa.int32()), ("units_on_hand", pa.int32())]
+INVENTORY_CATEGORIES = ("Consoles", "Controllers")
+STOCKOUT_FIRST, STOCKOUT_LAST = dt.date(2024, 12, 6), dt.date(2024, 12, 27)
+# Each stock row with the stock at the close of the day before (missing on a pair's first row) and the units its store sold that day.
+INVENTORY_MOVES = """CREATE TEMP VIEW moves AS
+    WITH sold AS (SELECT o.store_id, ol.product_id, CAST(o.order_ts AS DATE) AS d, sum(ol.quantity) AS units
+                  FROM order_lines ol JOIN orders o USING (order_id) GROUP BY ALL)
+    SELECT i.*, lag(i.units_on_hand) OVER (PARTITION BY i.store_id, i.product_id ORDER BY i.snapshot_date) AS prev,
+           coalesce(s.units, 0) AS sold
+    FROM inventory_chain_daily i
+    LEFT JOIN sold s ON s.store_id = i.store_id AND s.product_id = i.product_id AND s.d = i.snapshot_date"""
+
+
+class VoltmarktInventoryChain(unittest.TestCase):
+    """Sprint 8 Part 2 (S8-15, E-017, E-212, FIND-01-09): inventory_chain_daily, each physical store's stock of each console and
+    controller at the close of each day, drawn from the inventory_chain stream TABLE_ORDER reserved for it (GEN-02)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tables, cls.truth = generated()
+        cls.clean = cls.tables["clean"]
+        cls.con = duckdb.connect(config=NO_NETWORK)
+        cls.con.execute("SET TimeZone = 'UTC'")
+        for name, table in cls.clean.items():
+            cls.con.register(name, table)
+        cls.con.execute(INVENTORY_MOVES)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.con.close()
+
+    def one(self, sql):
+        return self.con.execute(sql).fetchone()
+
+    def col(self, sql):
+        return [r[0] for r in self.con.execute(sql).fetchall()]
+
+    def test_columns_grain_and_size(self):
+        table = self.clean[INVENTORY]
+        self.assertEqual([(f.name, f.type) for f in table.schema], INVENTORY_COLUMNS)
+        rows, keys, missing, negative = self.one(f"""SELECT count(*), count(DISTINCT (snapshot_date, store_id, product_id)),
+            4 * count(*) - count(snapshot_date) - count(store_id) - count(product_id) - count(units_on_hand),
+            count(*) FILTER (WHERE units_on_hand < 0) FROM {INVENTORY}""")
+        self.assertEqual(rows, keys, "one row per snapshot date, store and product")
+        self.assertEqual((missing, negative), (0, 0), "no missing value and no stock below 0")
+        self.assertLess(rows, 2_000_000, "E-212: under 2 million rows")
+        self.assertGreater(rows, 500_000, "every store and product of the subset, every day")
+        self.assertEqual(vm.TABLE_ORDER[-1], "inventory_chain", "the stream reserved at the end of the spawn order")
+        self.assertEqual(vm.INVENTORY_TABLES, [INVENTORY])
+
+    def test_the_products_are_the_consoles_and_controllers(self):
+        products = self.col(f"SELECT DISTINCT product_id FROM {INVENTORY} ORDER BY 1")
+        subset = self.col(f"""SELECT product_id FROM products JOIN categories USING (category_id)
+                              WHERE category_name IN {INVENTORY_CATEGORIES} ORDER BY 1""")
+        self.assertEqual(products, subset, "the products of the Consoles and Controllers categories, and no other")
+        self.assertIn(540, products, "PlayBox 5, FIND-01-09's product")
+
+    def test_physical_stores_every_day_they_are_open_from_each_launch(self):
+        stores = self.col(f"SELECT DISTINCT store_id FROM {INVENTORY} ORDER BY 1")
+        self.assertEqual(stores, self.col("SELECT store_id FROM stores WHERE store_id <> 99 ORDER BY 1"), "every physical store, not the webshop")
+        bad = self.one(f"""SELECT count(*) FROM (SELECT store_id, product_id, min(snapshot_date) AS first, max(snapshot_date) AS last, count(*) AS n
+                                                 FROM {INVENTORY} GROUP BY ALL) i
+            JOIN stores s USING (store_id) JOIN products p USING (product_id)
+            WHERE i.first <> greatest(DATE '2024-01-01', s.opened_on, p.launch_date)
+               OR i.last <> least(DATE '2025-12-31', coalesce(s.close_date, DATE '2025-12-31')) OR i.n <> i.last - i.first + 1""")[0]
+        self.assertEqual(bad, 0, "a row each day from the store's opening or the product's launch to the store's closing or the window's end")
+        pairs = self.one(f"""SELECT count(*) FROM stores s, products p JOIN categories c USING (category_id)
+                             WHERE s.store_id <> 99 AND c.category_name IN {INVENTORY_CATEGORIES}
+                               AND greatest(DATE '2024-01-01', s.opened_on, p.launch_date) <= least(DATE '2025-12-31', coalesce(s.close_date, DATE '2025-12-31'))""")[0]
+        self.assertEqual(self.one(f"SELECT count(DISTINCT (store_id, product_id)) FROM {INVENTORY}")[0], pairs, "every store and product that meet")
+        closed = self.one(f"""SELECT count(*) FILTER (WHERE store_id = 6 AND snapshot_date > DATE '2025-06-30'),
+                                     count(*) FILTER (WHERE store_id = 13 AND snapshot_date < DATE '2024-09-01'),
+                                     count(*) FILTER (WHERE store_id = 19 AND snapshot_date < DATE '2025-03-01') FROM {INVENTORY}""")
+        self.assertEqual(closed, (0, 0, 0), "NL-06 has no row after it closes, NL-13 and BE-09 none before they open")
+
+    def test_find_01_09_playbox_5_has_none_on_hand_in_every_store_for_22_days(self):
+        per_store = self.con.execute(f"""SELECT store_id, count(*) FILTER (WHERE snapshot_date BETWEEN DATE '{STOCKOUT_FIRST}' AND DATE '{STOCKOUT_LAST}'
+                                                                              AND units_on_hand = 0),
+                                                count(*) FILTER (WHERE snapshot_date BETWEEN DATE '{STOCKOUT_FIRST}' AND DATE '{STOCKOUT_LAST}'),
+                                                bool_and(units_on_hand > 0) FILTER (WHERE snapshot_date IN (DATE '2024-12-05', DATE '2024-12-28'))
+                                         FROM {INVENTORY} WHERE product_id = 540 GROUP BY 1 ORDER BY 1""").fetchall()
+        open_in_december = self.col("""SELECT store_id FROM stores WHERE store_id <> 99 AND opened_on <= DATE '2024-12-05'
+                                       AND coalesce(close_date, DATE '9999-12-31') >= DATE '2024-12-28' ORDER BY 1""")
+        stores = [s for s, *_ in per_store if s in open_in_december]
+        self.assertEqual(stores, open_in_december, "a row for every store open then")
+        for store_id, zero, days, around in per_store:
+            if store_id not in open_in_december:
+                continue
+            with self.subTest(store_id=store_id):
+                self.assertEqual((zero, days), (22, 22), "0 on hand on each of the 22 days")
+                self.assertTrue(around, "in stock on 5 and 28 December, the days around them")
+        other = self.one(f"""SELECT count(*) FROM {INVENTORY} WHERE product_id = 540 AND units_on_hand = 0
+                             AND snapshot_date NOT BETWEEN DATE '{STOCKOUT_FIRST}' AND DATE '{STOCKOUT_LAST}'""")[0]
+        self.assertEqual(other, 0, "PlayBox 5 is in stock on every other day")
+
+    def test_stock_moves_with_the_days_sales_and_deliveries(self):
+        # A day's delivery is its closing stock, less the day before's, plus the units sold that day: never below 0, except on
+        # 2024-12-06, when every store's remaining PlayBox 5 units leave the stores (the stockout starts).
+        bad, withdrawn, delivered = self.one(f"""SELECT
+            count(*) FILTER (WHERE prev IS NOT NULL AND units_on_hand - prev + sold < 0 AND NOT (product_id = 540 AND snapshot_date = DATE '{STOCKOUT_FIRST}')),
+            count(*) FILTER (WHERE prev IS NOT NULL AND units_on_hand - prev + sold < 0),
+            count(*) FILTER (WHERE prev IS NOT NULL AND units_on_hand - prev + sold > 0) FROM moves""")
+        self.assertEqual(bad, 0, "stock falls only by the units sold")
+        self.assertEqual(withdrawn, len(self.col(f"SELECT DISTINCT store_id FROM {INVENTORY} WHERE product_id = 540 AND snapshot_date = DATE '{STOCKOUT_FIRST}'")),
+                         "PlayBox 5's units leave each store on the stockout's first day, and nothing else leaves")
+        self.assertGreater(delivered, 10_000, "deliveries refill the stores")
+        oversold = self.one(f"SELECT count(*) FROM moves WHERE prev IS NULL AND units_on_hand < 0")[0]
+        self.assertEqual(oversold, 0)
+        zero = self.one(f"""SELECT count(*) FROM {INVENTORY} WHERE units_on_hand = 0
+                            AND NOT (product_id = 540 AND snapshot_date BETWEEN DATE '{STOCKOUT_FIRST}' AND DATE '{STOCKOUT_LAST}')""")[0]
+        self.assertEqual(zero, 0, "no other product runs out: every day with 0 on hand is FIND-01-09's")
+        sold_while_out = self.one("SELECT count(*) FROM moves WHERE units_on_hand = 0 AND sold > 0")[0]
+        self.assertEqual(sold_while_out, 0, "no sale on a day that closes with 0 on hand")
+
+    def test_a_stock_cover_question_finds_pairs_on_both_sides_of_two_weeks(self):
+        # CASE-RETAIL-04's question (04, MET-RETAIL-03) on a 28-day window: some store and product pairs hold under 2 weeks of
+        # cover, most hold more.
+        under, over = self.one(f"""WITH r AS (SELECT store_id, product_id, 7.0 * sum(sold) FILTER (WHERE units_on_hand > 0)
+                                                            / nullif(count(*) FILTER (WHERE units_on_hand > 0), 0) AS awu
+                                              FROM moves WHERE snapshot_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-28' GROUP BY ALL),
+                                      c AS (SELECT i.units_on_hand / r.awu AS cover FROM {INVENTORY} i JOIN r USING (store_id, product_id)
+                                            WHERE i.snapshot_date = DATE '2025-09-29' AND r.awu > 0)
+                                   SELECT count(*) FILTER (WHERE cover < 2), count(*) FILTER (WHERE cover >= 2) FROM c""")
+        self.assertGreater(under, 0)
+        self.assertGreater(over, under)
+
+    def test_shelves_differ_between_store_and_product_pairs(self):
+        # V1 review finding 1: each pair draws its own shelf minimum, so slow sellers do not all sit at one stock level.
+        top_share = float(self.one(f"SELECT max(n) / sum(n) FROM (SELECT count(*) AS n FROM {INVENTORY} GROUP BY units_on_hand)")[0])
+        self.assertLess(top_share, 0.5, "no single stock level holds half the rows")
+        lows = self.one(f"""SELECT count(DISTINCT low) FROM (SELECT min(units_on_hand) FILTER (WHERE units_on_hand > 0) AS low
+                                                            FROM {INVENTORY} GROUP BY store_id, product_id)""")[0]
+        self.assertGreaterEqual(lows, 5, "the pairs' lowest stock levels differ")
+
+    def test_the_december_2024_window_shows_the_stockout_distorting_the_rate(self):
+        # S8-C35: CASE-RETAIL-04's window, 1 to 28 December 2024 with the stock on 29 December, is FIND-01-09's: more pairs fall
+        # under 2 weeks of cover at the rate over in-stock days than at the rate over every day.
+        in_stock, every_day = self.one(f"""WITH r AS (SELECT store_id, product_id,
+                    7.0 * sum(sold) FILTER (WHERE units_on_hand > 0) / nullif(count(*) FILTER (WHERE units_on_hand > 0), 0) AS awu,
+                    7.0 * sum(sold) / count(*) AS awu_all
+                FROM moves WHERE snapshot_date BETWEEN DATE '2024-12-01' AND DATE '2024-12-28' GROUP BY ALL),
+            c AS (SELECT i.units_on_hand / r.awu AS cover, i.units_on_hand / nullif(r.awu_all, 0) AS cover_all
+                  FROM {INVENTORY} i JOIN r USING (store_id, product_id) WHERE i.snapshot_date = DATE '2024-12-29' AND r.awu > 0)
+            SELECT count(*) FILTER (WHERE cover < 2), count(*) FILTER (WHERE cover_all < 2) FROM c""")
+        self.assertGreater(in_stock, every_day)
+        self.assertGreater(every_day, 0)
+
+    def test_two_generations_give_the_same_table(self):
+        again, _ = vm.generate()
+        self.assertTrue(again["clean"][INVENTORY].equals(self.clean[INVENTORY]))
+
+    def test_no_other_table_depends_on_it(self):
+        # GEN-02: the table draws only from its own stream, after every other table, so no other table changes without it.
+        empty = pa.table({n: pa.array([], t) for n, t in INVENTORY_COLUMNS})
+        with mock.patch.object(vm, "build_inventory_chain", return_value=empty):
+            without, _ = vm.generate()
+        for name, table in self.clean.items():
+            if name != INVENTORY:
+                self.assertTrue(table.equals(without["clean"][name]), name)
+        for name, table in self.tables["raw"].items():
+            self.assertTrue(table.equals(without["raw"][name]), f"raw {name}")
+
+    def test_validate_rejects_broken_stock(self):
+        table = self.clean[INVENTORY]
+        units = table.column("units_on_hand").to_numpy().copy()
+        dates = table.column("snapshot_date").to_pylist()
+        products = table.column("product_id").to_numpy()
+        i = next(k for k, (d, p) in enumerate(zip(dates, products)) if p == 540 and d == dt.date(2024, 12, 10))
+        units[i] = 3
+        stocked = table.set_column(3, "units_on_hand", pa.array(units, pa.int32()))
+        with self.assertRaisesRegex(ValueError, "FIND-01-09"):
+            vm.validate({"clean": {**self.clean, INVENTORY: stocked}, "raw": self.tables["raw"]}, self.truth)
+        twice = pa.concat_tables([table, table.slice(0, 1)])
+        with self.assertRaisesRegex(ValueError, INVENTORY):
+            vm.validate({"clean": {**self.clean, INVENTORY: twice}, "raw": self.tables["raw"]}, self.truth)
+
+    def test_truth_records_the_stock_checks(self):
+        measured = vm.validate(self.tables, self.truth)["inventory_chain_daily"]
+        self.assertEqual(measured["rows"], self.clean[INVENTORY].num_rows)
+        self.assertEqual(measured["FIND-01-09"]["zero_days"], 22)
+
+
 if __name__ == "__main__":
     unittest.main()

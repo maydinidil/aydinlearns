@@ -1,0 +1,184 @@
+{
+  "id": "EX-SQL-PAT-07-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "funnel",
+    "users_per_step",
+    "activation",
+    "payments"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-users-per-step-by-quarter",
+  "template_params": {
+    "funnel": "signup, activation, payment",
+    "period": "2025",
+    "by": "quarter"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each quarter of 2025, how many of the users who signed up in it reached each step of the signup funnel: signed up, activated, paid? A user counts as activated with a first_campaign_sent event, and as paid with at least one payment, refunded or not; a user counts at a step only when the user also reached the step before, at any time. signup_ts is a UTC instant, read in UTC. Return four columns, in this order: signup_quarter (the first day of the quarter, in UTC), signed_up, activated and paid, each a number of users. Return one row for each quarter. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "signup_quarter",
+        "type_class": "temporal"
+      },
+      {
+        "name": "signed_up",
+        "type_class": "numeric"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "signup_quarter",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "signed_up",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "activated",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "signup_quarter"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each user's steps once: the activated users and the users who have paid, one row per user.",
+    "Join both lists to the signups with outer joins, group by the quarter of signup_ts, and count a user as paid only with an activation too."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 44,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 47,
+      "to": 70,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 73,
+      "to": 95,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 98,
+      "to": 138,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 142,
+      "to": 184,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 187,
+      "to": 212,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 215,
+      "to": 294,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 297,
+      "to": 371,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 379,
+      "to": 512,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 513,
+      "to": 609,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 610,
+      "to": 722,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 723,
+      "to": 746,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each step counts users once, and a paying user without an activation is left out of the paid step."
+}

@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-PAT-03-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "year_over_year",
+    "self_join",
+    "sessions",
+    "drill"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-PAT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-PAT-03"
+  ],
+  "template_id": "T-PAT-03-yoy-self-join",
+  "template_params": {
+    "table": "sessions",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_pat",
+  "prompt": "For each month of 2025 with website sessions, how many sessions did Mailvora's site have, and how many in the same month of 2024? session_start holds UTC time: take the month in UTC. A month of 2024 with no sessions counts as 0. Return three columns, in this order: month (the first day of the 2025 month), sessions and sessions_prev_year. Return one row for each month of 2025 with sessions. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sessions_prev_year",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "sessions_prev_year",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count sessions per UTC month for both years, then join each 2025 month to the same month of 2024.",
+    "Find last year by date, and turn a 2024 month with no row into 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 359,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 360,
+      "to": 433,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 434,
+      "to": 448,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 449,
+      "to": 507,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 508,
+      "to": 542,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The date join finds the same month of 2024 even when months are missing, and COALESCE turns a month with no sessions into 0."
+}

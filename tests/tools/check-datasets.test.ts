@@ -7,16 +7,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { loadContent, type ContentStore } from '../../server/content.ts';
-import { checkDatasets, REAL_DATASET_QUESTIONS, unbuiltItems, type CheckResult } from '../../tools/check-content.ts';
-import type { DatasetRecord } from '../../schemas/dataset.ts';
+import { checkCases, checkDatasets, REAL_DATASET_QUESTIONS, unbuiltItems, type CheckResult } from '../../tools/check-content.ts';
+import { REGISTRY_FILE, type DatasetRecord } from '../../schemas/dataset.ts';
 import type { CaseRecord } from '../../schemas/case.ts';
 import type { SqlItem } from '../../schemas/item.ts';
 import type { EdgeDescription } from '../../schemas/edge.ts';
 import { makeContentFixture } from '../helpers/content-fixture.ts';
-import { openerRecord } from '../helpers/case-fixture.ts';
+import { DAILY_ID, INBOX_ID, makeCaseFixture, openerRecord } from '../helpers/case-fixture.ts';
 
 const SHA = 'cd'.repeat(32);
 const record = (id: string, patch: Partial<DatasetRecord> = {}): DatasetRecord => ({
@@ -113,7 +113,8 @@ test('the committed registry passes C51, with the case records as they are', asy
   const s = await loadContent('content');
   const rs = checkDatasets(s, (p) => existsSync(p));
   assert.deepEqual(rs.filter((r) => !r.ok).map((r) => `${r.id}: ${r.detail}`), []);
-  assert.deepEqual(s.datasets?.().map((d) => [d.id, d.real, d.schemas.length]), [['DS-RETAIL-02', true, 1], ['DS-PRICE-101', true, 1], ['CH-01', false, 8]]);
+  assert.deepEqual(s.datasets?.().map((d) => [d.id, d.real, d.schemas.length]),
+    [['DS-RETAIL-02', true, 1], ['DS-PRICE-101', true, 1], ['CH-01', false, 8], ['DS-RETAIL-01', true, 1], ['DS-MKT-03', false, 1]]);
   assert.equal(s.dataset?.('DS-SAAS-04')?.id, 'CH-01', 'E-062: Foodie-Fi\'s ID is an alias of CH-01');
   // D87: the challenge's record holds names, schemas, file names, fingerprints and links only.
   const ch = s.dataset?.('CH-01')!;
@@ -134,8 +135,52 @@ test('P35 (Task H2): every real dataset in the committed registry, whatever its 
   }
 });
 
-// S6-23: the real datasets' edge descriptions, in the S6-05 shape: every line assigned to a table its SQL file creates.
-for (const schema of ['online_retail_ii_edge', 'breakfast_at_the_frat_edge']) {
+test('Review Focus 5 (S8-16, E-213): without Olist and Maven Toy Store prepared, their cases and items are skipped by name, nothing fails, and a Maven case is never real data', async () => {
+  const committed = await loadContent('content');
+  const olist = committed.dataset!('DS-RETAIL-01')!;
+  const maven = committed.dataset!('DS-MKT-03')!;
+  // Invented cases and items on the two schemas; the build named both edge schemas but neither dataset schema (a fresh clone).
+  const built = ['voltmarkt', 'voltmarkt_edge_basics', 'olist_edge', 'maven_toy_store_edge'];
+  const g = await makeCaseFixture({
+    records: (r) => {
+      Object.assign(r.inbox, { schema: 'olist', data_source: { label: olist.label, real: true, licence: olist.licence.name } });
+      // A fictional case's data_source carries no licence (schemas/case.ts); the registry's label names it.
+      Object.assign(r.daily, { schema: 'maven_toy_store', data_source: { label: maven.label, real: false, licence: null } });
+    },
+    items: (i) => {
+      Object.assign(i['EX-CASE-PRICE-01']!, { schema: 'olist', edge_schema: 'olist_edge' });
+      Object.assign(i['EX-CASE-DAILY-L1-01']!, { schema: 'maven_toy_store', edge_schema: 'maven_toy_store_edge' });
+    },
+    truths: (t) => { for (const k of Object.keys(t)) if (k.startsWith(INBOX_ID) || k.startsWith(DAILY_ID)) delete t[k]; },
+    file: (f) => { f.schemas = built; },
+  });
+  await mkdir(join(g.root, 'datasets'), { recursive: true });
+  await copyFile(join('content', REGISTRY_FILE), join(g.root, REGISTRY_FILE));
+  const s = await loadContent(g.root, { truthFile: g.truthFile });
+  // C41: each case is skipped by name, with a warning, never failed.
+  const c41 = (await checkCases(s)).filter((r) => r.check === 'C41');
+  for (const [id, schema] of [[INBOX_ID, 'olist'], [DAILY_ID, 'maven_toy_store']] as const) {
+    const r = c41.find((x) => x.id === id)!;
+    assert.deepEqual([r.ok, r.warn, r.detail], [false, true, `skipped: the database has no schema ${schema}, so the case is unavailable until its dataset is prepared`], id);
+  }
+  assert.deepEqual(c41.filter((r) => !r.ok && !r.warn).map((r) => `${r.id}: ${r.detail}`), [], 'nothing fails');
+  // C51: each item on the two schemas waits, named with its dataset and the prep command.
+  const items = ['EX-CASE-PRICE-01', 'EX-CASE-DAILY-L1-01'].map((id) => s.item(id) as SqlItem);
+  assert.deepEqual(unbuiltItems(items, new Set(built), s).map((r) => [r.id, r.ok, r.warn, r.detail]), [
+    ['EX-CASE-PRICE-01', false, true, 'skipped: the database has no schema olist, so the item waits until DS-RETAIL-01 is prepared (npm run prep:datasets)'],
+    ['EX-CASE-DAILY-L1-01', false, true, 'skipped: the database has no schema maven_toy_store, so the item waits until DS-MKT-03 is prepared (npm run prep:datasets)'],
+  ]);
+  // C51 on the cases: Olist's real case and Maven's fictional one agree with the registry; Maven's marked real fails.
+  const c51 = checkDatasets(s, (p) => existsSync(p));
+  assert.deepEqual([INBOX_ID, DAILY_ID].map((id) => byId(c51, id)?.ok), [true, true]);
+  assert.deepEqual(c51.filter((r) => !r.ok).map((r) => `${r.id}: ${r.detail}`), []);
+  failing(checkDatasets(store(committed.datasetRecords!(), [realCase('CASE-MAVEN-01', 'maven_toy_store', { data_source: { label: maven.label, real: true, licence: 'Public Domain' } })]), existsSync),
+    'CASE-MAVEN-01', /maven_toy_store is DS-MKT-03's, which the registry marks fictional: a real-data case needs real data/);
+});
+
+// S6-23: the real datasets' edge descriptions, in the S6-05 shape: every line assigned to a table its SQL file creates. Task D1
+// (S8-16): the two dataset edge schemas too, Maven Toy Store's though its data is fictional.
+for (const schema of ['online_retail_ii_edge', 'breakfast_at_the_frat_edge', 'olist_edge', 'maven_toy_store_edge']) {
   test(`S6-23: ${schema}'s description assigns each line to a table its SQL file creates`, async () => {
     const d = JSON.parse(await readFile(`content/sql/edge/${schema}.json`, 'utf8')) as EdgeDescription;
     const sql = await readFile(`pipeline/edge/${schema}.sql`, 'utf8');

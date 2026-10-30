@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E2-32",
+  "item_version": 1,
+  "reference_sql": "SELECT category,\n  COUNT(*) FILTER (WHERE opened_at < TIMESTAMP '2025-11-16 00:00:00') AS nov_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00') AS dec_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00')\n    - COUNT(*) FILTER (WHERE opened_at < TIMESTAMP '2025-11-16 00:00:00') AS change_tickets\nFROM support_tickets\nWHERE (opened_at >= TIMESTAMP '2025-11-01 00:00:00' AND opened_at < TIMESTAMP '2025-11-16 00:00:00')\n   OR (opened_at >= TIMESTAMP '2025-12-01 00:00:00' AND opened_at < TIMESTAMP '2025-12-16 00:00:00')\nGROUP BY category",
+  "alternatives": [
+    "SELECT category,\n  SUM(CASE WHEN opened_at < TIMESTAMP '2025-11-16 00:00:00' THEN 1 ELSE 0 END) AS nov_tickets,\n  SUM(CASE WHEN opened_at >= TIMESTAMP '2025-12-01 00:00:00' THEN 1 ELSE 0 END) AS dec_tickets,\n  SUM(CASE WHEN opened_at >= TIMESTAMP '2025-12-01 00:00:00' THEN 1 ELSE -1 END) AS change_tickets\nFROM support_tickets\nWHERE CAST(opened_at AS DATE) BETWEEN DATE '2025-11-01' AND DATE '2025-11-15'\n   OR CAST(opened_at AS DATE) BETWEEN DATE '2025-12-01' AND DATE '2025-12-15'\nGROUP BY category",
+    "WITH counted AS (\n  -- one row per category with a ticket in either period\n  SELECT category,\n    COUNT(*) FILTER (WHERE CAST(opened_at AS DATE) BETWEEN DATE '2025-11-01' AND DATE '2025-11-15') AS nov_tickets,\n    COUNT(*) FILTER (WHERE CAST(opened_at AS DATE) BETWEEN DATE '2025-12-01' AND DATE '2025-12-15') AS dec_tickets\n  FROM support_tickets\n  WHERE CAST(opened_at AS DATE) BETWEEN DATE '2025-11-01' AND DATE '2025-11-15'\n     OR CAST(opened_at AS DATE) BETWEEN DATE '2025-12-01' AND DATE '2025-12-15'\n  GROUP BY category\n)\nSELECT category, nov_tickets, dec_tickets, dec_tickets - nov_tickets AS change_tickets\nFROM counted"
+  ],
+  "other_way": {
+    "sql": "SELECT category,\n  SUM(CASE WHEN opened_at < TIMESTAMP '2025-11-16 00:00:00' THEN 1 ELSE 0 END) AS nov_tickets,\n  SUM(CASE WHEN opened_at >= TIMESTAMP '2025-12-01 00:00:00' THEN 1 ELSE 0 END) AS dec_tickets,\n  SUM(CASE WHEN opened_at >= TIMESTAMP '2025-12-01 00:00:00' THEN 1 ELSE -1 END) AS change_tickets\nFROM support_tickets\nWHERE CAST(opened_at AS DATE) BETWEEN DATE '2025-11-01' AND DATE '2025-11-15'\n   OR CAST(opened_at AS DATE) BETWEEN DATE '2025-12-01' AND DATE '2025-12-15'\nGROUP BY category",
+    "tradeoff": "CASE with 1 and 0 counts the same way on engines without FILTER, but FILTER says which rows each count keeps more plainly."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-48",
+      "sql": "SELECT category,\n  COUNT(*) FILTER (WHERE opened_at < TIMESTAMP '2025-12-01 00:00:00') AS nov_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00') AS dec_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00')\n    - COUNT(*) FILTER (WHERE opened_at < TIMESTAMP '2025-12-01 00:00:00') AS change_tickets\nFROM support_tickets\nWHERE (opened_at >= TIMESTAMP '2025-11-01 00:00:00' AND opened_at < TIMESTAMP '2025-12-01 00:00:00')\n   OR (opened_at >= TIMESTAMP '2025-12-01 00:00:00' AND opened_at < TIMESTAMP '2025-12-16 00:00:00')\nGROUP BY category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-49",
+      "sql": "SELECT category,\n  COUNT(*) FILTER (WHERE opened_at < TIMESTAMP '2025-11-16 00:00:00') AS nov_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00') AS dec_tickets,\n  COUNT(*) FILTER (WHERE opened_at < TIMESTAMP '2025-11-16 00:00:00')\n    - COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00') AS change_tickets\nFROM support_tickets\nWHERE (opened_at >= TIMESTAMP '2025-11-01 00:00:00' AND opened_at < TIMESTAMP '2025-11-16 00:00:00')\n   OR (opened_at >= TIMESTAMP '2025-12-01 00:00:00' AND opened_at < TIMESTAMP '2025-12-16 00:00:00')\nGROUP BY category"
+    }
+  ],
+  "hint3_partial": "SELECT category,\n  COUNT(*) FILTER (WHERE opened_at < ___) AS nov_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00') AS dec_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00')\n    - COUNT(*) FILTER (WHERE opened_at < ___) AS change_tickets\nFROM support_tickets\nWHERE (opened_at >= TIMESTAMP '2025-11-01 00:00:00' AND opened_at < ___)\n   OR (opened_at >= TIMESTAMP '2025-12-01 00:00:00' AND opened_at < TIMESTAMP '2025-12-16 00:00:00')\nGROUP BY category",
+  "solver": {
+    "prompt_hash": "a86eaa855ad12f70",
+    "schema_version": "663b8e8d8bba",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "SELECT category,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-11-01 00:00:00' AND opened_at < TIMESTAMP '2025-11-16 00:00:00') AS nov_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00' AND opened_at < TIMESTAMP '2025-12-16 00:00:00') AS dec_tickets,\n  COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-12-01 00:00:00' AND opened_at < TIMESTAMP '2025-12-16 00:00:00')\n    - COUNT(*) FILTER (WHERE opened_at >= TIMESTAMP '2025-11-01 00:00:00' AND opened_at < TIMESTAMP '2025-11-16 00:00:00') AS change_tickets\nFROM support_tickets\nWHERE (opened_at >= TIMESTAMP '2025-11-01 00:00:00' AND opened_at < TIMESTAMP '2025-11-16 00:00:00')\n   OR (opened_at >= TIMESTAMP '2025-12-01 00:00:00' AND opened_at < TIMESTAMP '2025-12-16 00:00:00')\nGROUP BY category\n",
+    "at": "2026-10-28T14:57:04.162Z"
+  }
+}

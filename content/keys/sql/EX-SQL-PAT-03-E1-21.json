@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-03-E1-21",
+  "item_version": 1,
+  "reference_sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', order_ts) AS DATE)\n), compared AS (\n  -- one row per month of 2025, with the month before\n  SELECT month, orders, LAG(orders) OVER (ORDER BY month) AS prev_orders\n  FROM monthly\n)\nSELECT month, orders,\n  ROUND(100.0 * (orders - prev_orders) / prev_orders, 1) AS change_pct\nFROM compared",
+  "alternatives": [
+    "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', order_ts) AS DATE)\n)\nSELECT m.month, m.orders,\n  ROUND(100.0 * (m.orders - p.orders) / p.orders, 1) AS change_pct\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 MONTH",
+    "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', order_ts) AS DATE)\n)\nSELECT month, orders,\n  ROUND(100.0 * orders / LAG(orders) OVER (ORDER BY month) - 100, 1) AS change_pct\nFROM monthly"
+  ],
+  "other_way": {
+    "sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', order_ts) AS DATE)\n)\nSELECT m.month, m.orders,\n  ROUND(100.0 * (m.orders - p.orders) / p.orders, 1) AS change_pct\nFROM monthly m\nLEFT JOIN monthly p ON p.month = m.month - INTERVAL 1 MONTH",
+    "tradeoff": "The self-join names the month before by date and needs no window, but LAG reads the totals once."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', order_ts) AS DATE)\n) SELECT month, orders, ROUND(100.0 * (orders - LAG(orders) OVER (ORDER BY month)) / orders, 1) AS change_pct FROM monthly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', order_ts) AS DATE)\n) SELECT month, orders, ROUND(1.0 * (orders - LAG(orders) OVER (ORDER BY month)) / LAG(orders) OVER (ORDER BY month), 1) AS change_pct FROM monthly"
+    }
+  ],
+  "hint3_partial": "WITH monthly AS (\n  -- one row per month of 2025\n  SELECT CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY CAST(date_trunc('month', order_ts) AS DATE)\n), compared AS (\n  -- one row per month of 2025, with the month before\n  SELECT month, orders, LAG(orders) OVER (ORDER BY month) AS prev_orders\n  FROM monthly\n)\nSELECT month, orders,\n  ROUND(___, 1) AS change_pct\nFROM compared",
+  "solver": {
+    "prompt_hash": "12ef9174b305a79c",
+    "schema_version": "7ed366279088",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH m AS (\n  SELECT CAST(date_trunc('month', order_ts) AS DATE) AS month, COUNT(*) AS orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY 1\n), c AS (\n  SELECT month, orders, LAG(orders) OVER (ORDER BY month) AS prev\n  FROM m\n)\nSELECT month, orders, ROUND(100.0 * (orders - prev) / prev, 1) AS change_pct\nFROM c\n",
+    "at": "2026-10-28T14:57:02.304Z"
+  }
+}

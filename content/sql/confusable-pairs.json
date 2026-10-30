@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source": "design §5, Days and look-alikes: the confusable-pairs registry, slice 1 (levels 1-2), sprint 4a (level 3), sprint 6 (level 4) and sprint 7 (level 5)",
+  "source": "design §5, Days and look-alikes: the confusable-pairs registry, slice 1 (levels 1-2), sprint 4a (level 3), sprint 6 (level 4), sprint 7 (level 5) and sprint 8 (level 6)",
   "pairs": [
     { "concepts": ["SQL-FILTER-01", "SQL-AGG-03"], "from_level": 2, "note": "WHERE vs HAVING" },
     { "concepts": ["SQL-SORT-01", "SQL-AGG-02"], "from_level": 2, "note": "DISTINCT vs GROUP BY" },
@@ -16,6 +16,10 @@
     { "concepts": ["SQL-NULL-01", "SQL-CLEAN-01"], "from_level": 4, "note": "COALESCE vs NULLIF: fill in a missing value, or make a 0 missing so a division is safe" },
     { "concepts": ["SQL-AGG-02", "SQL-WIN-01"], "from_level": 5, "note": "GROUP BY vs PARTITION BY: one row per group, or every row kept with its group's value beside it" },
     { "concepts": ["SQL-JOIN-04", "SQL-WIN-03"], "from_level": 5, "note": "a self-join vs LAG: join each row to the one before it, or read the row before it in order" },
-    { "concepts": ["SQL-FILTER-01", "SQL-WIN-06"], "from_level": 5, "note": "WHERE vs filtering a window result: WHERE runs before the window, so filter its result in a CTE or with QUALIFY" }
+    { "concepts": ["SQL-FILTER-01", "SQL-WIN-06"], "from_level": 5, "note": "WHERE vs filtering a window result: WHERE runs before the window, so filter its result in a CTE or with QUALIFY" },
+    { "concepts": ["SQL-PAT-01", "SQL-PAT-02"], "from_level": 6, "note": "top N per group vs the latest row per key: keep the first N of each group by a measure, with a stated tie rule, or keep one row per key by a stated winner" },
+    { "concepts": ["SQL-WIN-03", "SQL-PAT-03"], "from_level": 6, "note": "LAG vs the same period a year before: LAG reads the row before, which is not last year's month when a month has no rows" },
+    { "concepts": ["SQL-PAT-03", "SQL-PAT-10"], "from_level": 6, "note": "a period-over-period change vs MRR movements: compare one total with the period before, or sort each account's change into new, expansion, contraction, churn and reactivation" },
+    { "concepts": ["SQL-PAT-06", "SQL-PAT-07"], "from_level": 6, "note": "cohort retention vs a funnel: the share of a start month's users still active months later, or the share of users who reach each step" }
   ]
 }

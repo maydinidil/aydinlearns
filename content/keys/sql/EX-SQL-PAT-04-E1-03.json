@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-PAT-04-E1-03",
+  "item_version": 1,
+  "reference_sql": "WITH days AS (\n  -- one row per day, 1 to 10 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n  GROUP BY order_date\n)\nSELECT d.day, COALESCE(s.units, 0) AS units\nFROM days d\nLEFT JOIN daily s ON s.day = d.day",
+  "alternatives": [
+    "SELECT d.cal_date AS day, COALESCE(SUM(s.units), 0) AS units\nFROM calendar d\nLEFT JOIN sales s ON s.order_date = d.cal_date AND s.store_code = 'NL-01'\nWHERE d.cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\nGROUP BY d.cal_date",
+    "WITH days AS (\n  -- one row per day, 1 to 10 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n  GROUP BY order_date\n)\nSELECT d.day, CASE WHEN s.units IS NULL THEN 0 ELSE s.units END AS units\nFROM days d\nLEFT JOIN daily s ON s.day = d.day"
+  ],
+  "other_way": {
+    "sql": "SELECT d.cal_date AS day, COALESCE(SUM(s.units), 0) AS units\nFROM calendar d\nLEFT JOIN sales s ON s.order_date = d.cal_date AND s.store_code = 'NL-01'\nWHERE d.cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\nGROUP BY d.cal_date",
+    "tradeoff": "Joining the sales straight to calendar is shorter, but the store filter must sit in ON: in WHERE it would drop the zero days."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH days AS (\n  -- one row per day, 1 to 10 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n  GROUP BY order_date\n) SELECT d.day, COALESCE(s.units, 0) AS units FROM days d JOIN daily s ON s.day = d.day"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH days AS (\n  -- one row per day, 1 to 10 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n  GROUP BY order_date\n) SELECT d.day, s.units FROM days d LEFT JOIN daily s ON s.day = d.day"
+    }
+  ],
+  "hint3_partial": "WITH days AS (\n  -- one row per day, 1 to 10 March 2025\n  SELECT cal_date AS day\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n), daily AS (\n  -- one row per day with sales at NL-01\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n  GROUP BY order_date\n)\nSELECT d.day, COALESCE(s.units, 0) AS units\nFROM days d\n___ JOIN daily s ON s.day = d.day",
+  "solver": {
+    "prompt_hash": "1d535e99f66f3bfa",
+    "schema_version": "bfa72b600579",
+    "dataset_version": "80c1d7ea6d8fe033",
+    "grader_version": "8a.1",
+    "query": "WITH days AS (\n  SELECT CAST(d AS DATE) AS day FROM generate_series(DATE '2025-03-01', DATE '2025-03-10', INTERVAL 1 DAY) t(d)\n), u AS (\n  SELECT order_date AS day, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'NL-01' AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-10'\n  GROUP BY order_date\n)\nSELECT d.day, COALESCE(u.units, 0) AS units\nFROM days d LEFT JOIN u ON u.day = d.day\n",
+    "at": "2026-10-28T14:57:04.714Z"
+  }
+}

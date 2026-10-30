@@ -1,0 +1,92 @@
+{
+  "id": "EX-SQL-PAT-07-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-06",
+    "choose_query",
+    "funnel",
+    "ordered_funnel",
+    "app_events"
+  ],
+  "level": 6,
+  "source_ids": [
+    "01:SQL-PAT-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-28",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-PAT-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-PAT-07"
+  ],
+  "template_id": "T-PAT-07-choose-ordered-step",
+  "template_params": {
+    "step": "match after first upload"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Which query returns the number of users who uploaded a statement and then, at or after their first upload, matched a transaction, over all the app events? One row, one column: matched_users.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o97ae027",
+      "text": "WITH up AS (  -- one row per user who uploaded a statement, with the first upload\n  SELECT user_id, MIN(event_ts) AS upload_ts\n  FROM app_events\n  WHERE event_name = 'upload_statement'\n  GROUP BY user_id\n)\nSELECT COUNT(DISTINCT e.user_id) AS matched_users\nFROM up u\nJOIN app_events e\n  ON e.user_id = u.user_id AND e.event_name = 'match_transaction' AND e.event_ts >= u.upload_ts",
+      "misconception_id": null
+    },
+    {
+      "oid": "o1b026ad",
+      "text": "WITH up AS (  -- one row per user who uploaded a statement, with the first upload\n  SELECT user_id, MIN(event_ts) AS upload_ts\n  FROM app_events\n  WHERE event_name = 'upload_statement'\n  GROUP BY user_id\n)\nSELECT COUNT(DISTINCT e.user_id) AS matched_users\nFROM up u\nJOIN app_events e\n  ON e.user_id = u.user_id AND e.event_name = 'match_transaction'",
+      "misconception_id": "ERR-LOG-44"
+    },
+    {
+      "oid": "oe00c88b",
+      "text": "WITH up AS (  -- one row per user who uploaded a statement, with the first upload\n  SELECT user_id, MIN(event_ts) AS upload_ts\n  FROM app_events\n  WHERE event_name = 'upload_statement'\n  GROUP BY user_id\n)\nSELECT COUNT(*) AS matched_users\nFROM up u\nJOIN app_events e\n  ON e.user_id = u.user_id AND e.event_name = 'match_transaction' AND e.event_ts >= u.upload_ts",
+      "misconception_id": "ERR-LOG-04"
+    },
+    {
+      "oid": "oa7980c4",
+      "text": "SELECT COUNT(DISTINCT user_id) AS matched_users\nFROM app_events\nWHERE event_name = 'match_transaction'",
+      "misconception_id": "ERR-LOG-44"
+    }
+  ]
+}
