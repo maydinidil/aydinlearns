@@ -1,0 +1,193 @@
+{
+  "id": "EX-SQL-CRAFT-03-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "logo_churn",
+    "quarter",
+    "segment"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-logo-churn-quarter-segment",
+  "template_params": {
+    "table": "mrr_monthly",
+    "year": 2025,
+    "by": "segment"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each quarter of 2025 and each segment (accounts.segment), LedgerLoop's quarterly logo churn rate. The base of a quarter is the accounts with MRR at the end of the quarter before: a row in mrr_monthly for the last month of the quarter before (December 2024 for the first quarter, then March, June and September 2025). The churned accounts are the base accounts with a churn event (event_type churn in subscription_events) dated in the quarter, each counted once; one that churned and came back within the quarter still counts. An account that started during the quarter is in neither count, even if it churned in that quarter. Return five columns, in this order: quarter_start (the first day of the quarter), segment, accounts_at_start, churned_accounts and churn_rate, as a share (0.02 for 2%), not rounded. Return one row for each quarter of 2025 and segment; a quarter with no churn shows 0. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "quarter_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "accounts_at_start",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churned_accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "quarter_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "accounts_at_start",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "churned_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "quarter_start",
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build each quarter's base from the mrr_monthly rows of the last month of the quarter before.",
+    "Join the quarter's churners onto that base by account and quarter, so a churner who joined during the quarter finds no base row and drops out."
+  ],
+  "subgoals": [
+    {
+      "from": 104,
+      "to": 193,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 196,
+      "to": 214,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 217,
+      "to": 263,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 266,
+      "to": 359,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 434,
+      "to": 526,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 529,
+      "to": 553,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 556,
+      "to": 645,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 648,
+      "to": 754,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 757,
+      "to": 807,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 808,
+      "to": 819,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 820,
+      "to": 908,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 909,
+      "to": 944,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Taking both counts from one base fixed at the start of the quarter stops new accounts from inflating the base or the churn."
+}

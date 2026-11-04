@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-43",
+  "item_version": 2,
+  "correct_oid": "o38ed824",
+  "explanation": "Google's cost guide says that for non-clustered tables a LIMIT does not affect the amount of data read: BigQuery still reads the columns the query names from every daily table the suffix filter keeps, then cuts the result. The tempting answer, that only 100 rows are read, describes the result, not the scan. Nor is the LIMIT applied to each daily table: it cuts the one result of the whole query. An ORDER BY does not change the data read either: it sorts the rows already read, and the LIMIT then cuts the sorted result. To read less, narrow the _TABLE_SUFFIX range or name fewer columns.",
+  "solver": {
+    "prompt_hash": "2d496ce375d02cf0",
+    "grader_version": "choice.3",
+    "chosen": "o38ed824",
+    "typed": null,
+    "at": "2026-11-03T21:23:49.212Z"
+  }
+}

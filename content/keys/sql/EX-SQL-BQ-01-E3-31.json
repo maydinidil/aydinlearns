@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E3-31",
+  "item_version": 3,
+  "reference_sql": "WITH views AS (\n  -- one row per page_view from 1 to 7 December 2025\n  SELECT event_date,\n    list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.int_value AS engagement_msec\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT event_date, COUNT(*) AS page_views, SUM(engagement_msec) AS engagement_msec\nFROM views\nGROUP BY event_date",
+  "alternatives": [
+    "SELECT e.event_date, COUNT(*) AS page_views, SUM(p.value.int_value) AS engagement_msec\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date BETWEEN '20251201' AND '20251207'\n  AND p.key = 'engagement_time_msec'\nGROUP BY e.event_date",
+    "SELECT event_date, COUNT(*) AS page_views,\n  SUM([p.value.int_value FOR p IN event_params IF p.key = 'engagement_time_msec'][1]) AS engagement_msec\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date BETWEEN '20251201' AND '20251207'\nGROUP BY event_date"
+  ],
+  "other_way": {
+    "sql": "SELECT e.event_date, COUNT(*) AS page_views, SUM(p.value.int_value) AS engagement_msec\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date BETWEEN '20251201' AND '20251207'\n  AND p.key = 'engagement_time_msec'\nGROUP BY e.event_date",
+    "tradeoff": "Keeping only the engagement_time_msec rows after the unnest also works, but a page_view without that parameter would drop out."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT e.event_date, COUNT(*) AS page_views,\n  SUM(CASE WHEN p.key = 'engagement_time_msec' THEN p.value.int_value END) AS engagement_msec\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date BETWEEN '20251201' AND '20251207'\nGROUP BY e.event_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH views AS (SELECT event_date, list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.double_value AS engagement_msec FROM events WHERE event_name = 'page_view' AND event_date BETWEEN '20251201' AND '20251207') SELECT event_date, COUNT(*) AS page_views, SUM(engagement_msec) AS engagement_msec FROM views GROUP BY event_date"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH views AS (SELECT event_date, list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.int_value AS engagement_msec FROM events WHERE event_name = 'page_view' AND event_date BETWEEN '2025-12-01' AND '2025-12-07') SELECT event_date, COUNT(*) AS page_views, SUM(engagement_msec) AS engagement_msec FROM views GROUP BY event_date"
+    }
+  ],
+  "hint3_partial": "WITH views AS (\n  -- one row per page_view from 1 to 7 December 2025\n  SELECT event_date,\n    list_filter(event_params, lambda p: p.key = ___)[1].value.int_value AS engagement_msec\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT event_date, COUNT(*) AS page_views, SUM(engagement_msec) AS engagement_msec\nFROM views\nGROUP BY event_date",
+  "solver": {
+    "prompt_hash": "f6277c7a2c7735ae",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "629fe78dc6bbdb7a",
+    "grader_version": "9a.1",
+    "query": "SELECT event_date, COUNT(*) AS page_views,\n  SUM(list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.int_value) AS engagement_msec\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date BETWEEN '20251201' AND '20251207'\nGROUP BY event_date\n",
+    "at": "2026-11-04T01:02:11.450Z"
+  }
+}

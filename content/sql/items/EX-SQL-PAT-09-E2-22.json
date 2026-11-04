@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-PAT-09-E2-22",
-  "version": 3,
+  "version": 4,
   "kind": "write",
   "tags": [
     "sql",
@@ -49,7 +49,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_pat",
-  "prompt": "For each promotion that started in April 2025 (start_date from 1 to 30 April 2025) and each product in it, give uplift_units: the product's units on lines that carry that promotion minus the product's units in the promotion's baseline. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the product in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0. Return three columns, in this order: promo_id, product_id and uplift_units. Return one row for each promotion and product in it. Any row order is fine.",
+  "prompt": "For each promotion that started in April 2025 (start_date from 1 to 30 April 2025) and each product in it, give uplift_units: the product's units on lines that carry that promotion minus the product's units in the promotion's baseline. A product is in a promotion when promotion_products lists it for that promotion, whether it sold or not. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the product in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0. Return three columns, in this order: promo_id, product_id and uplift_units. Return one row for each promotion and product in it. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

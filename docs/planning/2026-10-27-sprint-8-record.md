@@ -197,7 +197,7 @@ Written at Part 2's first task (G1). No public release (D124).
 Written at the end of sprint 8 Part 2 (2026-10-30), from its build ledger and review files. Part 2 did D125 to D127 and S8-14
 to S8-23's remaining rulings: the five SaaS cases and `CASE-MKT-05` on LedgerLoop, `CASE-RETAIL-01` and `-04` on Voltmarkt with
 its new chain-wide stock table, Olist and Maven Toy Store with a case each, level 6's goal counting SaaS cases, and four
-backlog rows. The public `v0.8.1` follows the merge.
+backlog rows. Released as the public `v0.8.1` on 2026-10-30 (see "Part 2: after the merge").
 
 | | |
 |---|---|
@@ -342,3 +342,20 @@ The middle column is the gate of 2026-10-30 before the F4 fixes; the last column
 After the gate: the F4 fixes (the smoke "1 of 5" check, the content test tying the goal's 5 to the SaaS inbox count, the
 `snapshot_date` note, and the two midnight tests) and these docs, with the 0.8.1 version pins. The docs agent ran `npm run
 typecheck` and `npm test` on the docs tree (see its report).
+
+## Part 2: after the merge
+
+Written on `feat/aydinlearns-sprint-9` after the release (the release skill's step 6).
+
+| What | Result |
+|---|---|
+| The PR | PR #58, pushed and opened at Aydin's go on 2026-10-30; 15 commits over `main` (`a0b8db5f`) |
+| Codex | Review of `9a5ba27b` completed with no findings (0 line comments); the `claude-review` check passed |
+| The merge | Merged by the controller at Aydin's word on 2026-10-30 (merge commit `4b7eb4d7`) |
+| First release check | The export of `4b7eb4d7` (`1611161`, 712 files) did not pass: 13 of 15. The key-prefix rule ran on the providers' general key starts, which always match the tutor's own key-format code, its tests' fake keys and the docs that name the format (35 hits; the key-shaped rule found 0); the controller's advice to use them was wrong, and the real starts of Aydin's keys are what the rule needs, as in 0.7.3's release. The email rule hit 49 invented addresses on the reserved `.example` domain in LedgerLoop's edge data and one test. Nothing was pushed |
+| The scan fix | PR #59 (`e0dad603`, at Aydin's word): the release check allows any address on a reserved top-level domain (RFC 2606), test first (20 of 20). Codex found nothing; merged 2026-10-30 (`7133ce8e`) |
+| Export and scan | `tools/export-public.sh <clone> origin/main` exported `7133ce8e` as `ee2f5f3` (712 files changed). `tools/release-check.ts`: 2 prefixes, 0 hits; key-shaped strings, email, user folder, session link and forbidden path 0 hits; NOTE: 3 added lines name the monorepo's path (S7D-C04) |
+| Install check | The launcher set up a fresh copy and listened on 5194 after 84 s; status 200 (version 0.8.1, 9 of 9 checks, grader 8a.1, dataset `59aa492c652892ff`); tutor off; Today for all three sections; an SQL pass; the mocks view; a screen mock start, review and end; the tree untouched; cleanup done. `RESULT: PASS (15 of 15)` |
+| The release | Pushed `40f7f5b..ee2f5f3` to the public `main`; tag `v0.8.1` on `ee2f5f3`, "aydinlearns 0.8.1", marked Latest, with notes for 0.8.0 and 0.8.1 together (0.8.0 was never public) |
+| Aydin's checkout | With nothing listening on 5174 and no change of Aydin's overlapping `main`: `C:\zehirlab` fast-forwarded from `a0b8db5f` to `7133ce8e` (version 0.8.1); Aydin's uncommitted `nabiz/CLAUDE.md` and untracked folders left as they were. The launcher rebuilds the data at the next start. No dataset is prepared in that checkout yet (no `data/real/`): `npm run prep:datasets -- --from <downloads folder>` there adds Olist, Maven Toy Store and the earlier datasets whose files are in the folder |
+| Keys | Aydin pasted both full API keys into the session when giving the key starts; the scan used only the first 16 characters of each, in the command's environment, and nothing was written. Advice given: rotate both keys and save the new ones in Settings |

@@ -1,0 +1,90 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "choose_query",
+    "columns",
+    "page_view"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-choose-page-views",
+  "template_params": {
+    "day": "20251209"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Which query returns exactly two columns, page_location and its number of page views, for the Dublin day 9 December 2025 (by event_date), counting every page_view event?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "of34ca3a",
+      "text": "WITH day_events AS (\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_date = '20251209'\n)\nSELECT page_location, COUNT(*) AS views\nFROM day_events\nGROUP BY page_location",
+      "misconception_id": "MIS-SQL-CRAFT-02-07"
+    },
+    {
+      "oid": "o8b81b11",
+      "text": "WITH day_views AS (\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251209'\n)\nSELECT page_location, COUNT(*) AS views\nFROM day_views\nGROUP BY page_location",
+      "misconception_id": null
+    },
+    {
+      "oid": "oe7d1b45",
+      "text": "WITH day_views AS (\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, user_pseudo_id\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251209'\n)\nSELECT page_location, COUNT(*) AS views, COUNT(DISTINCT user_pseudo_id) AS visitors\nFROM day_views\nGROUP BY page_location",
+      "misconception_id": "ERR-OUT-01"
+    },
+    {
+      "oid": "o0a0eaa0",
+      "text": "WITH day_views AS (\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '2025-12-09'\n)\nSELECT page_location, COUNT(*) AS views\nFROM day_views\nGROUP BY page_location",
+      "misconception_id": "ERR-LOG-55"
+    }
+  ]
+}

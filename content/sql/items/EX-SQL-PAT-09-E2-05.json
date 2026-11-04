@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-PAT-09-E2-05",
-  "version": 3,
+  "version": 4,
   "kind": "write",
   "tags": [
     "sql",
@@ -49,7 +49,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_pat",
-  "prompt": "How much discount did each extra unit cost? For each promotion that started in 2025 (start_date from 1 January to 31 December 2025), give discount_eur, the line_discount_eur summed over the lines that carry it; extra_units, its units on promotion minus its baseline units; and discount_per_extra_unit, discount_eur divided by extra_units, rounded to 2 decimals with ROUND, or missing when extra_units is 0 or less. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0. Return four columns, in this order: promo_id, discount_eur, extra_units and discount_per_extra_unit. Return one row for each such promotion. Any row order is fine.",
+  "prompt": "How much discount did each extra unit cost? For each promotion that started in 2025 (start_date from 1 January to 31 December 2025), give discount_eur, the line_discount_eur summed over the lines that carry it; extra_units, its units on promotion minus its baseline units; and discount_per_extra_unit, discount_eur divided by extra_units, rounded to 2 decimals with ROUND, or missing when extra_units is 0 or less. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline ends the day before the promotion's start_date and has as many days as the promotion ran, start_date and end_date both counted; it holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A period with no sale counts 0. A promotion with no line on it has a discount_eur of 0 and extra_units of 0 or less, so its discount_per_extra_unit is missing. A missing line_discount_eur counts as 0; a discount_eur of 0 with extra_units above 0 gives a discount_per_extra_unit of 0. Return four columns, in this order: promo_id, discount_eur, extra_units and discount_per_extra_unit. Return one row for each such promotion. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

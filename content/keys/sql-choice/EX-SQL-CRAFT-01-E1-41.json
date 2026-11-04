@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-01-E1-41",
+  "item_version": 1,
+  "correct_oid": "o01e84ef",
+  "explanation": "COUNT(*) counts every row, so all 3,279 session_start events count. COUNT(user_pseudo_id) skips the rows where that column is missing, so the 57 consent-denied events drop out of the second count only, which gives 3,222. A reconciliation with the backend needs the first count, because the backend still holds those sessions.",
+  "solver": {
+    "prompt_hash": "7ae0a0f7b9b4b261",
+    "grader_version": "choice.3",
+    "chosen": "o01e84ef",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.577Z"
+  }
+}

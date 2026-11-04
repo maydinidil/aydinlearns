@@ -1,0 +1,148 @@
+{
+  "concept_id": "SQL-CRAFT-02",
+  "version": 1,
+  "reading_md": "## Performance and cost basics\n\nAn analyst does not tune databases, but writes queries that read no more than they need. Four habits cover most of it.\n\n### Filter early\n\nPut the filter in the first step that reads a big table: the days and the event name before anything else. Later steps then work on fewer rows. In the GA4 export, `WHERE event_name = 'purchase' AND event_date BETWEEN '20251201' AND '20251207'` belongs in the first CTE.\n\n### Select only the columns you need\n\nA first step that keeps two columns is easier to read, and in a columnar engine such as BigQuery it is cheaper: BigQuery reads only the columns a query names, so `SELECT *` on a wide table reads every column. In your answer it is also wrong: a question that asks for three columns wants exactly those three, and a result with more fails.\n\n### Add up before you join a big table\n\nWhen a report needs order totals beside order details, add the lines up to one row per order first, then join `orders`. Joining first repeats each order once per line, so a count of orders becomes a count of lines unless you remember DISTINCT, and every line travels through the join.\n\n### In BigQuery, read only the days you need\n\nGA4 exports one table per day, `events_YYYYMMDD`. A query over several days reads `events_*`, and `WHERE _TABLE_SUFFIX BETWEEN '20251201' AND '20251207'` limits it to those daily tables. Without that filter, `events_*` reads every day ever exported, even when a condition on `event_date` throws most rows away afterwards. The suffix is text in the same form as `event_date`, so write it with no dashes.\n\n### A LIMIT does not cut the data read\n\nA LIMIT shortens the result, not the scan. Google's cost guide says: \"For non-clustered tables, applying a LIMIT clause to a query doesn't affect the amount of data that is read\". Only on a clustered table can it reduce the bytes scanned.\n\n### How this course grades it\n\nHere every answer is graded on its result, not its cost: a filter moved into an earlier step returns the same rows, so it passes either way. The write questions grade what a result can show: the exact column list, the days kept and the grain after a join. The cost questions come as multiple choice.",
+  "syntax_md": "```sql\nWITH week_signups AS (\n  -- one row per sign_up of 8 to 14 December 2025: filtered first, one column kept\n  SELECT event_date\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '20251208' AND '20251214'\n)\nSELECT event_date AS day, COUNT(*) AS signups\nFROM week_signups\nGROUP BY event_date;\n```\n\n- Add up before a join: `WITH order_units AS (SELECT order_id, SUM(quantity) AS units FROM order_lines GROUP BY order_id)`, then join `order_units` to `orders`.\n- BigQuery reads only some daily tables with `FROM \\`project.dataset.events_*\\` WHERE _TABLE_SUFFIX BETWEEN '20251208' AND '20251214'`.\n- Return exactly the columns asked for: name each one, never `*`.",
+  "dialect_note": "In BigQuery, GA4 stores one table per day, and a query over several days reads `events_*` with a filter such as `WHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'`, which limits the daily tables it reads. Here the days are stacked in one table, so the same days are picked with a filter on event_date. On a BigQuery table that is not clustered, a LIMIT does not reduce the data read.",
+  "worked_examples": [
+    {
+      "title": "Page views per page, filtered first",
+      "prompt": "For the Dublin day 15 December 2025, count the page views of each page_location. Return exactly page_location and views.",
+      "clauses": [
+        {
+          "text": "WITH day_views AS (  -- one row per page_view on 15 December 2025: the filter comes first",
+          "subgoal": "source_grain",
+          "why": "The first step reads the big table once and keeps only what later steps need."
+        },
+        {
+          "text": "  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location",
+          "subgoal": "metrics",
+          "why": "One column, the page: in BigQuery every column named is read and paid for."
+        },
+        {
+          "text": "  FROM events",
+          "subgoal": "source_grain",
+          "why": "The export, one row per event."
+        },
+        {
+          "text": "  WHERE event_name = 'page_view' AND event_date = '20251215')",
+          "subgoal": "row_filter",
+          "why": "The event name and the day narrow the rows before any later step works on them."
+        },
+        {
+          "text": "SELECT page_location, COUNT(*) AS views",
+          "subgoal": "metrics",
+          "why": "Exactly the two columns asked for, so the answer fits the output contract."
+        },
+        {
+          "text": "FROM day_views",
+          "subgoal": "source_grain",
+          "why": "The narrowed step, not the whole table."
+        },
+        {
+          "text": "GROUP BY page_location",
+          "subgoal": "output_grain",
+          "why": "One row per page."
+        }
+      ]
+    },
+    {
+      "title": "Add the lines up before the join",
+      "prompt": "For each Voltmarkt channel, count the orders placed on 1 March 2025 (UTC) and their units. Return channel, orders and units.",
+      "clauses": [
+        {
+          "text": "WITH order_units AS (  -- one row per order of 1 March 2025 (UTC): its units, added up before the join",
+          "subgoal": "source_grain",
+          "why": "The grain comment promises one row per order, which makes the later count safe."
+        },
+        {
+          "text": "  SELECT order_id, SUM(quantity) AS units FROM order_lines",
+          "subgoal": "metrics",
+          "why": "Only the order and its units leave this step."
+        },
+        {
+          "text": "  WHERE order_id IN (SELECT order_id FROM orders WHERE order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND order_ts < TIMESTAMP '2025-03-02 00:00:00')",
+          "subgoal": "row_filter",
+          "why": "The day filter reaches the lines first, so only that day's lines are added up."
+        },
+        {
+          "text": "  GROUP BY order_id)",
+          "subgoal": "output_grain",
+          "why": "One row per order."
+        },
+        {
+          "text": "SELECT o.channel, COUNT(*) AS orders, SUM(u.units) AS units",
+          "subgoal": "metrics",
+          "why": "Each row of order_units is one order, so COUNT(*) counts orders, not lines."
+        },
+        {
+          "text": "FROM order_units u JOIN orders o ON o.order_id = u.order_id",
+          "subgoal": "source_grain",
+          "why": "One order joins one orders row, so the join keeps one row per order."
+        },
+        {
+          "text": "GROUP BY o.channel",
+          "subgoal": "output_grain",
+          "why": "One row per channel."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-CRAFT-02-E1-01",
+    "EX-SQL-CRAFT-02-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-CRAFT-02-E1-03",
+    "EX-SQL-CRAFT-02-E1-04",
+    "EX-SQL-CRAFT-02-E2-01",
+    "EX-SQL-CRAFT-02-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-CRAFT-02-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-CRAFT-02-E1-06",
+    "EX-SQL-CRAFT-02-E1-07",
+    "EX-SQL-CRAFT-02-E2-03",
+    "EX-SQL-CRAFT-02-E2-04",
+    "EX-SQL-CRAFT-02-E2-05",
+    "EX-SQL-CRAFT-02-E2-06",
+    "EX-SQL-CRAFT-02-E3-01",
+    "EX-SQL-CRAFT-02-E3-02",
+    "EX-SQL-CRAFT-02-E1-31",
+    "EX-SQL-CRAFT-02-E2-31",
+    "EX-SQL-CRAFT-02-E1-42",
+    "EX-SQL-CRAFT-02-E2-41",
+    "EX-SQL-CRAFT-02-E2-42",
+    "EX-SQL-CRAFT-02-E1-43",
+    "EX-SQL-CRAFT-02-E1-44",
+    "EX-SQL-CRAFT-02-E2-43",
+    "EX-SQL-CRAFT-02-E2-44"
+  ],
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "why_clause": {
+    "clause": "SELECT o.channel, COUNT(*) AS orders, SUM(u.units) AS units",
+    "stem": "Why does COUNT(*) count orders here, and not order lines?",
+    "options": [
+      {
+        "id": "a",
+        "text": "order_units holds one row per order, because each order's lines were added up before the join."
+      },
+      {
+        "id": "b",
+        "text": "COUNT(*) skips repeated order IDs on its own."
+      },
+      {
+        "id": "c",
+        "text": "The join to orders removes the extra lines of each order."
+      },
+      {
+        "id": "d",
+        "text": "GROUP BY o.channel keeps one row per order inside each channel."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "The first step groups the lines by order_id, so it holds one row per order, and joining that to orders keeps one row per order. COUNT(*) counts every row it is given and never skips a repeated ID: had the lines been joined first, it would have counted lines."
+  }
+}

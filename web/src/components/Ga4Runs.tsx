@@ -2,6 +2,7 @@
 // full mock, sprint 5b Task B4; the readiness check, Task B5 and D70). Shown on the GA4 map and in Today's GA4 wrap-up. Every run is
 // always offered: nothing is locked, and the readiness check is advice only. The history never shows minutes.
 import { useEffect, useState } from 'react';
+import { EmptyLine } from './Mascot.tsx';
 import { api, type RunBlueprint, type RunHistoryRow, type RunKind, type RunPreview } from '../api.ts';
 import { readinessApi, type Ga4Readiness } from '../lib/readiness-api.ts';
 import { READINESS_HEADING, readinessView } from '../lib/readiness-flow.ts';
@@ -10,8 +11,8 @@ import { HISTORY_COLUMNS, RUN_KINDS, entryDetail, entryNote, kindLabel, historyC
 export const RUN_HREF = '#/ga4/run';
 
 /** Each row opens that run's review (B3 I3): for a half-mock or a full mock a number, topic and right or wrong only. */
-export function RunHistoryTable({ runs, names }: { runs: readonly RunHistoryRow[]; names?: TopicNames }) {
-  if (runs.length === 0) return <p className="muted">No timed runs yet.</p>;
+export function RunHistoryTable({ runs, names, mascot = false }: { runs: readonly RunHistoryRow[]; names?: TopicNames; mascot?: boolean }) {
+  if (runs.length === 0) return mascot ? <EmptyLine text="No timed runs yet." className="muted" /> : <p className="muted">No timed runs yet.</p>;
   return (
     <div className="table-scroll"><table className="history-table run-history">
       <thead><tr>{HISTORY_COLUMNS.map((c) => <th key={c} scope="col">{c}</th>)}<th scope="col">Review</th></tr></thead>
@@ -56,7 +57,7 @@ export function Ga4Runs({ history = false }: { history?: boolean }) {
         return <li key={k}><a href={RUN_HREF}>{kindLabel(k)}</a><span className="muted">{` ${entryDetail(k, data?.blueprints[k] ?? null)}${note ? ` ${note}.` : ''}`}</span></li>;
       })}</ul>
       <ReadinessCheck />
-      {history && <><h3>Run history</h3><div className="card"><RunHistoryTable runs={data?.runs ?? []} names={data?.topic_names} /></div></>}
+      {history && <><h3>Run history</h3><div className="card"><RunHistoryTable runs={data?.runs ?? []} names={data?.topic_names} mascot /></div></>}
     </div>
   );
 }

@@ -1,0 +1,218 @@
+{
+  "id": "EX-SQL-CRAFT-01-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "purchase",
+    "traffic_source",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-WIN-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-purchase-media",
+  "template_params": {
+    "month": "2025-12"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's marketing manager reads December 2025's purchases by first-touch medium from the export. Check them against the backend. On the export side, count the purchase events of the Dublin days 1 to 31 December (by event_date), grouped by traffic_source.medium, the visitor's first touch. On the backend side, count the subscriptions whose first payment (earliest paid_at) falls on those Dublin days, a first payment that was later refunded included, grouped by the utm_medium of the first session (earliest session_start) of the visitor who signed up as that subscription's user, with a missing utm_medium read as (none). Return four columns, in this order: medium, export_purchases, backend_first_payments and difference (export_purchases minus backend_first_payments). Return one row for each medium that either side has, with 0 where a side has none. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "medium",
+        "type_class": "text"
+      },
+      {
+        "name": "export_purchases",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_first_payments",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "export_purchases",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_first_payments",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, link each December first payment to the visitor's first session.",
+    "Go from the subscription to its user, from the user to the signup and its visitor_id, then to that visitor's earliest session."
+  ],
+  "subgoals": [
+    {
+      "from": 121,
+      "to": 189,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 192,
+      "to": 203,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 206,
+      "to": 288,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 291,
+      "to": 321,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 422,
+      "to": 475,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 478,
+      "to": 491,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 494,
+      "to": 518,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 665,
+      "to": 703,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 706,
+      "to": 835,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 838,
+      "to": 940,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1036,
+      "to": 1092,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1095,
+      "to": 1110,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1113,
+      "to": 1175,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1178,
+      "to": 1199,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1326,
+      "to": 1411,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1414,
+      "to": 1574,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1577,
+      "to": 1618,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1621,
+      "to": 1875,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1876,
+      "to": 1944,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "A purchase carries the visitor's first touch, which is the first session's medium, so grouping first payments by that medium matches the export."
+}

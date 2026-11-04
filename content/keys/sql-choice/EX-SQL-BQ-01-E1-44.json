@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-44",
+  "item_version": 1,
+  "correct_oid": "o2569559",
+  "explanation": "event_date is text and must be parsed before date functions can use it, and PARSE_DATE with the format '%Y%m%d' reads exactly the eight digits it holds. A plain cast to DATE treats it as a date already, which it is not; a dashed format looks for dashes the text does not have; and strptime is DuckDB's function, not BigQuery's.",
+  "solver": {
+    "prompt_hash": "6fb571286bea7451",
+    "grader_version": "choice.3",
+    "chosen": "o2569559",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.565Z"
+  }
+}

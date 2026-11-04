@@ -7,7 +7,7 @@ import { startRunner, type RunnerClient, type RunnerReq, type RunnerResult } fro
 import type { ParseTreeOk } from '../../server/runner/protocol.ts';
 import { grade } from '../../server/grader/grade.ts';
 import {
-  CAST_NOTE, COUNT_NOTE, EXCLUDE_NOTE, FROM_FIRST_NOTE, GROUP_BY_ALL_NOTE, ILIKE_NOTE, PIVOT_NOTE, QUALIFY_NOTE, SUBQUERY_ALIAS_NOTE, TRAILING_COMMA_NOTE, UNPIVOT_NOTE,
+  BIGQUERY_LIST_NOTE, CAST_NOTE, COUNT_NOTE, EXCLUDE_NOTE, FROM_FIRST_NOTE, GROUP_BY_ALL_NOTE, ILIKE_NOTE, PIVOT_NOTE, QUALIFY_NOTE, SUBQUERY_ALIAS_NOTE, TRAILING_COMMA_NOTE, UNPIVOT_NOTE,
   integerDivisionCheck, portabilityNotes,
 } from '../../server/grader/portability.ts';
 import type { DisplayOk, RunnerError } from '../../server/runner/protocol.ts';
@@ -138,7 +138,8 @@ test('when a FROM source\'s columns are not known, its aliases get no note; == s
   await noNotes('SELECT range AS k FROM range(3) WHERE k > 1', 'a table function');
 });
 test('a lambda parameter is not an alias use', async () => {
-  await noNotes('SELECT city AS x FROM stores WHERE len(list_filter([1, 2], x -> x > 1)) > 0');
+  // S9-05 (sprint 9, Task A1): a lambda gets the BigQuery list note, and still no alias note.
+  assert.deepEqual(await lint('SELECT city AS x FROM stores WHERE len(list_filter([1, 2], x -> x > 1)) > 0'), [BIGQUERY_LIST_NOTE]);
 });
 test('a query the gate rejects gives no notes', async () => {
   for (const sql of ["SELECT city AS town FROM stores WHERE town == 'x'; SELECT 1", "SELECT city AS town FROM hidden.stores WHERE town == 'x'", "SELECT nope AS town FROM stores WHERE town == 'x'"]) {

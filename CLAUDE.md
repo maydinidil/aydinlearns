@@ -1,4 +1,8 @@
-# aydinlearns: working rules
+# Grondig: working rules
+
+The app is named Grondig (formerly aydinlearns, D130). The folder `aydinlearns/` and the internal names (the
+`AYDINLEARNS_*` variables, metric names, local storage keys, the log's `app` field, the backup prefix) stay `aydinlearns`;
+`tests/tools/identifiers.test.ts` pins both.
 
 Aydin's personal learning app, aimed at getting hired as a pricing, marketing or commercial
 analyst, or a junior data or business analyst, in the Netherlands. Applications go out in late
@@ -27,7 +31,17 @@ holds the evidence behind those changes.
 
 ## The state you will find it in
 
-What is built, the version and the release status live only in [`CHANGELOG.md`](CHANGELOG.md) and [`docs/planning/roadmap.md`](docs/planning/roadmap.md); the version itself is in `package.json` (0.x releases, D63, D115), and open deferred work is in [`docs/planning/backlog.md`](docs/planning/backlog.md). Every colour lives in `web/src/styles/tokens.css` ([the visuals spec](docs/superpowers/specs/2026-10-06-aydinlearns-visuals-design.md)).
+What is built, the version and the release status live only in [`CHANGELOG.md`](CHANGELOG.md) and [`docs/planning/roadmap.md`](docs/planning/roadmap.md); the version itself is in `package.json` (0.x releases, D63, D115; 0.9.1 after sprint 9 Part 2), and open deferred work is in [`docs/planning/backlog.md`](docs/planning/backlog.md). Every colour lives in `web/src/styles/tokens.css` ([the visuals spec](docs/superpowers/specs/2026-10-06-aydinlearns-visuals-design.md)).
+- SQL levels 1 to 7 can be studied. **Sprint 9 Part 1 (0.9.0, no public release)** built level 7 (`SQL-BQ-01` and
+  `SQL-CRAFT-01` to `-03`) on `mailvora_ga4`, a GA4-export-shaped sample of Mailvora's website with its hidden-data copy
+  `mailvora_edge_ga4`, the `fixed_choice` item kind (check C57), `ERR-LOG-52` to `-55` and `ERR-SYN-09`
+  (`GRADER_VERSION` `9a.1`), the opener `CASE-MAIL-L7` and two daily cases, and the backlog rows S8-B1 to S8-B3. **Sprint 9 Part 2 (0.9.1, public `v0.9.1` after the merge)**
+  renamed the app Grondig (D130, D132; the folder and the class B names stay `aydinlearns`, pinned by
+  `tests/tools/identifiers.test.ts`), added the mole in three poses as a quiet companion that never appears inside a timed
+  run's question and is always `alt=""` (D133), and made the UI dark by default with Light and Follow Windows under
+  Settings, saved in the browser only (D131, `web/src/lib/theme.ts`, two token sets in `tokens.css`, the warm palette
+  D134). The record is
+  [`docs/planning/2026-10-31-sprint-9-record.md`](docs/planning/2026-10-31-sprint-9-record.md).
 - What each slice and sprint built, and its PR, is in `CHANGELOG.md`, `git log` and the sprint records
   (`docs/planning/*-record.md`).
 - Every check in the README's "Run and ship" passes, and so does the browser smoke test,
@@ -36,7 +50,7 @@ What is built, the version and the release status live only in [`CHANGELOG.md`](
   set through `AYDINLEARNS_JOURNEY_DIR`; never point a test at the real `logs/` or `journey/`. A
   server on a temporary logs folder writes no journey unless `AYDINLEARNS_JOURNEY_DIR` names one. A
   worktree uses another port (5184 in sprint 2), so the app stays open for study.
-- Aydin starts the app with `Start aydinlearns.bat` (`tools/launch.ts`), which sets up anything
+- Aydin starts the app with `Start Grondig.bat` (`tools/launch.ts`), which sets up anything
   missing and opens the browser.
 - **Before planning any sprint, read
   [`docs/planning/roadmap.md`](docs/planning/roadmap.md)** (every sprint's contents, jobs,

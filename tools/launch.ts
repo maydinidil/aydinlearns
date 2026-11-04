@@ -1,4 +1,4 @@
-// tools/launch.ts: what "Start aydinlearns.bat" runs. It sets up whatever is missing or out of date,
+// tools/launch.ts: what "Start Grondig.bat" runs. It sets up whatever is missing or out of date,
 // starts the app and opens it in the browser. Each setup step runs only when its output is missing or
 // older than its inputs, so a normal launch goes straight to starting the server.
 //
@@ -166,7 +166,7 @@ async function main(): Promise<number> {
   const browser = !process.argv.includes('--no-browser');
   const [major, minor] = process.versions.node.split('.').map(Number) as [number, number];
   if (major < 24 || (major === 24 && minor < 12)) {
-    console.error(`aydinlearns needs Node.js 24.12 or later; this is ${process.versions.node}. Install the current Node.js 24 LTS from https://nodejs.org.`);
+    console.error(`Grondig needs Node.js 24.12 or later; this is ${process.versions.node}. Install the current Node.js 24 LTS from https://nodejs.org.`);
     return 1;
   }
   // AYDINLEARNS_PORT (owner decision D5) moves the app to another port; a bad value stops here in plain words.
@@ -174,13 +174,13 @@ async function main(): Promise<number> {
   const url = `http://127.0.0.1:${port}`;
   const before = await probe(url);
   if (before === 'ours') {
-    console.log(`aydinlearns is already running. Opening ${url}`);
+    console.log(`Grondig is already running. Opening ${url}`);
     if (browser) openBrowser(url);
     return 0;
   }
   if (before === 'other') {
     // Another program holds the port (aydinlearns F5): opening the browser would show that program's page.
-    console.error(`Another program is using port ${port}, so aydinlearns cannot start. Close that program, then start again.`);
+    console.error(`Another program is using port ${port}, so Grondig cannot start. Close that program, then start again.`);
     return 1;
   }
   for (const step of STEPS) {
@@ -188,7 +188,7 @@ async function main(): Promise<number> {
     console.log(`\n== ${step.name} ==`);
     step.run();
   }
-  console.log(`\nStarting aydinlearns. It opens at ${url}`);
+  console.log(`\nStarting Grondig. It opens at ${url}`);
   console.log('Keep this window open while you study. Close it, or press Ctrl+C, to stop: the session ends and the backup runs first.\n');
   // D75: .env, when there is one, may turn on telemetry; telemetry.ts loads first so it can instrument the server.
   const server = spawn(process.execPath, ['--env-file-if-exists=.env', '--import', './server/telemetry.ts', 'server/main.ts'], { cwd: ROOT, stdio: 'inherit' });

@@ -1,0 +1,232 @@
+{
+  "id": "EX-SQL-CRAFT-03-E3-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "price_change",
+    "promotions",
+    "pct_change"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-price-cut-pct-no-promo",
+  "template_params": {
+    "table": "weekly_units",
+    "from": "2025-02",
+    "to": "2025-03",
+    "change": "cut"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each price cut that took effect from 1 February to 31 March 2025, the percentage change in average weekly units from before to after it, with promotion weeks left out. A price cut is a version in price_history whose list_price_eur is lower than that of the product's version before it, dated by its valid_from. Its change week is the week (Monday to Sunday) that holds valid_from. The before window is the 8 weeks just before the change week and the after window the 8 weeks just after it; the change week itself is in neither. Units come from weekly_units, which has a row for every product and week (week_start is the Monday), with 0 for a week with no sale. A promotion week of a product is a week (Monday to Sunday) that shares at least one day with a promotion the product is in (promotion_products), from the promotion's start_date to its end_date, both days included. A product launched during a window keeps its change, with 0 units in its weeks before the launch. A window's average is its units in the weeks that are not promotion weeks divided by the number of those weeks, a week with no sale counting as 0. The change is 100 times (average after minus average before) divided by average before, rounded to 1 decimal with ROUND; it is missing when the average before is 0 or missing. Return three columns, in this order: product_id, valid_from and pct_change. Return one row for each price cut. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "pct_change",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "pct_change",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, mark each product's promotion weeks, then average each window over the weeks that are left.",
+    "The change divides by the average before; when that average is 0 or missing there is no base, so the change stays missing."
+  ],
+  "subgoals": [
+    {
+      "from": 110,
+      "to": 156,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 161,
+      "to": 245,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 248,
+      "to": 266,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 371,
+      "to": 461,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 464,
+      "to": 477,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 480,
+      "to": 513,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 518,
+      "to": 580,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 682,
+      "to": 725,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 728,
+      "to": 754,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 757,
+      "to": 802,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 805,
+      "to": 856,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 861,
+      "to": 941,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1057,
+      "to": 1091,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1096,
+      "to": 1197,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1202,
+      "to": 1301,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1304,
+      "to": 1315,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1318,
+      "to": 1368,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1373,
+      "to": 1465,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1468,
+      "to": 1557,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1560,
+      "to": 1595,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1598,
+      "to": 1709,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1710,
+      "to": 1723,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "With promotion weeks out of both windows and the before average as the base, the change measures the price cut itself."
+}

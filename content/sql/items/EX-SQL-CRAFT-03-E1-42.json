@@ -1,0 +1,72 @@
+{
+  "id": "EX-SQL-CRAFT-03-E1-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "predict_rows",
+    "window",
+    "weekly_units"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-DATE-02",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-predict-window-rows",
+  "template_params": {
+    "table": "weekly_units"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "weekly_units has one row for every product and week, week_start being the Monday. A price change took effect on Wednesday 5 March 2025, in the week that starts on Monday 3 March. How many rows does this query return? Type the number.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT week_start, units\nFROM weekly_units\nWHERE product_id = 1\n  AND week_start BETWEEN DATE '2025-03-03' - INTERVAL 56 DAY AND DATE '2025-03-03' + INTERVAL 56 DAY",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

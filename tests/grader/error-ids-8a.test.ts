@@ -183,8 +183,9 @@ const keyOf = (p: Plant, errorId: string): SqlKey => ({
   planted_wrong: [p.decoy, ...p.planted.map((sql, i) => ({ id: plantId(i), error_id: errorId, sql }))],
 });
 
-test('the grader version is 8a.1 (sprint 8, Task A1: S8-08 and S8-C06 add the level 6 diagnoses, S8-09 the PIVOT note)', () => {
-  assert.equal(GRADER_VERSION, '8a.1');
+// Sprint 9 (Task A1) moved the version to 9a.1 by adding level 7's diagnoses and notes; 8a.1's level 6 diagnoses below grade as before.
+test('the grader version is 9a.1, which grades the level 6 diagnoses of 8a.1 (S8-08, S8-C06) and the PIVOT note (S8-09) as before', () => {
+  assert.equal(GRADER_VERSION, '9a.1');
 });
 
 for (const [errorId, p] of Object.entries(PLANTS)) {

@@ -1,0 +1,104 @@
+{
+  "id": "EX-SQL-BQ-01-E2-44",
+  "version": 1,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "bigquery",
+    "unnest",
+    "fixed_choice"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-bq-scalar-unnest",
+  "template_params": {
+    "day": "20251201"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Which BigQuery query returns one row for each page_view of 1 December 2025 with its page_location, and keeps a page_view that carries no page_location?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o0de3d13",
+      "text": "A cross join to the unnested list, then a filter on the key",
+      "misconception_id": "ERR-LOG-11",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT event_timestamp, p.value.string_value AS page_location\nFROM `mailvora-web.analytics_254316.events_20251201`\nCROSS JOIN UNNEST(event_params) AS p\nWHERE event_name = 'page_view'\n  AND p.key = 'page_location'"
+      }
+    },
+    {
+      "oid": "ob7d108f",
+      "text": "A subquery over the unnested list that reads the int_value slot",
+      "misconception_id": "ERR-LOG-53",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT event_timestamp,\n  (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'page_location') AS page_location\nFROM `mailvora-web.analytics_254316.events_20251201`\nWHERE event_name = 'page_view'"
+      }
+    },
+    {
+      "oid": "o8f7bef8",
+      "text": "A subquery over the unnested list that picks the key",
+      "misconception_id": null,
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT event_timestamp,\n  (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location') AS page_location\nFROM `mailvora-web.analytics_254316.events_20251201`\nWHERE event_name = 'page_view'"
+      }
+    },
+    {
+      "oid": "o332e3f3",
+      "text": "A cross join to the unnested list, with no filter on the key",
+      "misconception_id": "ERR-LOG-01",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT event_timestamp, p.value.string_value AS page_location\nFROM `mailvora-web.analytics_254316.events_20251201`\nCROSS JOIN UNNEST(event_params) AS p\nWHERE event_name = 'page_view'"
+      }
+    }
+  ]
+}

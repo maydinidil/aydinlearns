@@ -97,7 +97,8 @@ class Edge7d(unittest.TestCase):
         # Task D1 (S8-16): the two dataset edge schemas, olist_edge and maven_toy_store_edge, are held by pipeline/tests/test_datasets.py.
         # Task E1 (S8-C39): ledgerloop_edge_cases, the six LedgerLoop inbox cases' edge schema, is held by pipeline/tests/test_edge_cases.py.
         datasets = {"olist_edge", "maven_toy_store_edge"}
-        cases = {"ledgerloop_edge_cases"}
+        # Sprint 9 (Task L1, S9-02, S9-03): mailvora_ga4 and mailvora_edge_ga4 are held by pipeline/tests/test_mailvora_ga4.py.
+        cases = {"ledgerloop_edge_cases", "mailvora_ga4", "mailvora_edge_ga4"}
         changed = sorted(n for n in set(built) ^ set(BEFORE_SPRINT7D) if n.split(".")[0] not in datasets | cases)
         self.assertEqual(changed, sorted(ledgerloop + part2 + level6), "K2 adds and drops no table or view")
         moved = sorted(name for name, entry in BEFORE_SPRINT7D.items() if built[name] != entry)

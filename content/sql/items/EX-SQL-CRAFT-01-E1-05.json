@@ -1,0 +1,165 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "purchase",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-purchase-total",
+  "template_params": {
+    "month": "2025-12"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Every purchase in Mailvora's export is sent by the billing server when a subscription's first payment comes in. Check December 2025: count the purchase events on the Dublin days 1 to 31 December by event_date, and count the subscriptions whose first payment (their earliest paid_at in payments) falls on those Dublin days. A first payment that was later refunded still counts on both sides, as the export keeps its purchase. Return three columns, in this order: export_purchases, backend_first_payments and difference (export_purchases minus backend_first_payments). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "export_purchases",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_first_payments",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "export_purchases",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_first_payments",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each subscription's first payment on the backend side.",
+    "A purchase stands for the first payment only, so take the earliest paid_at of each subscription before you look at its Dublin day."
+  ],
+  "subgoals": [
+    {
+      "from": 90,
+      "to": 125,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 128,
+      "to": 139,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 142,
+      "to": 224,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 329,
+      "to": 382,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 385,
+      "to": 398,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 401,
+      "to": 425,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 536,
+      "to": 577,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 580,
+      "to": 599,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 602,
+      "to": 702,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 705,
+      "to": 819,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 820,
+      "to": 864,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each subscription's earliest payment is one purchase, so counting those by their Dublin day, refunds included, matches the export."
+}

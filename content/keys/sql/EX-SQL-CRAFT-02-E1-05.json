@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-05",
+  "item_version": 1,
+  "reference_sql": "WITH november_signups AS (\n  -- one row per sign_up event of 1 to 30 November 2025 (Dublin days): only the column the count needs\n  SELECT geo.country AS country\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '20251101' AND '20251130'\n)\nSELECT country, COUNT(*) AS signups\nFROM november_signups\nGROUP BY country",
+  "alternatives": [
+    "SELECT geo.country AS country, COUNT(*) AS signups\nFROM events\nWHERE event_name = 'sign_up'\n  AND event_date BETWEEN '20251101' AND '20251130'\nGROUP BY geo.country",
+    "WITH november_signups AS (\n  -- one row per sign_up event of 1 to 30 November 2025 (Dublin days): only the column the count needs\n  SELECT geo.country AS country\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND CAST(strptime(event_date, '%Y%m%d') AS DATE) BETWEEN DATE '2025-11-01' AND DATE '2025-11-30'\n)\nSELECT country, COUNT(*) AS signups\nFROM november_signups\nGROUP BY country"
+  ],
+  "other_way": {
+    "sql": "SELECT geo.country AS country, COUNT(*) AS signups\nFROM events\nWHERE event_name = 'sign_up'\n  AND event_date BETWEEN '20251101' AND '20251130'\nGROUP BY geo.country",
+    "tradeoff": "One query with no CTE is shorter, while the CTE names the narrowed rows, which helps once more steps follow."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH per_country AS (\n  SELECT geo.country AS country, COUNT(*) AS signups, COUNT(user_id) AS with_user_id, MIN(event_date) AS first_day\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '20251101' AND '20251130'\n  GROUP BY geo.country\n)\nSELECT *\nFROM per_country"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH november_signups AS (\n  -- one row per sign_up event of 1 to 30 November 2025 (Dublin days): only the column the count needs\n  SELECT geo.country AS country, user_id\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '20251101' AND '20251130'\n)\nSELECT country, COUNT(user_id) AS signups\nFROM november_signups\nGROUP BY country"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH november_signups AS (\n  -- one row per sign_up event of 1 to 30 November 2025 (Dublin days): only the column the count needs\n  SELECT geo.country AS country\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '2025-11-01' AND '2025-11-30'\n)\nSELECT country, COUNT(*) AS signups\nFROM november_signups\nGROUP BY country"
+    }
+  ],
+  "hint3_partial": "WITH november_signups AS (\n  -- one row per sign_up event of 1 to 30 November 2025 (Dublin days): only the column the count needs\n  SELECT ___ AS country\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '20251101' AND '20251130'\n)\nSELECT country, COUNT(*) AS signups\nFROM november_signups\nGROUP BY country",
+  "solver": {
+    "prompt_hash": "2a4050f980713de7",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT geo.country AS country, COUNT(*) AS signups\r\nFROM events\r\nWHERE event_name = 'sign_up' AND event_date BETWEEN '20251101' AND '20251130'\r\nGROUP BY geo.country",
+    "at": "2026-11-03T19:01:31.728Z"
+  }
+}

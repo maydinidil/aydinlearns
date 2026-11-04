@@ -16,8 +16,11 @@
 
 /* App shell (visuals spec §4) */
 .shell { display: flex; align-items: center; gap: var(--s5); padding: var(--s3) var(--s6); background: var(--surface); border-bottom: 1px solid var(--line); }
-.wordmark { font-weight: 700; font-size: var(--t4); color: var(--ink); text-decoration: none; }
-.wordmark span { color: var(--sql-text); }
+.wordmark { display: inline-flex; align-items: center; gap: var(--s2); font: 650 var(--t4)/1.2 var(--font); letter-spacing: -0.005em; color: var(--ink); text-decoration: none; }
+/* The mole (S9-21): pixel art, scaled in whole steps, never smoothed. In dark a soft light rim keeps the dark fur off the dark bar. */
+.mascot { image-rendering: pixelated; display: block; }
+.wordmark .mascot { width: 32px; height: 32px; }
+:root[data-theme="dark"] .mascot { filter: drop-shadow(0 0 1px var(--mascot-rim)); }
 .tabs { display: flex; gap: var(--s1); padding: 3px; background: var(--fill); border-radius: 9px; }
 .tabs a { display: inline-flex; align-items: center; gap: var(--s2); padding: 5px var(--s3); border-radius: 7px; font-size: var(--t2); color: var(--ink-2); text-decoration: none; }
 .tabs a[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--shadow); }
@@ -152,8 +155,9 @@ ol.review-items > li + li { border-top: 1px solid var(--fill); }
 .progress-grid caption { text-align: left; font-weight: 600; padding: var(--s2) var(--s3); }
 .progress-list .gap summary { cursor: pointer; color: var(--ink-2); }
 
-/* Polish pass, Task P2a (P1 findings 1, 9, 39, 40, 41, 44, 46). */
-@media (max-width: 700px) {
+/* Polish pass, Task P2a (P1 findings 1, 9, 39, 40, 41, 44, 46). From 900px since sprint 9 (S9-C50): with the mole beside
+   "Grondig" the bar no longer fits one row below about 850px, so the tabs take their own row there. */
+@media (max-width: 900px) {
   .shell { flex-wrap: wrap; gap: var(--s2) var(--s4); padding: var(--s2) var(--s4); }
   .tabs { order: 3; flex-basis: 100%; overflow-x: auto; }
   .tabs a { white-space: nowrap; }
@@ -232,11 +236,23 @@ fieldset.lab-field > legend { padding: 0; margin-bottom: var(--s1); }
 @media (min-width: 701px) { .tutor-panel { width: min(28rem, 45vw); } body:has(.tutor-panel) main { margin-right: min(28rem, 45vw); } }
 @media (max-width: 700px) { .tutor-panel { top: 0; z-index: 30; } }
 
-/* Settings, the AI tutor's card (block P): the model and effort choices one per line, the line under a model that needs a key, the key fields. */
-fieldset.tutor-choice { border: 0; padding: 0; margin: 0 0 var(--s2); min-width: 0; }
-fieldset.tutor-choice > legend { padding: 0; margin-bottom: var(--s1); font-weight: 600; }
+/* Settings, the AI tutor's card (block P): the model and effort choices one per line, the line under a model that needs a key, the key fields.
+   The Appearance card's three themes (S9-18) sit one per line the same way. */
+fieldset.tutor-choice, fieldset.theme-choice { border: 0; padding: 0; margin: 0 0 var(--s2); min-width: 0; }
+fieldset.tutor-choice > legend, fieldset.theme-choice > legend { padding: 0; margin-bottom: var(--s1); font-weight: 600; }
 fieldset.tutor-choice > p { margin: 0 0 var(--s1); }
-fieldset.tutor-choice > label { display: block; margin-bottom: var(--s1); }
+fieldset.tutor-choice > label, fieldset.theme-choice > label { display: block; margin-bottom: var(--s1); }
 .tutor-model-note { display: block; padding-left: var(--s5); }
 .tutor-key > p { margin: 0 0 var(--s1); }
 .tutor-key { margin-bottom: var(--s3); }
+
+/* The mole beside Today's heading and a graded result, and on an empty screen (S9-21). Decorative; no animation. */
+.today-head { display: flex; align-items: center; gap: var(--s4); }
+.today-head .mascot { width: 64px; height: 64px; flex: none; }
+.today-head p { margin: 0; color: var(--ink-2); }
+.grade-head { display: flex; align-items: center; gap: var(--s3); }
+.grade-head .mascot { width: 48px; height: 48px; flex: none; }
+.grade-head h3 { margin: 0; }
+.empty-line { display: flex; align-items: center; gap: var(--s3); }
+.empty-line .mascot { width: 48px; height: 48px; flex: none; }
+.empty-line p { margin: 0; }

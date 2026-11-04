@@ -101,7 +101,7 @@ test('S6-24: a card for a dataset not prepared gives the prep command; a licence
   const c = datasetCard(FRAT);
   assert.equal(c.heading, 'Breakfast at the Frat');
   assert.deepEqual(c.prep, { intro: PREP_INTRO, command: 'npm run prep:datasets -- --from <your downloads folder> --only DS-PRICE-101' });
-  assert.equal(PREP_INTRO, 'Not prepared yet. Run this in the aydinlearns folder, then start the app again:');
+  assert.equal(PREP_INTRO, "Not prepared yet. Run this in the app's folder, then start the app again:");
   assert.deepEqual(c.licence, { text: 'Licence: dunnhumby terms. For research, personal or non-commercial use only.', href: null });
 });
 

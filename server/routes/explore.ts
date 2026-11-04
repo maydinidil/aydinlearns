@@ -3,7 +3,7 @@
 // alone for the run.
 //
 // GET  /api/explore: the dataset picker's data (S6-24): the fictional companies' schemas the build holds (voltmarkt, voltmarkt_raw,
-//   mailvora, mailvora_raw, and since sprint 8 ledgerloop, ledgerloop_raw: S8-23), then every registry dataset
+//   mailvora, mailvora_raw, since sprint 8 ledgerloop, ledgerloop_raw: S8-23, and since sprint 9 mailvora_ga4: S9-C05), then every registry dataset
 //   (content/datasets/registry.json) with its label, licence, source and links,
 //   each schema marked prepared or not, and the prep command while any is not; plus the notes of every schema that can be chosen,
 //   whatever their level. Edge schemas (hidden test data) are never offered. Reads only.
@@ -25,19 +25,22 @@ export const EXPLORE_SCHEMA = 'voltmarkt';
 /** As POST /api/run: the same row cap (DISPLAY_CAP, server/runner/protocol.ts) and the items' default timeout. */
 export const EXPLORE_CAP = DISPLAY_CAP;
 export const EXPLORE_TIMEOUT_MS = DEFAULT_RULES.timeout_ms;
+/** F2-3-1: the GA4 export's own limit; an ordinary unnest over all its events takes about 4.4 s (S9-C33 gave its items the same). */
+export const GA4_EXPLORE_TIMEOUT_MS = 10000;
 export const EXPLORE_RUN_PATH = '/api/explore/run';
 /** The refusal for a schema the picker does not list. It never repeats what was sent. */
 export const NOT_LISTED = 'Choose a dataset from the list.';
 
 /**
- * The fictional companies (S6-24): each company's clean schema and its raw schema, listed only when the build holds them. Their
- * label is the cases' data source label for the company.
+ * The fictional companies (S6-24): each company's clean schema and its raw schema, then any other schema of its own (`more`), each
+ * listed only when the build holds it. Their label is the cases' data source label for the company. Sprint 9 (S9-C05): Mailvora's
+ * GA4 export sample, mailvora_ga4, after its raw schema; a query there names no other schema.
  */
-const COMPANIES = [
-  { id: 'voltmarkt', name: 'Voltmarkt', clean: 'voltmarkt', raw: 'voltmarkt_raw' },
-  { id: 'mailvora', name: 'Mailvora', clean: 'mailvora', raw: 'mailvora_raw' },
-  { id: 'ledgerloop', name: 'LedgerLoop', clean: 'ledgerloop', raw: 'ledgerloop_raw' },   // sprint 8 (S8-23)
-] as const;
+const COMPANIES: readonly { id: string; name: string; clean: string; raw: string; more: readonly { name: string; title: string; timeout_ms?: number }[] }[] = [
+  { id: 'voltmarkt', name: 'Voltmarkt', clean: 'voltmarkt', raw: 'voltmarkt_raw', more: [] },
+  { id: 'mailvora', name: 'Mailvora', clean: 'mailvora', raw: 'mailvora_raw', more: [{ name: 'mailvora_ga4', title: 'GA4 export (BigQuery shape)', timeout_ms: GA4_EXPLORE_TIMEOUT_MS }] },
+  { id: 'ledgerloop', name: 'LedgerLoop', clean: 'ledgerloop', raw: 'ledgerloop_raw', more: [] },   // sprint 8 (S8-23)
+];
 /** Hidden test data: never offered, whatever a registry record names. */
 const EDGE = /_edge(_|$)/;
 /** A build that names no schemas (before S6-13) held Voltmarkt only. */
@@ -53,6 +56,8 @@ export interface ExploreSchema {
   prepared: boolean;
   /** S6-01: the raw schema a query here may also name (voltmarkt_raw, with voltmarkt chosen), when the build holds it; else null. */
   also: string | null;
+  /** F2-3-1: this schema's own run limit when it is not the default (mailvora_ga4: 10000); absent otherwise. */
+  timeout_ms?: number;
 }
 /** One dataset in the picker and its card. D87: never a registry question, file or note. */
 export interface ExploreDataset {
@@ -80,6 +85,7 @@ export function exploreDatasets(content: Pick<ContentStore, 'builtSchemas' | 'da
     const schemas: ExploreSchema[] = [];
     if (built.has(c.clean)) schemas.push({ name: c.clean, title: c.name, page: null, prepared: true, also: built.has(c.raw) ? c.raw : null });
     if (built.has(c.raw)) schemas.push({ name: c.raw, title: `${c.name} raw data`, page: null, prepared: true, also: null });
+    for (const m of c.more) if (built.has(m.name)) schemas.push({ name: m.name, title: m.title, page: null, prepared: true, also: null, ...(m.timeout_ms === undefined ? {} : { timeout_ms: m.timeout_ms }) });
     return schemas.length === 0 ? [] : [{ id: c.id, name: c.name, group: 'company', label: `Fictional, generated data: ${c.name}`,
       licence: null, source_url: null, links: [], schemas, prep_command: null }];
   });
@@ -127,7 +133,7 @@ export function mountExplore(app: Hono, d: RouteDeps): void {
     if (!choice.ok) throw new HTTPException(400, { message: choice.message });
     if (!d.runner) throw new HTTPException(503, { message: 'The SQL runner is not running. See the setup screen.' });
     const allowedSchemas = choice.schema.also === null ? [] : [choice.schema.also];
-    const r = await d.runner.request<DisplayOk>({ op: 'display', schema: choice.schema.name, allowedSchemas, sql: b.sql, cap: EXPLORE_CAP, deadlineMs: EXPLORE_TIMEOUT_MS });
+    const r = await d.runner.request<DisplayOk>({ op: 'display', schema: choice.schema.name, allowedSchemas, sql: b.sql, cap: EXPLORE_CAP, deadlineMs: choice.schema.timeout_ms ?? EXPLORE_TIMEOUT_MS });
     return c.json(r.ok ? r.data : { error: r.error });
   });
 }

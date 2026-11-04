@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-BQ-01-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_timestamp",
+    "time_zone",
+    "session_start"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-starts-per-dublin-hour",
+  "template_params": {
+    "event_name": "session_start",
+    "from": "20251001",
+    "to": "20251031"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "In which hours of the day do sessions start? For each hour on Dublin's clock, 0 to 23, count the session_start events of 1 to 31 October 2025, by event_date. event_timestamp holds microseconds since 1 January 1970, in UTC: turn it into Dublin time before taking the hour. Count every session_start, the ones with a missing user_pseudo_id included. Return dublin_hour and session_starts. Return one row for each hour with a session start. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "dublin_hour",
+        "type_class": "numeric"
+      },
+      {
+        "name": "session_starts",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "dublin_hour",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "session_starts",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "dublin_hour"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, turn event_timestamp into a moment, then into Dublin's clock time, and take its hour.",
+    "event_timestamp counts microseconds, so divide by a million before making a timestamp from seconds."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 124,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 125,
+      "to": 136,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 137,
+      "to": 222,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 223,
+      "to": 304,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Dividing the microseconds by a million gives seconds for to_timestamp, and timezone turns the UTC moment into Dublin's clock."
+}

@@ -16,10 +16,11 @@ import { AttemptLogger } from '../../server/log.ts';
 import { SessionTracker } from '../../server/session.ts';
 import { LearnerState, buildCatalog } from '../../server/state.ts';
 import { Servings } from '../../server/servings.ts';
-import { publicItem, servableChoiceItem, shuffle, type ChoiceAnswerView, type ChoiceRevealView, type ChoiceServedView } from '../../server/routes/choice.ts';
+import { publicItem, servableChoiceItem, shuffle, type ChoiceAnswerView, type ChoiceRevealView, type ChoiceServedView, type SqlChoiceServedView } from '../../server/routes/choice.ts';
 import { optionId, type ChoiceKey, type TypedSpec } from '../../schemas/choice.ts';
 import { api, type ChoiceResult, type ChoiceReveal, type ChoiceServed } from '../../web/src/api.ts';
 import { makeContentFixture, FIXTURE_CONCEPT } from '../helpers/content-fixture.ts';
+import { sqlChoiceItem, sqlChoiceKey, sqlOptions } from '../helpers/sql-choice-fixture.ts';
 
 // ---- An invented GA4 and Methodology bank -------------------------------------------------------------------------------
 
@@ -402,7 +403,11 @@ test('the server\'s answers fit the browser\'s types, and the browser calls the 
   const fitsServed = (v: ChoiceServedView): ChoiceServed => v;
   const fitsAnswer = (v: ChoiceAnswerView): ChoiceResult => v;
   const fitsReveal = (v: ChoiceRevealView): ChoiceReveal => v;
-  assert.deepEqual([fitsServed, fitsAnswer, fitsReveal].map((f) => typeof f), ['function', 'function', 'function']);
+  // S9-06 (sprint 9, Task A1): an SQL choice showing, a fixed_choice option's code included, fits the browser's type too.
+  const fitsSqlServed = (v: SqlChoiceServedView): ChoiceServed => v;
+  const fixedOption: ChoiceServed['options'][number] = { oid: 'oabc1234', text: 'A statement.', code: { lang: 'bigquery', sql: 'SELECT 1' } };
+  assert.equal(fixedOption.code?.lang, 'bigquery');
+  assert.deepEqual([fitsServed, fitsAnswer, fitsReveal, fitsSqlServed].map((f) => typeof f), ['function', 'function', 'function', 'function']);
   const sent: { path: string; method: string; body: unknown }[] = [];
   t.mock.method(globalThis, 'fetch', async (path: string, init: RequestInit) => {
     sent.push({ path, method: String(init.method), body: init.body === undefined ? null : JSON.parse(String(init.body)) });
@@ -430,4 +435,17 @@ test("D75 (Codex F31): a GA4 child question's funnel steps take its own concept'
   const [s] = spans.getFinishedSpans();
   assert.equal(s!.attributes.case_theme, 'T-GA4-02', "the child concept's topic; its parent, the scheduling target, is T-GA4-01");
   assert.equal(s!.events[0]!.name, 'exercise_submitted');
+});
+
+test('S8-B2: an SQL choice attempt on a LedgerLoop item logs saas, on a Voltmarkt item pricing', async () => {
+  const mk = (id: string, schema: string) => ({ ...sqlChoiceItem('which_table'), id, options: sqlOptions(id, ['stores', 'orders']), schema, company: schema as 'voltmarkt', edge_schema: `${schema}_edge_basics` });
+  const items = new Map([['EX-W-LEDGER', mk('EX-W-LEDGER', 'ledgerloop')], ['EX-W-VOLT', mk('EX-W-VOLT', 'voltmarkt')]]);
+  const store = { ...content, item: (id: string) => items.get(id) ?? content.item(id), sqlChoiceKey: (id: string) => (items.has(id) ? { ...sqlChoiceKey('which_table'), item_id: id, correct_oid: optionId(id, 0) } : undefined) };
+  const d = await deps({ content: store });
+  const app = createApp(d);
+  for (const id of items.keys()) {
+    const served = await json(get(app, `/api/choice/${id}?section=sql`));
+    assert.equal((await answer(app, { item_id: id, item_instance_id: served.item_instance_id, chosen: optionId(id, 0), shown_order: served.shown_order })).status, 200);
+  }
+  assert.deepEqual((await attempts(d)).filter((r) => r.record === 'attempt').map((a) => [a.item_id, a.world]), [['EX-W-LEDGER', 'saas'], ['EX-W-VOLT', 'pricing']]);
 });

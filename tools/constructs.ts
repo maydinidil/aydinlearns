@@ -57,6 +57,10 @@ export const DETECTORS: Record<string, RegExp> = {
   // Sprint 8 Task A1 (S8-09): DuckDB's PIVOT and UNPIVOT, with their other names PIVOT_WIDER and PIVOT_LONGER, in the statement and the
   // FROM ... PIVOT (...) forms. A whole word only, so a name such as pivot_point is not one.
   pivot: /\b(un)?pivot(_wider|_longer)?\b/i,
+  // Sprint 9 Task A1 (S9-07): DuckDB's ways into a list column, for SQL-BQ-01: an unnest call (the table function, a lateral unnest, or
+  // in the SELECT list), a lambda (`x -> ...` or `lambda x: ...`, which list_filter and the other list functions take), and a list
+  // comprehension (`[x.key FOR x IN event_params]`). The text is masked, so none of it counts inside a string, a comment or a quoted name.
+  unnest_list: /\bunnest\s*\(|->|\blambda\b|\[[^[\]]*\bfor\s+\w+\s+in\b/i,
 };
 
 /**

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E1-07",
+  "item_version": 1,
+  "reference_sql": "WITH base AS (\n  -- one row per account with MRR at the end of 2024\n  SELECT m.account_id, a.segment\n  FROM mrr_monthly m\n  JOIN accounts a ON a.account_id = m.account_id\n  WHERE m.month = DATE '2024-12-01'\n), churned AS (\n  -- one row per account with a churn event in 2025\n  SELECT DISTINCT account_id\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n)\nSELECT b.segment, COUNT(*) AS accounts_at_start, COUNT(c.account_id) AS churned_accounts,\n  COUNT(c.account_id) * 1.0 / COUNT(*) AS churn_rate\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id\nGROUP BY b.segment",
+  "alternatives": [
+    "SELECT a.segment, COUNT(*) AS accounts_at_start,\n  COUNT(*) FILTER (WHERE EXISTS (\n    SELECT 1 FROM subscription_events e\n    WHERE e.account_id = m.account_id AND e.event_type = 'churn'\n      AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31')) AS churned_accounts,\n  COUNT(*) FILTER (WHERE EXISTS (\n    SELECT 1 FROM subscription_events e\n    WHERE e.account_id = m.account_id AND e.event_type = 'churn'\n      AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31')) * 1.0 / COUNT(*) AS churn_rate\nFROM mrr_monthly m\nJOIN accounts a ON a.account_id = m.account_id\nWHERE m.month = DATE '2024-12-01'\nGROUP BY a.segment",
+    "WITH base AS (\n  -- one row per account with MRR at the end of 2024, with a churn flag for 2025\n  SELECT m.account_id, a.segment,\n    CASE WHEN m.account_id IN (SELECT account_id FROM subscription_events\n      WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31') THEN 1 ELSE 0 END AS churned\n  FROM mrr_monthly m\n  JOIN accounts a ON a.account_id = m.account_id\n  WHERE m.month = DATE '2024-12-01'\n)\nSELECT segment, COUNT(*) AS accounts_at_start, SUM(churned) AS churned_accounts, AVG(churned) AS churn_rate\nFROM base\nGROUP BY segment"
+  ],
+  "other_way": {
+    "sql": "WITH base AS (\n  -- one row per account with MRR at the end of 2024, with a churn flag for 2025\n  SELECT m.account_id, a.segment,\n    CASE WHEN m.account_id IN (SELECT account_id FROM subscription_events\n      WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31') THEN 1 ELSE 0 END AS churned\n  FROM mrr_monthly m\n  JOIN accounts a ON a.account_id = m.account_id\n  WHERE m.month = DATE '2024-12-01'\n)\nSELECT segment, COUNT(*) AS accounts_at_start, SUM(churned) AS churned_accounts, AVG(churned) AS churn_rate\nFROM base\nGROUP BY segment",
+    "tradeoff": "A 0 or 1 flag per account makes the rate an AVG of the flag, which is short but hides the division."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH active AS (SELECT DISTINCT m.account_id, a.segment FROM mrr_monthly m JOIN accounts a ON a.account_id = m.account_id WHERE m.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'), churned AS (SELECT DISTINCT account_id FROM subscription_events WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31') SELECT b.segment, COUNT(*) AS accounts_at_start, COUNT(c.account_id) AS churned_accounts, COUNT(c.account_id) * 1.0 / COUNT(*) AS churn_rate FROM active b LEFT JOIN churned c ON c.account_id = b.account_id GROUP BY b.segment"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH base AS (SELECT m.account_id, a.segment FROM mrr_monthly m JOIN accounts a ON a.account_id = m.account_id WHERE m.month = DATE '2024-12-01'), churns AS (SELECT account_id FROM subscription_events WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31') SELECT b.segment, COUNT(DISTINCT b.account_id) AS accounts_at_start, COUNT(c.account_id) AS churned_accounts, COUNT(c.account_id) * 1.0 / COUNT(DISTINCT b.account_id) AS churn_rate FROM base b LEFT JOIN churns c ON c.account_id = b.account_id GROUP BY b.segment"
+    }
+  ],
+  "hint3_partial": "WITH base AS (\n  -- one row per account with MRR at the end of 2024\n  SELECT m.account_id, a.segment\n  FROM mrr_monthly m\n  JOIN accounts a ON a.account_id = m.account_id\n  WHERE m.month = ___\n), churned AS (\n  -- one row per account with a churn event in 2025\n  SELECT DISTINCT account_id\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n)\nSELECT b.segment, COUNT(*) AS accounts_at_start, COUNT(c.account_id) AS churned_accounts,\n  ___ * 1.0 / ___ AS churn_rate\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id\nGROUP BY b.segment",
+  "solver": {
+    "prompt_hash": "58f3bfc249f39e93",
+    "schema_version": "471600eb77da",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH base AS (\n  SELECT r.account_id, a.segment\n  FROM mrr_monthly r JOIN accounts a ON a.account_id = r.account_id\n  WHERE r.month = DATE '2024-12-01'\n), ch AS (\n  SELECT DISTINCT account_id FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n)\nSELECT b.segment, COUNT(*) AS accounts_at_start, COUNT(c.account_id) AS churned_accounts,\n  COUNT(c.account_id) * 1.0 / COUNT(*) AS churn_rate\nFROM base b LEFT JOIN ch c ON c.account_id = b.account_id\nGROUP BY b.segment\n",
+    "at": "2026-11-03T19:01:33.513Z"
+  }
+}

@@ -1,0 +1,207 @@
+{
+  "id": "EX-SQL-CRAFT-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "sign_up",
+    "traffic_source",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-signup-sources",
+  "template_params": {
+    "month": "2025-11"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's marketing manager reads sign-ups by first-touch source and medium from the export. Check November 2025 against the backend. On the export side, count the sign_up events of the Dublin days 1 to 30 November (by event_date), every one of them, grouped by traffic_source.source and traffic_source.medium, the visitor's first touch. On the backend side, count the signups whose signup_ts falls on those Dublin days, grouped by the utm_source and utm_medium of the visitor's first session (the earliest session_start of that visitor_id in sessions), with a missing utm_source read as (direct) and a missing utm_medium as (none). Return five columns, in this order: source, medium, export_signups, backend_signups and difference (export_signups minus backend_signups). Return one row for each source and medium that either side has, with 0 where a side has none. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "medium",
+        "type_class": "text"
+      },
+      {
+        "name": "export_signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "export_signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "source",
+      "medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give each November signup the source and medium of the visitor's first session.",
+    "Find the earliest session_start per visitor first, then join back to sessions on the visitor and that start to read its UTM values."
+  ],
+  "subgoals": [
+    {
+      "from": 132,
+      "to": 231,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 234,
+      "to": 245,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 248,
+      "to": 329,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 332,
+      "to": 385,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 492,
+      "to": 509,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 512,
+      "to": 524,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 527,
+      "to": 623,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 741,
+      "to": 797,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 800,
+      "to": 872,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 875,
+      "to": 896,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1027,
+      "to": 1151,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1154,
+      "to": 1258,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1261,
+      "to": 1338,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1341,
+      "to": 1608,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1609,
+      "to": 1703,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "traffic_source is the visitor's first touch, taken from the first session, so grouping the backend by that session's UTM values matches it."
+}

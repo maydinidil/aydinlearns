@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "page_view",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-page-views",
+  "template_params": {
+    "day": "20251209"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Which pages of Mailvora's website were viewed on the Dublin day 9 December 2025 (by event_date), and how often? A page is the whole page_location parameter, query string included. Count every page_view event, those of visitors who denied consent included. Return exactly two columns, in this order: page_location and views. Return one row for each page. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text"
+      },
+      {
+        "name": "views",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "views",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "page_location"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the page of each page_view in a first step that keeps only that column.",
+    "Filter to page_view events of that day, read page_location from its text slot, then count per page."
+  ],
+  "subgoals": [
+    {
+      "from": 113,
+      "to": 219,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 222,
+      "to": 233,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 236,
+      "to": 298,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 301,
+      "to": 340,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 341,
+      "to": 355,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 356,
+      "to": 378,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "One narrow column of one day's page_view events is all the count needs, and the answer returns exactly the page and its views."
+}

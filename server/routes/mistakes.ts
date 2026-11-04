@@ -55,7 +55,7 @@ export function errorNameSource(content: ContentStore): () => Promise<ReadonlyMa
   let names: Promise<ReadonlyMap<string, string>> | null = null;
   return () => (names ??= loadErrorNames().catch((e: unknown) => {
     names = null;
-    console.error(`aydinlearns: the error names could not be read (${e instanceof Error ? e.message : String(e)}); cards show their error IDs.`);
+    console.error(`grondig: the error names could not be read (${e instanceof Error ? e.message : String(e)}); cards show their error IDs.`);
     return new Map<string, string>();
   }));
 }

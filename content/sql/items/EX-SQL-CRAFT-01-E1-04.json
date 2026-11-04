@@ -1,0 +1,158 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "row_count",
+    "join",
+    "promotions"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-join-rows",
+  "template_params": {
+    "from": "2025-04-07",
+    "to": "2025-04-20",
+    "table": "promotions"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "A Voltmarkt report adds each order line's promotion name and must keep every line, those with no promotion included (order_lines.promo_id is missing for them). Check the join for the orders placed from 7 to 20 April 2025 (the UTC days of order_ts). Return three columns, in this order: lines_before (the order lines of those orders), rows_after (the rows once each line has its promotion's name, missing where it had none) and added_rows (rows_after minus lines_before). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "lines_before",
+        "type_class": "numeric"
+      },
+      {
+        "name": "rows_after",
+        "type_class": "numeric"
+      },
+      {
+        "name": "added_rows",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row for the whole check"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "lines_before",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "rows_after",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "added_rows",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the comparison of the two row counts.",
+    "Take the count before the join away from the count after it: 0 means the join kept one row per line."
+  ],
+  "subgoals": [
+    {
+      "from": 119,
+      "to": 153,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 156,
+      "to": 217,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 220,
+      "to": 324,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 434,
+      "to": 470,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 473,
+      "to": 544,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 616,
+      "to": 727,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 730,
+      "to": 762,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 765,
+      "to": 804,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 805,
+      "to": 816,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 765,
+    "stage2": 765
+  },
+  "faded_shape": "WITH period_lines AS (\n  -- one row per order line of an order placed from 7 to 20 April 2025 (UTC days of order_ts)\n  SELECT l.order_line_id, l.promo_id\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-04-07 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-21 00:00:00'\n), with_promo AS (\n  -- one row per order line, with its promotion's name (missing when the line had none)\n  SELECT w.order_line_id, p.promo_name\n  FROM period_lines w\n  LEFT JOIN promotions p ON p.promo_id = w.promo_id\n), counts AS (\n  -- one row: the row count before and after the join\n  SELECT (SELECT COUNT(*) FROM period_lines) AS lines_before,\n    (SELECT COUNT(*) FROM with_promo) AS rows_after\n)\nSELECT lines_before, rows_after,\n  ",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "A LEFT JOIN on the line's own promo_id finds at most one promotion per line and keeps the lines without one, so no row is added or lost.",
+  "faded_suffix": "\nFROM counts"
+}

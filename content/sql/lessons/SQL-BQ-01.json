@@ -1,0 +1,141 @@
+{
+  "concept_id": "SQL-BQ-01",
+  "version": 2,
+  "reading_md": "## GA4's export: one row per event\n\nGoogle Analytics 4 exports a website's raw events to BigQuery, and analyst take-homes often hand you that shape. Mailvora's sample here has one row per event (`first_visit`, `session_start`, `page_view`, `sign_up`, `purchase`). BigQuery keeps one table per day, `events_YYYYMMDD`; here the days are stacked in one table, `events`.\n\n### Structs and lists\n\n`traffic_source`, `device`, `geo` and `ecommerce` are structs: read a field with a dot, as in `traffic_source.medium`. `event_params` is a list of key and value pairs, one per parameter. Each value has four slots, `string_value`, `int_value`, `float_value` and `double_value`, and only one is filled. A tag can send a number either way: Mailvora's purchases carry `value` in `double_value` or in `int_value`, so read `COALESCE(value.int_value, value.float_value, value.double_value)`.\n\n### One parameter per event, or one row per parameter\n\n- `list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value` keeps the list element with that key, `[1]` takes it, and the event stays one row. A missing key gives a missing value. A list comprehension does the same: `[p.value.int_value FOR p IN event_params IF p.key = 'ga_session_id'][1]`.\n- `FROM events AS e, unnest(e.event_params) AS t(p)` makes one row per parameter, named `p`. The comma is an inner join between each event and its own list: an event with no such parameter, or no parameters at all, has no row to keep. Filter on `p.key` before you count, or each event counts once per parameter.\n\nA lateral unnest over every event is slow and can reach the time limit. Filter on `event_name` or on a span of days first.\n\n### Days and times\n\n- `event_date` is text such as `'20251001'`: the day in Dublin, the property's time zone. Compare it with text in that form; `'2025-10-01'` compares character by character and matches nothing you meant. `strptime(event_date, '%Y%m%d')` parses it.\n- `event_timestamp` counts microseconds since 1970 in UTC. `to_timestamp(event_timestamp / 1000000)` gives the moment, and `timezone('Europe/Dublin', ...)` turns it into Dublin's clock.\n\n### Sessions and missing IDs\n\nA session is `user_pseudo_id` with `ga_session_id`, the session's start in seconds. Two visitors who start in the same second share an ID, so count distinct pairs, never the ID alone. Visitors who deny consent send events with no `user_pseudo_id` and no `ga_session_id`: a question says whether those events count. Every purchase comes from Mailvora's billing server, so it carries no `ga_session_id` and belongs to no session.",
+  "syntax_md": "```sql\nSELECT event_date,                                       -- the Dublin day, as text\n  COUNT(DISTINCT user_pseudo_id || '-' || CAST(\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value\n    AS VARCHAR)) AS sessions                             -- one parameter per event\nFROM events\nWHERE event_name = 'session_start'                       -- filter the events first\n  AND event_date BETWEEN '20251201' AND '20251207'       -- text against text\nGROUP BY event_date;\n```\n\n```sql\nSELECT e.ecommerce.transaction_id,                       -- a struct field\n  COALESCE(p.value.int_value, p.value.float_value, p.value.double_value) AS value\nFROM events AS e, unnest(e.event_params) AS t(p)         -- one row per parameter\nWHERE e.event_name = 'purchase'\n  AND p.key = 'value';                                   -- keep one row per event\n```\n\n- Dublin time: `timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))`.\n- A session: distinct `user_pseudo_id` with `ga_session_id`.",
+  "dialect_note": "BigQuery spells these differently. One row per parameter: `FROM events, UNNEST(event_params) AS p` or `CROSS JOIN UNNEST(event_params) AS p`, then `p.key` and `p.value.int_value`; in DuckDB `AS p` names the table unnest makes, so write `AS t(p)`. One parameter per event: `(SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id')`. Dates and times: `PARSE_DATE('%Y%m%d', event_date)` and `TIMESTAMP_MICROS(event_timestamp)`. Several days: `events_*` with `WHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'`, so only those daily tables are read. Filtering on the `event_date` column does not prune BigQuery's daily tables, so it still reads every table; only `_TABLE_SUFFIX` does.",
+  "worked_examples": [
+    {
+      "title": "Count each day's sessions",
+      "prompt": "How many sessions started on each day from 16 to 30 November 2025, by event_date? A session is one user_pseudo_id with one ga_session_id, counted from its session_start event; leave out session_start events with a missing ID. Return event_date and sessions.",
+      "clauses": [
+        {
+          "text": "WITH starts AS (",
+          "subgoal": "source_grain",
+          "why": "A first step reads one row per session_start with its session ID."
+        },
+        {
+          "text": "  SELECT event_date, user_pseudo_id, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id",
+          "subgoal": "metrics",
+          "why": "list_filter keeps the ga_session_id element; [1] takes it and .value.int_value its number."
+        },
+        {
+          "text": "  FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251116' AND '20251130')",
+          "subgoal": "row_filter",
+          "why": "Each session has one session_start, and event_date is text, so the range is text too."
+        },
+        {
+          "text": "SELECT event_date, COUNT(DISTINCT user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR)) AS sessions",
+          "subgoal": "metrics",
+          "why": "The pair names one session; a pair with a missing part is missing, and COUNT skips it."
+        },
+        {
+          "text": "FROM starts",
+          "subgoal": "source_grain",
+          "why": "One row per session_start event."
+        },
+        {
+          "text": "GROUP BY event_date",
+          "subgoal": "output_grain",
+          "why": "One row per Dublin day."
+        }
+      ]
+    },
+    {
+      "title": "Add up purchase value by first-touch source",
+      "prompt": "For each first-touch source, add up the value of the purchases from 1 to 30 November 2025, by event_date, reading value from whichever number slot holds it. Return source and purchase_value.",
+      "clauses": [
+        {
+          "text": "SELECT e.traffic_source.source AS source,",
+          "subgoal": "metrics",
+          "why": "traffic_source is a struct, so a dot reads its field."
+        },
+        {
+          "text": "  SUM(COALESCE(p.value.int_value, p.value.float_value, p.value.double_value)) AS purchase_value",
+          "subgoal": "metrics",
+          "why": "Some purchases carry value in int_value and others in double_value; COALESCE takes the filled one."
+        },
+        {
+          "text": "FROM events AS e, unnest(e.event_params) AS t(p)",
+          "subgoal": "source_grain",
+          "why": "The comma joins each event to its own list: one row per parameter, named p."
+        },
+        {
+          "text": "WHERE e.event_name = 'purchase' AND e.event_date BETWEEN '20251101' AND '20251130' AND p.key = 'value'",
+          "subgoal": "row_filter",
+          "why": "Purchases first keeps the unnest small; the key filter leaves one row per purchase."
+        },
+        {
+          "text": "GROUP BY e.traffic_source.source",
+          "subgoal": "output_grain",
+          "why": "One row per first-touch source."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-BQ-01-E1-01",
+    "EX-SQL-BQ-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-BQ-01-E1-03",
+    "EX-SQL-BQ-01-E1-04",
+    "EX-SQL-BQ-01-E2-01",
+    "EX-SQL-BQ-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-BQ-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-BQ-01-E1-06",
+    "EX-SQL-BQ-01-E1-07",
+    "EX-SQL-BQ-01-E1-08",
+    "EX-SQL-BQ-01-E2-03",
+    "EX-SQL-BQ-01-E2-04",
+    "EX-SQL-BQ-01-E2-05",
+    "EX-SQL-BQ-01-E3-01",
+    "EX-SQL-BQ-01-E3-02",
+    "EX-SQL-BQ-01-E3-03",
+    "EX-SQL-BQ-01-E1-31",
+    "EX-SQL-BQ-01-E1-32",
+    "EX-SQL-BQ-01-E2-31",
+    "EX-SQL-BQ-01-E2-32",
+    "EX-SQL-BQ-01-E2-33",
+    "EX-SQL-BQ-01-E3-31",
+    "EX-SQL-BQ-01-E3-32",
+    "EX-SQL-BQ-01-E1-42",
+    "EX-SQL-BQ-01-E2-41",
+    "EX-SQL-BQ-01-E2-42",
+    "EX-SQL-BQ-01-E1-43",
+    "EX-SQL-BQ-01-E1-44",
+    "EX-SQL-BQ-01-E2-43",
+    "EX-SQL-BQ-01-E2-44",
+    "EX-SQL-BQ-01-E3-41",
+    "EX-SQL-BQ-01-E3-42"
+  ],
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "why_clause": {
+    "clause": "SELECT event_date, COUNT(DISTINCT user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR)) AS sessions",
+    "stem": "Why does the query count distinct pairs of user_pseudo_id and ga_session_id, not distinct ga_session_id values?",
+    "options": [
+      {
+        "id": "a",
+        "text": "ga_session_id is the second the session started, so two visitors who start in the same second share one."
+      },
+      {
+        "id": "b",
+        "text": "ga_session_id is text, so it cannot be counted on its own."
+      },
+      {
+        "id": "c",
+        "text": "To leave out the purchases, which carry no ga_session_id."
+      },
+      {
+        "id": "d",
+        "text": "Because a session's ID changes on every page_view."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "ga_session_id is the session's start in seconds, so two visitors can share it, and only the pair with the visitor's user_pseudo_id names one session. The ID is a whole number in int_value, it stays the same on every event of the session, and the query reads only session_start events, so purchases are not in it at all."
+  }
+}

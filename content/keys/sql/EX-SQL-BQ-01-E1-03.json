@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-03",
+  "item_version": 2,
+  "reference_sql": "WITH views AS (\n  -- one row per page_view on 3 December 2025\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location,\n    list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.int_value AS engagement_msec\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251203'\n)\nSELECT page_location, SUM(engagement_msec) AS engagement_msec\nFROM views\nGROUP BY page_location",
+  "alternatives": [
+    "SELECT [p.value.string_value FOR p IN event_params IF p.key = 'page_location'][1] AS page_location,\n  SUM([p.value.int_value FOR p IN event_params IF p.key = 'engagement_time_msec'][1]) AS engagement_msec\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date = '20251203'\nGROUP BY 1",
+    "SELECT p.value.string_value AS page_location,\n  SUM(list_filter(e.event_params, lambda x: x.key = 'engagement_time_msec')[1].value.int_value) AS engagement_msec\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date = '20251203'\n  AND p.key = 'page_location'\nGROUP BY p.value.string_value"
+  ],
+  "other_way": {
+    "sql": "SELECT p.value.string_value AS page_location,\n  SUM(list_filter(e.event_params, lambda x: x.key = 'engagement_time_msec')[1].value.int_value) AS engagement_msec\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date = '20251203'\n  AND p.key = 'page_location'\nGROUP BY p.value.string_value",
+    "tradeoff": "Unnesting the list and keeping the page_location key also works, but it drops a page_view that has no page_location."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT list_filter(e.event_params, lambda x: x.key = 'page_location')[1].value.string_value AS page_location, SUM(list_filter(e.event_params, lambda x: x.key = 'engagement_time_msec')[1].value.int_value) AS engagement_msec FROM events AS e, unnest(e.event_params) AS t(p) WHERE e.event_name = 'page_view' AND e.event_date = '20251203' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH views AS (SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.double_value AS engagement_msec FROM events WHERE event_name = 'page_view' AND event_date = '20251203') SELECT page_location, SUM(engagement_msec) AS engagement_msec FROM views GROUP BY page_location"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH views AS (SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.int_value AS engagement_msec FROM events WHERE event_name = 'page_view' AND event_date = '2025-12-03') SELECT page_location, SUM(engagement_msec) AS engagement_msec FROM views GROUP BY page_location"
+    }
+  ],
+  "hint3_partial": "WITH views AS (\n  -- one row per page_view on 3 December 2025\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.___ AS page_location,\n    list_filter(event_params, lambda p: p.key = ___)[1].value.___ AS engagement_msec\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251203'\n)\nSELECT page_location, SUM(engagement_msec) AS engagement_msec\nFROM views\nGROUP BY page_location",
+  "solver": {
+    "prompt_hash": "24c6a7504aa12d58",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, COALESCE(SUM(list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.int_value), 0) AS engagement_msec\r\nFROM events\r\nWHERE event_name = 'page_view' AND event_date = '20251203'\r\nGROUP BY 1\r\n",
+    "at": "2026-11-03T19:01:24.454Z"
+  }
+}

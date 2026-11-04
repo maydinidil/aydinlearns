@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E2-42",
+  "item_version": 1,
+  "correct_oid": "o8b81b11",
+  "explanation": "The first step keeps only the page_view events of that day, written as event_date writes it, and the answer returns exactly the page and its views. Leaving out the event_name filter also counts the session_start, first_visit and sign_up events, which carry a page_location too. The answer with a visitors column has a column the question did not ask for, and a dashed date matches no event_date at all.",
+  "solver": {
+    "prompt_hash": "ebba356229bfe279",
+    "grader_version": "choice.3",
+    "chosen": "o8b81b11",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.594Z"
+  }
+}

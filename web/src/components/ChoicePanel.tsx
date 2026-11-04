@@ -5,13 +5,13 @@ import { useEffect, useRef, useState } from 'react';
 import { api, type ChoicePanelSection, type ChoiceResult, type ChoiceReveal, type ChoiceServed, type TypedView } from '../api.ts';
 import type { TableNote } from '../../../schemas/schema-notes.ts';
 import type { Phase } from '../../../core/envelope.ts';
-import type { OptionTable } from '../../../schemas/choice-types.ts';
+import type { OptionCode, OptionTable } from '../../../schemas/choice-types.ts';
 import { isClosedError } from '../lib/exercise.ts';
 import { ANSWER_FIRST, typedValueText } from '../lib/cp4-flow.ts';
 import { createBusyGate } from '../lib/busy-gate.ts';
 import { canSaveAnswer, classifyRunRefusal, modeRules, runMayBeGone, savedLine, shownAtAfter, type RunMode, type SavedKind } from '../lib/run-flow.ts';
 import { itemBadges } from '../lib/choice-flow.ts';
-import { choicePhaseFor, optionTableView, sqlChoiceLayout } from '../lib/sql-choice.ts';
+import { choicePhaseFor, codeLangLabel, optionTableView, sqlChoiceLayout } from '../lib/sql-choice.ts';
 import { choiceQuickPrompts, optionText } from '../lib/tutor-parts.ts';
 import { marksHelped } from '../lib/tutor-help.ts';
 import { choicePart } from '../tutor/snapshot.ts';
@@ -193,9 +193,15 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
   const quick = choiceQuickPrompts(tutorAvailable ? AVAILABLE : null, result);       // sprint T: beside a wrong answer, while the tutor is on and open
   const badges = itemBadges(item);
   const sql = item.section === 'sql' ? sqlChoiceLayout(item) : null;
-  const optionBody = (o: { text: string; table?: OptionTable }) => {
+  const optionBody = (o: { text: string; table?: OptionTable; code?: OptionCode }) => {
     if (!sql) return o.text;
     if (sql.optionStyle === 'code') return <SqlCode sql={o.text} className="option-code" />;
+    // S9-06: a fixed_choice option is its text, then its code block, when it has one, captioned by its dialect. The two blocks take
+    // option-table's layout (a block that may shrink), so the code sits under the text.
+    if (sql.optionStyle === 'statement') {
+      return <span className="option-table option-statement"><span className="option-table">{o.text}</span>
+        {o.code && <><span className="muted">{codeLangLabel(o.code.lang)}</span> <SqlCode sql={o.code.sql} className="option-code" /></>}</span>;
+    }
     if (sql.optionStyle === 'name') return <code>{o.text}</code>;
     if (sql.optionStyle === 'table' && o.table) {
       const t = optionTableView(o.table);

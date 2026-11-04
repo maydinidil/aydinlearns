@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-BQ-01-E2-31",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "sessions",
+    "visitors",
+    "fix"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-fix-session-key",
+  "template_params": {
+    "from": "20251101",
+    "to": "20251115"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many sessions and how many visitors were there on each day from 1 to 15 November 2025, by event_date? A session is one user_pseudo_id with one ga_session_id, counted from its session_start event, and a visitor is one user_pseudo_id. Leave out session_start events whose user_pseudo_id or ga_session_id is missing. Return event_date, as the text the export stores, sessions and visitors. Return one row for each day with a session start; a day with none has no row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "visitors",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "visitors",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_date"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the sessions column counts as one session.",
+    "ga_session_id is the second a session started, and two visitors can start in the same second, so a session needs both IDs."
+  ],
+  "subgoals": [
+    {
+      "from": 83,
+      "to": 218,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 221,
+      "to": 232,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 235,
+      "to": 322,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 325,
+      "to": 475,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 476,
+      "to": 487,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 488,
+      "to": 550,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 551,
+      "to": 570,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH starts AS (\n  -- one row per session_start event from 1 to 15 November 2025\n  SELECT event_date, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251101' AND '20251115'\n)\nSELECT event_date,\n  COUNT(DISTINCT ga_session_id) AS sessions,\n  COUNT(DISTINCT user_pseudo_id) AS visitors\nFROM starts\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY event_date",
+  "time_target_ms": 180000,
+  "why_this_works": "The pair of visitor and session ID names one session, while ga_session_id alone merges two visitors who started in the same second.",
+  "starter_error_id": "ERR-LOG-52"
+}

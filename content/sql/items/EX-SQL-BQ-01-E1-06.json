@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-BQ-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "traffic_source",
+    "first_visit",
+    "new_users"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-new-users-by-source",
+  "template_params": {
+    "event_name": "first_visit",
+    "from": "20251101",
+    "to": "20251130"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "How many new visitors came from each first-touch source and medium from 1 to 30 November 2025, by event_date? A new visitor is a user_pseudo_id with a first_visit event in that period; leave out first_visit events whose user_pseudo_id is missing. The source and medium are traffic_source.source and traffic_source.medium, how the visitor first arrived; direct traffic shows as (direct) and (none). Return source, medium and new_users. Return one row for each source and medium with at least one new visitor. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "medium",
+        "type_class": "text"
+      },
+      {
+        "name": "new_users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "new_users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "source",
+      "medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the source and the medium out of the traffic_source struct.",
+    "Struct fields are read with a dot; count each visitor once, and skip the first_visit events with no visitor ID."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 118,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 119,
+      "to": 130,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 131,
+      "to": 247,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 248,
+      "to": 301,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "traffic_source is a struct with the visitor's first touch, so its fields group the first_visit events by where visitors came from."
+}

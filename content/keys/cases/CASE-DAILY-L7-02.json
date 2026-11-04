@@ -1,0 +1,15 @@
+{
+  "case_id": "CASE-DAILY-L7-02",
+  "truths": {
+    "CP4": "WITH store_days AS (\n  -- one row per physical store open on at least one day of 2024, with its open days in 2024, both ends included\n  SELECT store_id,\n         date_diff('day', GREATEST(opened_on, DATE '2024-01-01'),\n                   LEAST(COALESCE(close_date, DATE '2024-12-31'), DATE '2024-12-31')) + 1 AS open_days\n  FROM stores\n  WHERE store_type <> 'web'\n    AND opened_on <= DATE '2024-12-31'\n    AND (close_date IS NULL OR close_date >= DATE '2024-01-01')\n),\nstore_revenue AS (\n  -- one row per store with an order in 2024: the net revenue of its lines, on the UTC days of 2024\n  SELECT o.store_id, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY o.store_id\n)\nSELECT ROUND(SUM(COALESCE(r.net_revenue_eur, 0)) / SUM(d.open_days), 2)\nFROM store_days AS d\nLEFT JOIN store_revenue AS r ON r.store_id = d.store_id"
+  },
+  "choices": {},
+  "solver": {
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "70ba88aa1b9703f0",
+      "key_hash": "2ac864025e77d86d",
+      "at": "2026-11-03T21:23:51.437Z"
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "id": "EX-SQL-BQ-01-E3-42",
+  "version": 2,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "bigquery",
+    "sessions",
+    "session_key",
+    "fixed_choice"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-SUBQ-01",
+    "SQL-STR-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-bq-sessions",
+  "template_params": {
+    "day": "20251201"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Which BigQuery query counts the sessions of 1 December 2025 from the session_start events, where a session is one user_pseudo_id with one ga_session_id? A session_start with a missing user_pseudo_id or a missing ga_session_id is not a session, so it is left out.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "od129724",
+      "text": "Count distinct ga_session_id values read with a subquery over the unnested list",
+      "misconception_id": "ERR-LOG-52",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(DISTINCT (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id')) AS sessions\nFROM `mailvora-web.analytics_254316.events_20251201`\nWHERE event_name = 'session_start'"
+      }
+    },
+    {
+      "oid": "o78e3152",
+      "text": "Count distinct visitor and session ID pairs, the ID read with a subquery over the unnested list",
+      "misconception_id": null,
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(DISTINCT CONCAT(user_pseudo_id, CAST((SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id') AS STRING))) AS sessions\nFROM `mailvora-web.analytics_254316.events_20251201`\nWHERE event_name = 'session_start'"
+      }
+    },
+    {
+      "oid": "o5768c9a",
+      "text": "Count the session_start rows of the day, one row standing for each session",
+      "misconception_id": "ERR-LOG-04",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(*) AS sessions\nFROM `mailvora-web.analytics_254316.events_20251201`\nWHERE event_name = 'session_start'"
+      }
+    },
+    {
+      "oid": "oe95c62d",
+      "text": "Count distinct visitor and session ID pairs, the ID read with list_filter on the list",
+      "misconception_id": "MIS-SQL-BQ-01-04",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(DISTINCT CONCAT(user_pseudo_id, CAST(list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS STRING))) AS sessions\nFROM `mailvora-web.analytics_254316.events_20251201`\nWHERE event_name = 'session_start'"
+      }
+    }
+  ]
+}

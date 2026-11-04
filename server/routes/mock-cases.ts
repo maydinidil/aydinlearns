@@ -305,7 +305,7 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
         const orphan = runs.start({ block_id: t.block_id, plan: { kind: 'mock', mock: 'take_home', form_id: t.form_id, minutes: t.minutes ?? file.take_home.minutes, on_unseen: t.on_unseen, started_at: t.started_at },
           started_at: t.started_at, ends_at: t.started_at + Math.round(file.take_home.close_after_hours * HOUR_MS),
           servings: [...items].map(([item_id, item_instance_id]) => ({ item_id, item_instance_id })) });
-        runs.finish(orphan, runs.now()).catch((e: unknown) => console.error(`aydinlearns: the take-home ${t.block_id} could not be closed (${e instanceof Error ? e.message : String(e)}).`));
+        runs.finish(orphan, runs.now()).catch((e: unknown) => console.error(`grondig: the take-home ${t.block_id} could not be closed (${e instanceof Error ? e.message : String(e)}).`));
         continue;
       }
       const servings = (record?.checkpoints ?? []).filter((cp) => AUTO_GRADED.includes(cp.kind) && typeof cp.item_id === 'string').map((cp) => ({

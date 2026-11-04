@@ -1,0 +1,83 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-43",
+  "version": 1,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "fixed_choice",
+    "manager_summary"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-summary-promotions",
+  "template_params": {
+    "month": "2025-04"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Voltmarkt's pricing manager asked how April 2025's revenue splits by promotion type. The report gives one row per promotion type, with 'none' for lines without a promotion, and a check showed that the types add up to April's revenue in sales. Which summary states the grain and a caveat the manager can check?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o4b64d0c",
+      "text": "One row per promotion type for April 2025 (UTC days), lines with no promotion under 'none'; the types add up to April's revenue in sales. Caveat: a line counts under the one promotion it carries, so a product in two overlapping promotions is never counted twice.",
+      "misconception_id": null
+    },
+    {
+      "oid": "oa59c65a",
+      "text": "Revenue for April 2025 by promotion type, one row per type, with lines that had no promotion shown under 'none'; the types add up exactly to the month's revenue in the sales view, so the split is complete.",
+      "misconception_id": "MIS-SQL-CRAFT-01-01"
+    },
+    {
+      "oid": "o66ef2e6",
+      "text": "Percent-off promotions brought in most of April's promoted revenue, which shows that discounts drive sales, and the same split should hold for May and June too, so the team can plan all of the summer promotions and their budgets around this one result with full confidence.",
+      "misconception_id": "MIS-SQL-CRAFT-01-02"
+    },
+    {
+      "oid": "o4290c0e",
+      "text": "April looks healthy: promotions did well and the totals tie out with what finance expects. Caveat: refunds and returns are not in these numbers yet, so the final figures may move a little.",
+      "misconception_id": "MIS-SQL-CRAFT-01-03"
+    }
+  ]
+}

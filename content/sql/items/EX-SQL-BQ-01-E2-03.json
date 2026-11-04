@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-BQ-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "list_filter",
+    "page_view",
+    "page_path"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-page-views-per-path",
+  "template_params": {
+    "event_name": "page_view",
+    "from": "20251201",
+    "to": "20251215"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "For each page path, count the page_view events of 1 to 15 December 2025, by event_date. The path is the part of the page_location parameter after https://www.mailvora.example and before any question mark, so https://www.mailvora.example/pricing?utm_source=x is the path /pricing, and the home page is /. Count every page_view, the ones with a missing user_pseudo_id included. Return page_path and page_views. Return one row for each path. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "page_path",
+        "type_class": "text"
+      },
+      {
+        "name": "page_views",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "page_path",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "page_views",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "page_path"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read page_location out of each page_view's parameters, then cut it down to the path.",
+    "Remove the host from the front, then keep the text before the first question mark."
+  ],
+  "subgoals": [
+    {
+      "from": 72,
+      "to": 178,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 181,
+      "to": 192,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 195,
+      "to": 278,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 281,
+      "to": 405,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 406,
+      "to": 416,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 417,
+      "to": 504,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The path drops the host and the query string, so the same page counts once whatever campaign tags its address carries."
+}

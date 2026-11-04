@@ -1,0 +1,100 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-44",
+  "version": 2,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "fixed_choice",
+    "bigquery",
+    "columns"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-columns-cost",
+  "template_params": {
+    "month": "2025-10"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's GA4 export in BigQuery holds one daily table for each day from October to December 2025, and the tables are not clustered. A report needs only event_date, event_name and user_pseudo_id for October 2025. Each query offered is the whole query, with no later step. Which one reads the least data?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o07be474",
+      "text": "Every column, from the October daily tables.",
+      "misconception_id": "MIS-SQL-CRAFT-02-02",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT *\nFROM `mailvora-web.analytics_312345678.events_*`\nWHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'"
+      }
+    },
+    {
+      "oid": "o0ba88ee",
+      "text": "Every column, from the October daily tables, with a row limit.",
+      "misconception_id": "MIS-SQL-CRAFT-02-01",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT *\nFROM `mailvora-web.analytics_312345678.events_*`\nWHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'\nLIMIT 1000"
+      }
+    },
+    {
+      "oid": "oa9b68fe",
+      "text": "Three columns, from the October daily tables.",
+      "misconception_id": null,
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT event_date, event_name, user_pseudo_id\nFROM `mailvora-web.analytics_312345678.events_*`\nWHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'"
+      }
+    },
+    {
+      "oid": "of7a90e7",
+      "text": "Three columns, with October picked by event_date.",
+      "misconception_id": "MIS-SQL-CRAFT-02-03",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT event_date, event_name, user_pseudo_id\nFROM `mailvora-web.analytics_312345678.events_*`\nWHERE event_date BETWEEN '20251001' AND '20251031'"
+      }
+    }
+  ]
+}

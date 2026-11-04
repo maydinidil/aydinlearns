@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-BQ-01-E2-21",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "sessions",
+    "engaged",
+    "landing_page"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-engaged-sessions-by-landing-page",
+  "template_params": {
+    "from": "20251201",
+    "to": "20251214"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "For each landing page, count the engaged sessions that started from 1 to 14 December 2025, by event_date. The landing page is the page_location parameter of the session's session_start event, as text, and a session is engaged when its session_engaged parameter is '1', as text. A session is one user_pseudo_id with one ga_session_id, counted from its session_start event; leave out session_start events whose user_pseudo_id or ga_session_id is missing. Return page_location and engaged_sessions. Return one row for each landing page with at least one engaged session. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "page_location"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read ga_session_id, page_location and session_engaged out of each session_start's parameters.",
+    "Keep the engaged sessions with both IDs, then count distinct pairs of visitor and session ID per page."
+  ],
+  "subgoals": [
+    {
+      "from": 83,
+      "to": 420,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 423,
+      "to": 434,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 437,
+      "to": 524,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 527,
+      "to": 640,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 641,
+      "to": 652,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 653,
+      "to": 745,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 746,
+      "to": 768,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The session_start carries the landing page and the engaged flag, so its parameters say which page each engaged session began on."
+}

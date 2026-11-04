@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "units",
+    "sales"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-category-units",
+  "template_params": {
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Voltmarkt's category managers want the units sold per category from 3 to 9 March 2025 (sales.order_date, a UTC day). Return exactly two columns, in this order: category_name and units. Return one row for each category that sold in those days. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per category that sold from 3 to 9 March 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep only the lines of those seven days and the two columns the total needs.",
+    "Both end days count, and the last step returns the category and its units, nothing more."
+  ],
+  "subgoals": [
+    {
+      "from": 124,
+      "to": 151,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 154,
+      "to": 164,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 167,
+      "to": 231,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 234,
+      "to": 275,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 276,
+      "to": 291,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 292,
+      "to": 314,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Filtering the seven days and keeping two columns in the first step leaves the last step a plain sum per category, with exactly the columns asked for."
+}

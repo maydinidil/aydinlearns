@@ -15,20 +15,22 @@ import type { SqlChoiceKind, SqlItem } from '../../schemas/item.ts';
 import { optionId, type ChoiceKey } from '../../schemas/choice.ts';
 import type { Lesson } from '../../schemas/lesson.ts';
 import { checkLesson, type CheckResult } from '../../tools/check-content.ts';
-import { checkSqlChoiceItem, checkWhyClause, sqlChoicePromptHash, sqlChoiceTallyLine } from '../../tools/check-sql-choice.ts';
+import { checkFixedChoiceShare, checkSqlChoiceItem, checkWhyClause, sqlChoicePromptHash, sqlChoiceTallyLine } from '../../tools/check-sql-choice.ts';
 import { makeContentFixture, FIXTURE_CONCEPT } from '../helpers/content-fixture.ts';
 import { makeFixtureDb } from '../helpers/fixture-db.ts';
-import { ALL_KINDS, DRIFTED_DATA, GOOD_DATA, IDS, sqlChoiceItem, sqlChoiceKey, sqlOptions, writeSqlChoice } from '../helpers/sql-choice-fixture.ts';
+import {
+  ALL_KINDS, DRIFTED_DATA, FIXED_ID, fixedChoiceItem, fixedChoiceKey, fixedOptions, GOOD_DATA, IDS, sqlChoiceItem, sqlChoiceKey, sqlOptions, writeSqlChoice, type FixtureKind,
+} from '../helpers/sql-choice-fixture.ts';
 
 const good = { runner: await startRunner(await makeFixtureDb(GOOD_DATA)) };
 const drifted = { runner: await startRunner(await makeFixtureDb(DRIFTED_DATA)) };
 test.after(async () => { await good.runner.close(); await drifted.runner.close(); });
 
-const KIND_CHECK: Record<SqlChoiceKind, string> = { predict_rows: 'C31', predict_result: 'C32', choose_query: 'C33', which_table: 'C34', is_unique: 'C35' };
+const KIND_CHECK: Record<SqlChoiceKind, string> = { predict_rows: 'C31', predict_result: 'C32', choose_query: 'C33', which_table: 'C34', is_unique: 'C35', fixed_choice: 'C57' };
 /** The key with a fresh solver record whose answer is the key's own. */
 const solved = (item: SqlItem, key: ChoiceKey): ChoiceKey => ({ ...key, solver: { prompt_hash: sqlChoicePromptHash(item), grader_version: CHOICE_GRADER_VERSION,
   chosen: key.correct_oid ?? null, typed: key.value === undefined ? null : String(key.value), at: '2026-10-05T10:00:00.000Z' } });
-const goodPair = (kind: SqlChoiceKind, over: Partial<SqlItem> = {}, keyOver: Partial<ChoiceKey> = {}) => {
+const goodPair = (kind: FixtureKind, over: Partial<SqlItem> = {}, keyOver: Partial<ChoiceKey> = {}) => {
   const item = sqlChoiceItem(kind, over);
   return { item, key: solved(item, sqlChoiceKey(kind, keyOver)) };
 };
@@ -220,15 +222,17 @@ test('C02: a lesson may name an SQL choice item, whose key is in keys/sql-choice
     [`${IDS.which_table} has no key`]);
 });
 
-test('the tally line counts C31 to C37, zeros included', () => {
-  assert.equal(sqlChoiceTallyLine([]), 'sql choice checks (passed / total): C31 0/0, C32 0/0, C33 0/0, C34 0/0, C35 0/0, C36 0/0, C37 0/0');
+test('the tally line counts C31 to C37 and C57 (sprint 9), zeros included', () => {
+  assert.equal(sqlChoiceTallyLine([]), 'sql choice checks (passed / total): C31 0/0, C32 0/0, C33 0/0, C34 0/0, C35 0/0, C36 0/0, C37 0/0, C57 0/0');
   assert.equal(sqlChoiceTallyLine([{ id: 'x', check: 'C33', ok: true, detail: '' }, { id: 'y', check: 'C33', ok: false, detail: 'z' }, { id: 'y', check: 'C14', ok: true, detail: '' }]),
-    'sql choice checks (passed / total): C31 0/0, C32 0/0, C33 1/2, C34 0/0, C35 0/0, C36 0/0, C37 0/0');
+    'sql choice checks (passed / total): C31 0/0, C32 0/0, C33 1/2, C34 0/0, C35 0/0, C36 0/0, C37 0/0, C57 0/0');
 });
 
 test('the CLI checks SQL choice items by ID, prints no query, option or key, and fails a stray SQL choice key', async () => {
   const root = await makeContentFixture();
-  await writeSqlChoice(root, ALL_KINDS.map((k) => sqlChoiceItem(k)), [...ALL_KINDS.map((k) => sqlChoiceKey(k)), { ...sqlChoiceKey('which_table'), item_id: 'EX-SQL-FILTER-02-E1-99' }]);
+  // S9-06: a fixed_choice item too, whose C57 runs per item and per concept (ruling S9-C13).
+  await writeSqlChoice(root, [...ALL_KINDS.map((k) => sqlChoiceItem(k)), fixedChoiceItem()],
+    [...ALL_KINDS.map((k) => sqlChoiceKey(k)), fixedChoiceKey(), { ...sqlChoiceKey('which_table'), item_id: 'EX-SQL-FILTER-02-E1-99' }]);
   await writeFile(join(root, 'sql/constructs.json'), await readFile('content/sql/constructs.json', 'utf8'));
   const run = promisify(execFile);
   const r = await run(process.execPath, ['tools/check-content.ts', root]).then((x) => ({ code: 0, out: x.stdout + x.stderr }),
@@ -239,9 +243,129 @@ test('the CLI checks SQL choice items by ID, prints no query, option or key, and
   assert.match(r.out, new RegExp(`FAIL C14 ${IDS.which_table} no solver record`));
   assert.match(r.out, /FAIL C01 keys\/sql-choice\/EX-SQL-FILTER-02-E1-99\.json a key with no SQL choice item/);
   assert.match(r.out, /sql choice checks \(passed \/ total\): C31 0\/1, /);
+  assert.match(r.out, new RegExp(`FAIL C14 ${FIXED_ID} no solver record`));
+  assert.match(r.out, /, C57 2\/2$/m, 'the item\'s C57 and its concept\'s both pass');
+  for (const s of fixedSecrets(fixedChoiceItem(), fixedChoiceKey())) assert.ok(!r.out.includes(s), 'the output holds fixed_choice text');
   for (const kind of ALL_KINDS) {
     const item = sqlChoiceItem(kind);
     for (const s of secrets(item, sqlChoiceKey(kind))) assert.ok(!r.out.includes(s), `${kind}: the output holds item or key text`);
   }
   assert.doesNotMatch(r.out, /select/i);
+});
+
+// ---- Sprint 9 Task A1 (S9-06): fixed_choice and its check, C57 --------------------------------------------------------------------
+// S9-06 names the check C54, but C54 to C56 were taken (sprint 7's mocks and knowledge pool), so the fixed_choice check is C57 (ruling
+// S9-C13). Each broken shape fails on its own fixture; no detail quotes an option, its code or the explanation.
+
+const fixedPair = (over: Partial<SqlItem> = {}, keyOver: Partial<ChoiceKey> = {}) => {
+  const item = fixedChoiceItem(over);
+  return { item, key: solved(item, fixedChoiceKey(keyOver)) };
+};
+const withFixed = (i: number, change: Record<string, unknown>) => ({ options: fixedOptions().map((o, j) => (j === i ? { ...o, ...change } : o)) }) as Partial<SqlItem>;
+/** Every text a C57 result may never hold: option texts, their code and the explanation. */
+const fixedSecrets = (item: SqlItem, key: ChoiceKey): string[] =>
+  [...(item.options ?? []).flatMap((o) => [o.text, o.code?.sql ?? '']), key.explanation].filter((s) => s.length > 3);
+const c57 = async (p: { item: SqlItem; key: ChoiceKey }) => {
+  const rs = await checkSqlChoiceItem(p.item, p.key, good);
+  const r = rs.find((x) => x.check === 'C57')!;
+  for (const x of rs) for (const s of fixedSecrets(p.item, p.key)) assert.ok(!x.detail.includes(s), `${x.check}: ${x.detail}`);
+  return { ok: r.ok, detail: r.detail, failing: failing(rs) };
+};
+
+test('S9-06: a good fixed_choice item passes C01, C57 and C14, and only those run: C33 does not apply', async () => {
+  const { item, key } = fixedPair();
+  const rs = await checkSqlChoiceItem(item, key, good);
+  assert.deepEqual(rs.map((r) => r.check), ['C01', 'C57', 'C14']);
+  assert.deepEqual(failing(rs), [], JSON.stringify(rs));
+  assert.ok(rs.every((r) => r.id === FIXED_ID));
+  // Its options are not run: the same item passes on the drifted data, whose stores changed. Its duckdb option still prepares there.
+  assert.deepEqual(failing(await checkSqlChoiceItem(item, key, drifted)), []);
+});
+
+test('C57: exactly one right option: one option names no misconception, and it is the key\'s', async () => {
+  const MSG = (n: number) => `${n} options name no misconception: exactly one option is right, and each other names its mistake`;
+  assert.deepEqual(await c57(fixedPair(withFixed(3, { misconception_id: null }))), { ok: false, detail: MSG(2), failing: ['C57'] });
+  assert.deepEqual(await c57(fixedPair(withFixed(0, { misconception_id: 'MIS-FAKE-9' }))), { ok: false, detail: MSG(0), failing: ['C57'] });
+  // The key names another option: C57 fails, and the solver record (made for the old key) is no longer the key either.
+  const keyed = await c57(fixedPair({}, { correct_oid: optionId(FIXED_ID, 3) }));
+  assert.deepEqual([keyed.ok, keyed.detail], [false, 'the option that names no misconception is not the key\'s']);
+});
+
+test('C57: options are distinct, by their text and by their code block, its dialect and query (case and spacing aside)', async () => {
+  const sameCode = await c57(fixedPair(withFixed(2, { code: { lang: 'bigquery', sql: ' select p.KEY  from events, unnest(event_params) as p ' } })));
+  assert.deepEqual([sameCode.ok, sameCode.failing], [false, ['C57']]);
+  assert.match(sameCode.detail, /two options show the same code/);
+  // The same query captioned with the other dialect is another option: a question may ask where a query runs.
+  const otherDialect = await c57(fixedPair(withFixed(2, { code: { lang: 'duckdb', sql: 'SELECT p.key FROM events, UNNEST(event_params) AS p' } })));
+  assert.deepEqual([otherDialect.ok, otherDialect.detail], [false, '1 duckdb option does not prepare on voltmarkt'], 'distinct, but it does not prepare');
+  const sameText = await c57(fixedPair(withFixed(3, { text: ' read the KEY and its value in one row each. ' })));
+  assert.deepEqual([sameText.ok, sameText.failing], [false, ['C01', 'C57']], 'C01 refuses it too');
+  assert.match(sameText.detail, /two options show the same text/);
+});
+
+test('C57: a duckdb option prepares on the item\'s schema; a bigquery option is never run', async () => {
+  const broken = await c57(fixedPair(withFixed(2, { code: { lang: 'duckdb', sql: 'SELECT town FROM stores' } })));
+  assert.deepEqual([broken.ok, broken.detail, broken.failing], [false, '1 duckdb option does not prepare on voltmarkt', ['C57']]);
+  const twoStatements = await c57(fixedPair(withFixed(2, { code: { lang: 'duckdb', sql: 'SELECT 1 FROM stores; SELECT 2 FROM stores' } })));
+  assert.deepEqual([twoStatements.ok, twoStatements.detail], [false, '1 duckdb option does not prepare on voltmarkt']);
+  // BigQuery's own syntax is never prepared: a backtick name would not parse in DuckDB.
+  const bq = await c57(fixedPair(withFixed(1, { code: { lang: 'bigquery', sql: 'SELECT event_name FROM `project.analytics.events_*`' } })));
+  assert.deepEqual([bq.ok, bq.detail], [true, '']);
+});
+
+test('C57: no explanation names an option by its letter: the options are shuffled', async () => {
+  for (const explanation of ['Option B reads each row twice.', 'The answer is C, as the made-up data shows.', 'It is (A): one row each.']) {
+    const r = await c57(fixedPair({}, { explanation }));
+    assert.deepEqual([r.ok, r.detail], [false, 'the explanation names an option by its letter, but the options are shuffled'], explanation);
+  }
+  assert.equal((await c57(fixedPair({}, { explanation: 'A list is read one row per item, so each key has its own row.' }))).ok, true, 'the word "A" is prose');
+});
+
+test('C14: a fixed_choice solver record covers each option\'s code and its lang: changing either makes the record stale', async () => {
+  const { item, key } = fixedPair();
+  const changed = { ...item, options: fixedOptions().map((o, i) => (i === 2 ? { ...o, code: { lang: 'duckdb' as const, sql: 'SELECT city FROM stores' } } : o)) };
+  assert.notEqual(sqlChoicePromptHash(changed), sqlChoicePromptHash(item));
+  const relang = { ...item, options: fixedOptions().map((o, i) => (i === 1 ? { ...o, code: { lang: 'duckdb' as const, sql: o.code!.sql } } : o)) };
+  assert.notEqual(sqlChoicePromptHash(relang), sqlChoicePromptHash(item), 'the lang is shown, so it counts');
+  assert.equal(detail(await checkSqlChoiceItem(changed, key, good), 'C14'), 'the prompt, shown query, options or schema changed since the solver record');
+});
+
+test('C14: the code field leaves every other kind\'s prompt hash as it was, so no shipped solver record goes stale', async () => {
+  // Pinned before sprint 9: the fixture items' hashes, and every shipped SQL choice item's against its own solver record.
+  assert.deepEqual(Object.fromEntries(ALL_KINDS.map((k) => [k, sqlChoicePromptHash(sqlChoiceItem(k))])), {
+    predict_rows: '1c7d57211bb52fed', predict_result: '93d23e69144716a8', choose_query: '193ee94596af214a', which_table: '4c83abe3366ac4d0', is_unique: '0c231bbfd47a8011',
+  });
+  const { readdir } = await import('node:fs/promises');
+  const stale: string[] = [];
+  let n = 0;
+  for (const f of (await readdir('content/keys/sql-choice')).filter((x) => x.endsWith('.json'))) {
+    const key = JSON.parse(await readFile(join('content/keys/sql-choice', f), 'utf8')) as ChoiceKey;
+    const item = JSON.parse(await readFile(join('content/sql/items', f), 'utf8')) as SqlItem;
+    n++;
+    if (key.solver?.prompt_hash !== sqlChoicePromptHash(item)) stale.push(item.id);
+  }
+  assert.ok(n > 100, `${n} shipped SQL choice keys`);
+  assert.deepEqual(stale, []);
+});
+
+test('C57 per concept (E-021\'s rule): the right option is the only longest one in at most 35% of a concept\'s fixed_choice items', () => {
+  const id = (n: number) => `EX-SQL-BQ-01-E2-${String(n).padStart(2, '0')}`;
+  /** A fixed_choice item whose right option is option 0; `long` makes it the only longest one (its text and code count together). */
+  const item = (n: number, long: boolean, concept = 'SQL-BQ-01'): SqlItem => fixedChoiceItem({ id: id(n), target_concept_id: concept, concept_ids: [concept],
+    options: fixedOptions(id(n)).map((o, i) => (i === 0 && long ? { ...o, text: `${o.text} ${'And then some more words.'.repeat(4)}` } : o)) });
+  const run = (items: SqlItem[]) => checkFixedChoiceShare(items, (x) => fixedChoiceKey({ item_id: x, correct_oid: optionId(x, 0) }));
+  // 1 of 3 (33%) passes; 2 of 3 (67%) fails, by counts only.
+  assert.deepEqual(run([item(1, true), item(2, false), item(3, false)]), [{ id: 'SQL-BQ-01', check: 'C57', ok: true, detail: '' }]);
+  assert.deepEqual(run([item(1, true), item(2, true), item(3, false)]), [{ id: 'SQL-BQ-01', check: 'C57', ok: false,
+    detail: '2 of 3 fixed_choice items (67%) have the right option as the only longest one; at most 35% may' }]);
+  // Per concept: another concept's items count on their own.
+  assert.deepEqual(run([item(1, true), item(2, false), item(3, false), item(4, true, 'SQL-CRAFT-02')]).map((r) => [r.id, r.ok]),
+    [['SQL-BQ-01', true], ['SQL-CRAFT-02', false]]);
+  // A tie for the longest is not "the only longest": the right option and a statement of the same length, the code options without code.
+  const tie = fixedChoiceItem({ id: id(5), options: fixedOptions(id(5)).map((o, i) => (i === 1 || i === 2 ? { oid: o.oid, text: o.text, misconception_id: o.misconception_id }
+    : i === 3 ? { ...o, text: 'Read the key and its value in one row each!' } : o)) });
+  assert.deepEqual(run([tie]).map((r) => r.ok), [true]);
+  // Only active fixed_choice items count; other kinds never do.
+  assert.deepEqual(run([item(1, true), { ...item(2, true), status: 'retired' }, item(3, false), item(6, false)]).map((r) => r.ok), [true]);
+  assert.deepEqual(run([sqlChoiceItem('choose_query')]), []);
 });

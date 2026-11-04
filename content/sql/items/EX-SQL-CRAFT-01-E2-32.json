@@ -1,0 +1,168 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-32",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "duplicate_key",
+    "ga_session_id",
+    "fix",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-fix-shared-ids",
+  "template_params": {
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each Dublin day from 1 to 7 December 2025 (by event_date), how many sessions started, and how many ga_session_id values were shared by two or more visitors that day? Use the session_start events that carry both a user_pseudo_id and a ga_session_id; a session is one user_pseudo_id with one ga_session_id. Return three columns, in this order: day (the Dublin day as text, in the same form as event_date), sessions and shared_ids. Return one row for each of those days that has sessions; a day with none has no row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "shared_ids",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "shared_ids",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check how the sessions column counts a session.",
+    "Two visitors can start a session in the same second and share a ga_session_id, so a count of the ID values counts their two sessions as one."
+  ],
+  "subgoals": [
+    {
+      "from": 106,
+      "to": 248,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 251,
+      "to": 262,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 265,
+      "to": 387,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 489,
+      "to": 558,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 561,
+      "to": 572,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 575,
+      "to": 606,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 609,
+      "to": 636,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 639,
+      "to": 728,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 729,
+      "to": 740,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 741,
+      "to": 753,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH starts AS (\n  -- one row per session_start event with both IDs, 1 to 7 December 2025 (Dublin days)\n  SELECT event_date AS day, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251201' AND '20251207'\n    AND user_pseudo_id IS NOT NULL\n), per_id AS (\n  -- one row per day and ga_session_id: how many visitors started a session with it\n  SELECT day, ga_session_id, COUNT(DISTINCT user_pseudo_id) AS visitors\n  FROM starts\n  WHERE ga_session_id IS NOT NULL\n  GROUP BY day, ga_session_id\n)\nSELECT day, COUNT(*) AS sessions, COUNT(*) FILTER (WHERE visitors > 1) AS shared_ids\nFROM per_id\nGROUP BY day",
+  "time_target_ms": 210000,
+  "why_this_works": "Each ga_session_id row carries its number of visitors, and adding those up counts every pair of visitor and ID, which is a session.",
+  "starter_error_id": "ERR-LOG-52"
+}

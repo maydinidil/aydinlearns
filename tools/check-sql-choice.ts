@@ -19,23 +19,32 @@
 // |       | longer the key when replayed through the choice grader                                                    |                |
 // | C36   | A lesson's why_clause names a correct_id that is not one of its options                                   | lessons        |
 // | C37   | Two options of a lesson's why_clause have the same text                                                   | lessons        |
+// | C57   | fixed_choice (S9-06; ruling S9-C13 numbers it C57, as C54 to C56 were taken): not exactly one option     | fixed_choice   |
+// |       | names no misconception, or that option is not the key's; two options with the same text, or the same    |                |
+// |       | code block (dialect and query); a duckdb option that does not prepare on the item's schema; an          |                |
+// |       | explanation that names an option by its letter (C21's rule). Per concept (checkFixedChoiceShare): the    | per concept    |
+// |       | right option is the only longest one, its text and code together, in more than 35% of its active         |                |
+// |       | fixed_choice items (E-021, E-108; C22's rule). Its options are never run, so C33 does not apply          |                |
 //
 // Key safety (non-negotiable 2): results name item and concept IDs, dataset names and fixed reasons only. No detail quotes a
 // query, an option, a table cell, an explanation or the key's answer, and none says which option is the key's.
 import { createHash } from 'node:crypto';
 import type { RunnerClient } from '../server/runner/client.ts';
-import type { DisplayOk, RowsOk } from '../server/runner/protocol.ts';
+import type { DisplayOk, GateOk, RowsOk } from '../server/runner/protocol.ts';
 import { maskSql, stripLeading, stripTrailing } from '../server/runner/tables.ts';
 import { gradeChoice, gradeTyped, parseTyped } from '../server/choice/grade.ts';
 import type { SqlChoiceKind, SqlItem } from '../schemas/item.ts';
 import { isSqlChoiceKind } from '../schemas/item.ts';
-import { sqlChoiceShape, validateChoiceKey, validateSqlChoiceItem, type ChoiceKey, type OptionTable, type TypedSpec } from '../schemas/choice.ts';
+import { sqlChoiceShape, validateChoiceKey, validateSqlChoiceItem, type ChoiceKey, type OptionCode, type OptionTable, type TypedSpec } from '../schemas/choice.ts';
 import type { Lesson } from '../schemas/lesson.ts';
 import { cell } from '../web/src/lib/cell.ts';
 import type { CheckResult } from './check-content.ts';
+import { namesOptionLetter, ONLY_LONGEST_MAX_PCT } from './check-choice.ts';
 
-export const SQL_CHOICE_CHECKS = ['C31', 'C32', 'C33', 'C34', 'C35', 'C36', 'C37'] as const;
-const KIND_CHECK: Record<SqlChoiceKind, string> = { predict_rows: 'C31', predict_result: 'C32', choose_query: 'C33', which_table: 'C34', is_unique: 'C35' };
+export const SQL_CHOICE_CHECKS = ['C31', 'C32', 'C33', 'C34', 'C35', 'C36', 'C37', 'C57'] as const;
+const KIND_CHECK: Record<SqlChoiceKind, string> = {
+  predict_rows: 'C31', predict_result: 'C32', choose_query: 'C33', which_table: 'C34', is_unique: 'C35', fixed_choice: 'C57',
+};
 /** Rows a check reads of one result: the result table's own cap (server/app.ts DISPLAY_CAP). */
 const DISPLAY_CAP = 1000;
 const PLAIN_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -65,25 +74,28 @@ const sorts = (sql: string): boolean => /\border\s+by\b/i.test(outermost(maskSql
 /** What a solver sees of an SQL choice item, as the exported view holds it. */
 export interface SqlChoiceSeen {
   kind: string; prompt: string; schema: string; shown_sql: string | null;
-  options: { text: string; table?: OptionTable }[] | null; typed: TypedSpec | null; unique_check: { table: string; column: string } | null;
+  options: { text: string; table?: OptionTable; code?: OptionCode }[] | null; typed: TypedSpec | null; unique_check: { table: string; column: string } | null;
 }
 /**
  * The hash of what a solver sees: the kind, prompt, schema, shown query, typed spec and unique check, and the options as a set
- * (their order is shuffled for the solver and the learner, so it never counts), each its text and table. The same function
- * hashes an item (C14) and an exported view (record-choice-solver), so the two agree exactly.
+ * (their order is shuffled for the solver and the learner, so it never counts), each its text and table, and (S9-06) a fixed_choice
+ * option's code block, dialect and query. An option with no code hashes as it did before sprint 9, so no solver record goes stale. The
+ * same function hashes an item (C14) and an exported view (record-choice-solver), so the two agree exactly.
  */
 export function sqlChoicePromptHashOf(s: SqlChoiceSeen): string {
   const seen = {
     kind: s.kind, prompt: s.prompt, schema: s.schema, shown_sql: s.shown_sql,
     options: s.options === null ? null
-      : s.options.map((o) => JSON.stringify({ text: o.text, table: o.table ? { columns: o.table.columns, rows: o.table.rows } : null })).sort(),
+      : s.options.map((o) => JSON.stringify({ text: o.text, table: o.table ? { columns: o.table.columns, rows: o.table.rows } : null,
+        ...(o.code ? { code: { lang: o.code.lang, sql: o.code.sql } } : {}) })).sort(),
     typed: s.typed && { precision: s.typed.precision, scale: s.typed.scale, decimals: s.typed.decimals, unit_label: s.typed.unit_label },
     unique_check: s.unique_check && { table: s.unique_check.table, column: s.unique_check.column },
   };
   return sha(JSON.stringify(seen)).slice(0, 16);
 }
 export function sqlChoiceSeen(item: SqlItem): SqlChoiceSeen {
-  const options = item.options?.length ? item.options.map((o) => (o.table ? { text: o.text, table: o.table } : { text: o.text })) : null;
+  const options = item.options?.length
+    ? item.options.map((o) => ({ text: o.text, ...(o.table ? { table: o.table } : {}), ...(o.code ? { code: o.code } : {}) })) : null;
   return { kind: item.kind, prompt: item.prompt, schema: item.schema, shown_sql: item.shown_sql ?? null, options, typed: item.typed ?? null,
     unique_check: item.unique_check ?? null };
 }
@@ -234,11 +246,69 @@ const checkIsUnique: KindCheck = async (item, key, runner) => {
   return problems;
 };
 
-const KIND_CHECKS: Record<SqlChoiceKind, KindCheck> = {
-  predict_rows: checkPredictRows, predict_result: checkPredictResult, choose_query: checkChooseQuery, which_table: checkWhichTable, is_unique: checkIsUnique,
+/** S9-06: text as a reader compares it: spacing and letter case aside. */
+const squashed = (s: string): string => s.replace(/\s+/g, ' ').trim().toLowerCase();
+
+/**
+ * C57 for one fixed_choice item (S9-06, ruling S9-C13). Its options are never run: the right option is the one that names no misconception,
+ * which must be the key's; options differ in text and in code block (dialect and query); a duckdb option passes the gate on the item's
+ * schema (prepared, never run); the explanation names no option by its letter (C21's rule), as the options are shuffled.
+ */
+const checkFixedChoice: KindCheck = async (item, key, runner) => {
+  const options = item.options ?? [];
+  const problems: string[] = [];
+  const right = options.filter((o) => o.misconception_id === null);
+  if (right.length !== 1) problems.push(`${plural(right.length, 'option names', 'options name')} no misconception: exactly one option is right, and each other names its mistake`);
+  else if (right[0]!.oid !== key.correct_oid) problems.push('the option that names no misconception is not the key\'s');
+  const texts = options.map((o) => squashed(o.text));
+  if (new Set(texts).size !== texts.length) problems.push('two options show the same text');
+  const codes = options.flatMap((o) => (o.code ? [`${o.code.lang}:${squashed(o.code.sql)}`] : []));
+  if (new Set(codes).size !== codes.length) problems.push('two options show the same code');
+  let unprepared = 0;
+  for (const o of options) {
+    if (o.code?.lang !== 'duckdb') continue;
+    const g = await runner.request<GateOk>({ op: 'gate', schema: item.schema, allowedSchemas: [], sql: o.code.sql });
+    if (!g.ok) unprepared++;
+  }
+  if (unprepared) problems.push(`${plural(unprepared, 'duckdb option does', 'duckdb options do')} not prepare on ${item.schema}`);
+  if (namesOptionLetter(key.explanation)) problems.push('the explanation names an option by its letter, but the options are shuffled');
+  return problems;
 };
 
-/** C01, the item's own kind check (C31 to C35) and C14, in that order. Never throws: a check that cannot run fails with a fixed reason. */
+const KIND_CHECKS: Record<SqlChoiceKind, KindCheck> = {
+  predict_rows: checkPredictRows, predict_result: checkPredictResult, choose_query: checkChooseQuery, which_table: checkWhichTable, is_unique: checkIsUnique,
+  fixed_choice: checkFixedChoice,
+};
+
+/** S9-06: an option as long as the screen shows it, its text and its code block together, spacing aside (C22's measure). */
+const shownLength = (o: { text: string; code?: OptionCode }): number => [...squashed(o.text)].length + (o.code ? [...squashed(o.code.sql)].length : 0);
+
+/**
+ * C57 per concept (S9-06; E-021 and E-108, C22's rule): among a concept's active fixed_choice items, the share whose right option (the
+ * key's) is longer than every other option, its text and code together, is at most ONLY_LONGEST_MAX_PCT. One result per concept that has
+ * one, named by the concept, with counts only: a list of the items would tell which answers are longest. An item whose key names none of
+ * its options does not count (C01 says why).
+ */
+export function checkFixedChoiceShare(items: readonly SqlItem[], keyOf: (id: string) => ChoiceKey | undefined): CheckResult[] {
+  const concepts = new Map<string, { total: number; longest: number }>();
+  for (const item of items) {
+    if (item?.kind !== 'fixed_choice' || item.status !== 'active' || !Array.isArray(item.options)) continue;
+    const key = keyOf(item.id);
+    const right = item.options.find((o) => o.oid === key?.correct_oid);
+    if (!right) continue;
+    const c = concepts.get(item.target_concept_id) ?? { total: 0, longest: 0 };
+    c.total++;
+    if (item.options.every((o) => o.oid === right.oid || shownLength(o) < shownLength(right))) c.longest++;
+    concepts.set(item.target_concept_id, c);
+  }
+  return [...concepts].sort(([a], [b]) => a.localeCompare(b)).map(([id, { total, longest }]) => {
+    const ok = longest * 100 <= ONLY_LONGEST_MAX_PCT * total;
+    return { id, check: 'C57', ok, detail: ok ? ''
+      : `${longest} of ${total} fixed_choice items (${Math.round((longest * 100) / total)}%) have the right option as the only longest one; at most ${ONLY_LONGEST_MAX_PCT}% may` };
+  });
+}
+
+/** C01, the item's own kind check (C31 to C35, or C57 for fixed_choice) and C14, in that order. Never throws: a check that cannot run fails with a fixed reason. */
 export async function checkSqlChoiceItem(item: SqlItem, key: ChoiceKey | undefined, ctx: { runner: RunnerClient }): Promise<CheckResult[]> {
   const id = typeof item?.id === 'string' ? item.id : String(key?.item_id ?? '(unknown item)');
   const out: CheckResult[] = [];
@@ -286,7 +356,7 @@ export function checkWhyClause(lesson: Lesson): CheckResult[] {
   ];
 }
 
-/** The line check:content prints for C31 to C37: passes and totals, zeros included, so the counts show before content exists. */
+/** The line check:content prints for C31 to C37 and C57: passes and totals, zeros included, so the counts show before content exists. */
 export function sqlChoiceTallyLine(results: readonly CheckResult[]): string {
   const parts = SQL_CHOICE_CHECKS.map((c) => {
     const rs = results.filter((r) => r.check === c);

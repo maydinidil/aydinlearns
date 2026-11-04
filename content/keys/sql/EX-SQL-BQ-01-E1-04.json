@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT e.ecommerce.transaction_id AS transaction_id,\n  COALESCE(p.value.int_value, p.value.float_value, p.value.double_value) AS value\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'purchase'\n  AND e.event_date BETWEEN '20251201' AND '20251207'\n  AND p.key = 'value'",
+  "alternatives": [
+    "WITH purchases AS (\n  -- one row per purchase from 1 to 7 December 2025\n  SELECT ecommerce.transaction_id AS transaction_id,\n    list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT transaction_id, COALESCE(v.int_value, v.float_value, v.double_value) AS value\nFROM purchases",
+    "SELECT ecommerce.transaction_id AS transaction_id, ecommerce.purchase_revenue AS value\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251201' AND '20251207'"
+  ],
+  "other_way": {
+    "sql": "WITH purchases AS (\n  -- one row per purchase from 1 to 7 December 2025\n  SELECT ecommerce.transaction_id AS transaction_id,\n    list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT transaction_id, COALESCE(v.int_value, v.float_value, v.double_value) AS value\nFROM purchases",
+    "tradeoff": "Picking the value parameter with list_filter keeps one row per purchase without a join to the list."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-53",
+      "sql": "SELECT e.ecommerce.transaction_id AS transaction_id, p.value.double_value AS value FROM events AS e, unnest(e.event_params) AS t(p) WHERE e.event_name = 'purchase' AND e.event_date BETWEEN '20251201' AND '20251207' AND p.key = 'value'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-09",
+      "sql": "SELECT e.ecommerce.transaction_id AS transaction_id, COALESCE(p.value.int_value, p.value.float_value, p.value.double_value) AS value FROM events AS e, unnest(e.event_params) AS p WHERE e.event_name = 'purchase' AND e.event_date BETWEEN '20251201' AND '20251207' AND p.key = 'value'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-02",
+      "sql": "SELECT e.ecommerce.transaction_id AS transaction_id, p.value AS value FROM events AS e, unnest(e.event_params) AS t(p) WHERE e.event_name = 'purchase' AND e.event_date BETWEEN '20251201' AND '20251207' AND p.key = 'value'"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-55",
+      "sql": "SELECT e.ecommerce.transaction_id AS transaction_id, COALESCE(p.value.int_value, p.value.float_value, p.value.double_value) AS value FROM events AS e, unnest(e.event_params) AS t(p) WHERE e.event_name = 'purchase' AND e.event_date BETWEEN '2025-12-01' AND '2025-12-07' AND p.key = 'value'"
+    }
+  ],
+  "hint3_partial": "SELECT e.ecommerce.transaction_id AS transaction_id,\n  COALESCE(p.value.int_value, p.value.float_value, p.value.double_value) AS value\nFROM events AS e, unnest(___) AS t(p)\nWHERE e.event_name = 'purchase'\n  AND e.event_date BETWEEN '20251201' AND '20251207'\n  AND p.key = ___",
+  "solver": {
+    "prompt_hash": "e87d3a084526b5b3",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT ecommerce.transaction_id AS transaction_id, COALESCE((list_filter(event_params, lambda p: p.key = 'value')[1].value).int_value, (list_filter(event_params, lambda p: p.key = 'value')[1].value).float_value, (list_filter(event_params, lambda p: p.key = 'value')[1].value).double_value) AS value\r\nFROM events\r\nWHERE event_name = 'purchase' AND event_date BETWEEN '20251201' AND '20251207'\r\n",
+    "at": "2026-11-03T19:01:24.556Z"
+  }
+}

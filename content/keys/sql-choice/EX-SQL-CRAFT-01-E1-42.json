@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "o049d258",
+  "explanation": "Only one version is in force on a day: the one whose range holds the order day, with valid_to included and a missing valid_to read as open. Joining on product_id alone matches every version of the product, so the count goes up. Comparing with valid_to directly drops the current versions, whose valid_to is missing, and a strict less-than drops the lines sold on a version's last day.",
+  "solver": {
+    "prompt_hash": "df07a6d4d14b2ca1",
+    "grader_version": "choice.3",
+    "chosen": "o049d258",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.579Z"
+  }
+}

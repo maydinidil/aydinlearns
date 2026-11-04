@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-41",
+  "version": 3,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "predict_result",
+    "duplicate_key",
+    "ga_session_id"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-SUBQ-01",
+    "SQL-STR-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-predict-key",
+  "template_params": {
+    "day": "20251104"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "On the Dublin day 4 November 2025, 3,161 session_start events carry both a user_pseudo_id and a ga_session_id, one event per session. Of those sessions, 2,988 started in a second that no other session started in, and the other 173 started in 84 shared seconds, with two or three sessions from different visitors in each. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "SELECT COUNT(DISTINCT ga_session_id) AS id_values,\n  COUNT(DISTINCT user_pseudo_id || '-' || ga_session_id) AS sessions\nFROM (\n  SELECT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date = '20251104'\n    AND user_pseudo_id IS NOT NULL\n) AS starts",
+  "options": [
+    {
+      "oid": "o42bbd65",
+      "text": "3,161 and 3,161",
+      "misconception_id": "ERR-LOG-52",
+      "table": {
+        "columns": [
+          "id_values",
+          "sessions"
+        ],
+        "rows": [
+          [
+            3161,
+            3161
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o073cf38",
+      "text": "3,072 and 3,072",
+      "misconception_id": "ERR-LOG-52",
+      "table": {
+        "columns": [
+          "id_values",
+          "sessions"
+        ],
+        "rows": [
+          [
+            3072,
+            3072
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oabbb88d",
+      "text": "3,072 and 3,161",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "id_values",
+          "sessions"
+        ],
+        "rows": [
+          [
+            3072,
+            3161
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o82852e4",
+      "text": "2,988 and 3,161",
+      "misconception_id": "MIS-SQL-CRAFT-01-04",
+      "table": {
+        "columns": [
+          "id_values",
+          "sessions"
+        ],
+        "rows": [
+          [
+            2988,
+            3161
+          ]
+        ]
+      }
+    }
+  ]
+}

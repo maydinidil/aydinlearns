@@ -1,0 +1,150 @@
+{
+  "id": "EX-SQL-CRAFT-02-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "aggregate_first",
+    "orders",
+    "order_lines"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-big-orders",
+  "template_params": {
+    "month": "2025-03",
+    "min_units": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Voltmarkt's store managers want to know about larger orders. For each store, how many orders placed in March 2025 (the UTC days of order_ts) held 2 or more units in all, and what was those orders' revenue (quantity times unit_price_eur minus line_discount_eur, over all their lines)? Return exactly three columns, in this order: store_code, big_orders and revenue. Return one row for each store with such orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "big_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "big_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep only the orders that hold 2 or more units, after their lines are added up.",
+    "The rule is about the whole order, so test the order's total units in a HAVING, not the quantity of one line."
+  ],
+  "subgoals": [
+    {
+      "from": 142,
+      "to": 220,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 223,
+      "to": 239,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 242,
+      "to": 386,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 389,
+      "to": 406,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 409,
+      "to": 434,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 437,
+      "to": 507,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 508,
+      "to": 609,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 610,
+      "to": 631,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The units are added up per order before the test, so an order of two single-unit lines counts as large, and the join then adds no rows."
+}

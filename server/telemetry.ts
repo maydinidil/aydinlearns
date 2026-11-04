@@ -34,8 +34,8 @@ function reported<T extends { export(items: never, done: Done): void }>(exporter
     const ok = result.code === success;
     if (ok !== accepted) {
       accepted = ok;
-      console.log(ok ? `aydinlearns: telemetry: ${signal} reach the endpoint.`
-        : `aydinlearns: telemetry: ${signal} were not accepted (${result.error?.message ?? 'no reason given'}). Check DASH0_OTLP_ENDPOINT and DASH0_AUTH_TOKEN in .env.`);
+      console.log(ok ? `grondig: telemetry: ${signal} reach the endpoint.`
+        : `grondig: telemetry: ${signal} were not accepted (${result.error?.message ?? 'no reason given'}). Check DASH0_OTLP_ENDPOINT and DASH0_AUTH_TOKEN in .env.`);
     }
     done(result);
   });
@@ -65,7 +65,7 @@ async function start(c: TelemetryConfig): Promise<void> {
   });
   sdk.start();
   stop = () => sdk.shutdown().catch(() => {});
-  console.log(`aydinlearns: telemetry on: traces, metrics and logs go to ${host}.`);
+  console.log(`grondig: telemetry on: traces, metrics and logs go to ${host}.`);
 }
 
 const config = telemetryConfig(process.env);
@@ -74,4 +74,4 @@ const config = telemetryConfig(process.env);
 delete process.env.DASH0_OTLP_ENDPOINT;
 delete process.env.DASH0_AUTH_TOKEN;
 // Telemetry never stops the app: a bad endpoint prints why, and the app runs without it.
-if (config) await start(config).catch((e: unknown) => console.log(`aydinlearns: telemetry off: ${e instanceof Error ? e.message : String(e)}`));
+if (config) await start(config).catch((e: unknown) => console.log(`grondig: telemetry off: ${e instanceof Error ? e.message : String(e)}`));

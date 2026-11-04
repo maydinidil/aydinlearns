@@ -568,6 +568,36 @@ test('GET /api/progress reads only, agrees with GET /api/goals/progress on every
   for (const k of ['iso_week', 'week', 'starts', 'effective_date', 'today', 'from', 'to']) assert.doesNotMatch(k, DURATION_KEY, k);
 });
 
+test('S9-11 Progress: G-SQL-LEVEL-7 lists its three criteria, level 7 with its gap, then the screen and the take-home mock, each mock as G-SQL-LEVEL-5 shows its screen mock', () => {
+  const byId = (id: string): Goal => REAL_GOALS.find((g) => g.id === id)!;
+  const level7 = byId('G-SQL-LEVEL-7');
+  const level5 = byId('G-SQL-LEVEL-5');
+  const L7 = ['SQL-BQ-01', 'SQL-CRAFT-01', 'SQL-CRAFT-02', 'SQL-CRAFT-03'];
+  const titles: Record<string, string> = { 'SQL-BQ-01': 'BigQuery dialect and GA4 export data', 'SQL-CRAFT-01': 'Readable queries and sanity checks' };
+  const view = (over: Partial<GoalView> = {}): GoalView => ({
+    ...fakeView({ [A]: 'practised', [B]: 'practised', [C]: 'practised', 'SQL-BQ-01': 'practised', 'SQL-CRAFT-01': 'learning' }, over),
+    conceptsOf: (section, max) => (section === 'sql' ? [...SQL_CONCEPTS.filter((c) => c.level <= max).map((c) => c.id), ...(max >= 7 ? L7 : [])] : []),
+  });
+  const title = (id: string): string => titles[id] ?? titleOf(id);
+  const [g7, g5] = progressGoals([level7, level5], view({ mocksAvailable: new Set(['screen', 'take_home']) }), {}, TODAY, title);
+  assert.deepEqual(g7!.criteria.map((c) => c.label), ['SQL level 7 at practised', 'Screen mock passed', 'Take-home mock passed']);
+  assert.deepEqual(g7!.criteria[0], { label: 'SQL level 7 at practised', met: false, available: true, done: 4, total: 7, gap: [
+    { concept_id: 'SQL-CRAFT-01', title: 'Readable queries and sanity checks', state: 'learning' },
+    { concept_id: 'SQL-CRAFT-02', title: 'SQL-CRAFT-02', state: 'new' },
+    { concept_id: 'SQL-CRAFT-03', title: 'SQL-CRAFT-03', state: 'new' }] });
+  assert.deepEqual(g7!.criteria[1], g5!.criteria[1], 'the screen mock reads as on G-SQL-LEVEL-5');
+  assert.deepEqual(g7!.criteria[2], { label: 'Take-home mock passed', met: false, available: true, done: null, total: null, gap: [] });
+  assert.deepEqual([g7!.met, g7!.status], [false, 'open']);
+  // Both mocks passed: each names its date, as the screen mock does on G-SQL-LEVEL-5; level 7 still short, so the goal stays open.
+  const passed = progressGoals([level7, level5], view({ mocksPassed: new Map([['screen', TODAY], ['take_home', TODAY]]) }), {}, TODAY, title);
+  assert.deepEqual(passed[0]!.criteria.slice(1).map((c) => [c.label, c.met, c.gap]), [[`Screen mock passed on ${TODAY}`, true, []], [`Take-home mock passed on ${TODAY}`, true, []]]);
+  assert.deepEqual(passed[0]!.criteria[1], passed[1]!.criteria[1], 'the passed screen mock reads as on G-SQL-LEVEL-5');
+  assert.equal(passed[0]!.met, false);
+  // With no mock built yet, both mock criteria are "not yet available", as on G-SQL-LEVEL-5.
+  const none = progressGoals([level7], view(), {}, TODAY, title)[0]!;
+  assert.deepEqual(none.criteria.slice(1).map((c) => [c.available, c.met]), [[false, false], [false, false]]);
+});
+
 test('S8-18 Progress: the SaaS criterion reads "SaaS cases solved" with 4 of 5, the opener not counted (S8-C27)', () => {
   const g = goalOf('G-SQL-LEVEL-6', '2026-12-23', [{ kind: 'case_solved', world: 'SAAS', count: 5 }]);
   const mk = (n: number, kind: 'inbox' | 'opener') => ({ case_id: `C-${n}`, level: 6, exported: false, real: false, world: 'SAAS', kind });

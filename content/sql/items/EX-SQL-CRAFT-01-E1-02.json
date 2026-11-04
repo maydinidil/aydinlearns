@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "revenue",
+    "sales"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-revenue-total",
+  "template_params": {
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Voltmarkt's finance team checks that the sales view adds up to the raw tables. For March 2025, compare the revenue in sales (order_date is the UTC day of order_ts) with the revenue worked out from order_lines and orders: quantity times unit_price_eur minus line_discount_eur, for every line of an order whose order_ts, a UTC time, falls in March. Return three columns, in this order: sales_revenue, lines_revenue and difference (sales_revenue minus lines_revenue). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "sales_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lines_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row for the whole check"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "sales_revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "lines_revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the revenue on each side over the same days.",
+    "Work the raw side out line by line from the quantity, the unit price and the discount, and keep every order of March, the last day included."
+  ],
+  "subgoals": [
+    {
+      "from": 109,
+      "to": 153,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 156,
+      "to": 166,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 169,
+      "to": 233,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 353,
+      "to": 433,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 436,
+      "to": 497,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 500,
+      "to": 604,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 607,
+      "to": 695,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 696,
+      "to": 737,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Both sides cover the same UTC days of March and the same revenue rule, so a difference of 0 shows that sales adds up."
+}

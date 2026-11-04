@@ -36,7 +36,7 @@ test('levels 1-2 keep their 12 concepts; the graph has no cycle', () => {
 });
 // Sprint 6 Task K3: the one test that asserts how many error types there are. The count is read from content/sql/errors.json, never
 // typed, so a new ID changes no test (sprint 6 Task B2 added ERR-LOG-30 to ERR-LOG-39; sprint 7 Task A2, S7-24, ERR-LOG-40 to -43;
-// sprint 8 Task A1, S8-08 and S8-C06, ERR-LOG-44 to -51).
+// sprint 8 Task A1, S8-08 and S8-C06, ERR-LOG-44 to -51; sprint 9 Task A1, S9-04, ERR-LOG-52 to -55 and ERR-SYN-09).
 test('the extract builds as many error types as errors.json holds, each tied to a known concept', async () => {
   const j02 = extractJsonBlock(await readFile('knowledge/02_mistakes_and_learning.md', 'utf8')) as any;
   const map = JSON.parse(await readFile('content/sql/error-concepts.json', 'utf8'));
@@ -44,7 +44,9 @@ test('the extract builds as many error types as errors.json holds, each tied to 
   const cat = buildErrors(j02, map);
   assert.ok(written.errors.length > 0, 'errors.json holds error types');
   assert.equal(cat.errors.length, written.errors.length);
-  assert.deepEqual(cat.errors.slice(-22).map((e) => e.id), Array.from({ length: 22 }, (_, i) => `ERR-LOG-${30 + i}`), 'sprint 6\'s ten new IDs, then sprint 7\'s four and sprint 8\'s eight, come last, so errors.json only grows');
+  // Sprint 9 Task A1 (S9-04): ERR-LOG-52 to -55, then ERR-SYN-09, after sprint 8's.
+  assert.deepEqual(cat.errors.slice(-27).map((e) => e.id), [...Array.from({ length: 26 }, (_, i) => `ERR-LOG-${30 + i}`), 'ERR-SYN-09'],
+    'sprint 6\'s ten new IDs, then sprint 7\'s four, sprint 8\'s eight and sprint 9\'s five, come last, so errors.json only grows');
   for (const e of cat.errors) assert.ok(byId.has(e.concept_id), `${e.id} -> ${e.concept_id}`);
 });
 test('R38: ERR-LOG-22 (LIKE pattern) and ERR-LOG-23 (BETWEEN range) belong to SQL-FILTER-02, with ERRATA entries and refutation feedback', async () => {

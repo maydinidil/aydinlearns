@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-BQ-01-E2-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "unnest",
+    "fan_out",
+    "predict"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-predict-unnest-fan-out",
+  "template_params": {
+    "visitor": "V0196284",
+    "day": "20251201"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Visitor V0196284 had one session on 1 December 2025, by event_date: a session_start with four parameters and two page_view events with five parameters each. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "SELECT e.event_name, COUNT(*) AS events\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.user_pseudo_id = 'V0196284'\n  AND e.event_date = '20251201'\nGROUP BY e.event_name",
+  "options": [
+    {
+      "oid": "oc079c67",
+      "text": "1 session_start and 2 page_views",
+      "misconception_id": "ERR-LOG-01",
+      "table": {
+        "columns": [
+          "event_name",
+          "events"
+        ],
+        "rows": [
+          [
+            "session_start",
+            1
+          ],
+          [
+            "page_view",
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "od356b7a",
+      "text": "4 for session_start and 5 for page_view",
+      "misconception_id": "MIS-SQL-BQ-01-07",
+      "table": {
+        "columns": [
+          "event_name",
+          "events"
+        ],
+        "rows": [
+          [
+            "session_start",
+            4
+          ],
+          [
+            "page_view",
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ob07560f",
+      "text": "4 for session_start and 10 for page_view",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "event_name",
+          "events"
+        ],
+        "rows": [
+          [
+            "session_start",
+            4
+          ],
+          [
+            "page_view",
+            10
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "WITH starts AS (\n  -- one row per session_start event from 1 to 7 December 2025\n  SELECT traffic_source.medium AS medium, user_pseudo_id,\n    [p.value.int_value FOR p IN event_params IF p.key = 'ga_session_id'][1] AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT medium, COUNT(DISTINCT user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR)) AS sessions\nFROM starts\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY medium",
+  "alternatives": [
+    "SELECT e.traffic_source.medium AS medium,\n  COUNT(DISTINCT e.user_pseudo_id || '-' || CAST(p.value.int_value AS VARCHAR)) AS sessions\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'session_start'\n  AND e.event_date BETWEEN '20251201' AND '20251207'\n  AND p.key = 'ga_session_id'\n  AND e.user_pseudo_id IS NOT NULL\nGROUP BY e.traffic_source.medium",
+    "SELECT traffic_source.medium AS medium, COUNT(*) AS sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251201' AND '20251207'\n  AND user_pseudo_id IS NOT NULL\n  AND list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value IS NOT NULL\nGROUP BY traffic_source.medium"
+  ],
+  "other_way": {
+    "sql": "SELECT e.traffic_source.medium AS medium,\n  COUNT(DISTINCT e.user_pseudo_id || '-' || CAST(p.value.int_value AS VARCHAR)) AS sessions\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'session_start'\n  AND e.event_date BETWEEN '20251201' AND '20251207'\n  AND p.key = 'ga_session_id'\n  AND e.user_pseudo_id IS NOT NULL\nGROUP BY e.traffic_source.medium",
+    "tradeoff": "A lateral unnest filtered on ga_session_id gives the same counts, but it makes one row per parameter before the filter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-52",
+      "sql": "WITH starts AS (SELECT traffic_source.medium AS medium, user_pseudo_id, [p.value.int_value FOR p IN event_params IF p.key = 'ga_session_id'][1] AS ga_session_id FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251201' AND '20251207') SELECT medium, COUNT(DISTINCT ga_session_id) AS sessions FROM starts WHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL GROUP BY medium"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT traffic_source.medium AS medium, COUNT(*) AS sessions FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251201' AND '20251207' GROUP BY traffic_source.medium"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-02",
+      "sql": "WITH starts AS (SELECT traffic_source, user_pseudo_id, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251201' AND '20251207') SELECT traffic_source AS medium, COUNT(DISTINCT user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR)) AS sessions FROM starts WHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL GROUP BY traffic_source"
+    }
+  ],
+  "hint3_partial": "WITH starts AS (\n  -- one row per session_start event from 1 to 7 December 2025\n  SELECT traffic_source.medium AS medium, user_pseudo_id,\n    [p.value.___ FOR p IN event_params IF p.key = ___][1] AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT medium, COUNT(DISTINCT user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR)) AS sessions\nFROM starts\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY medium",
+  "solver": {
+    "prompt_hash": "f1ca93163ea5a796",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH ss AS (\r\n  SELECT DISTINCT event_date, user_pseudo_id, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS sid, list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged, list_filter(event_params, lambda p: p.key = 'ga_session_number')[1].value.int_value AS snum,\r\n    traffic_source.source AS source, traffic_source.medium AS medium, device.category AS device_category\r\n  FROM events\r\n  WHERE event_name = 'session_start' AND event_date BETWEEN '20251201' AND '20251207'\r\n    AND user_pseudo_id IS NOT NULL AND list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value IS NOT NULL\r\n)\r\nSELECT medium, COUNT(*) AS sessions FROM ss GROUP BY medium\r\n",
+    "at": "2026-11-03T19:01:24.948Z"
+  }
+}

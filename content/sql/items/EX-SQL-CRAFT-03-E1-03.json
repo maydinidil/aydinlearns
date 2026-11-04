@@ -1,0 +1,200 @@
+{
+  "id": "EX-SQL-CRAFT-03-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "price_change",
+    "average",
+    "weekly_units"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-price-cut-avg-units",
+  "template_params": {
+    "table": "weekly_units",
+    "month": "2025-02",
+    "change": "cut"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Did February's price cuts lift volume? For each price cut that took effect from 1 to 28 February 2025, give the average weekly units before and after it. A price cut is a version in price_history whose list_price_eur is lower than that of the product's version before it, dated by its valid_from. Its change week is the week (Monday to Sunday) that holds valid_from. The before window is the 8 weeks just before the change week and the after window the 8 weeks just after it; the change week itself is in neither. Units come from weekly_units, which has a row for every product and week (week_start is the Monday), with 0 for a week with no sale. A window's average weekly units is its units divided by its 8 weeks, a week with no sale counting as 0. A product launched during a window keeps its change, with 0 units in its weeks before the launch. Return four columns, in this order: product_id, valid_from, avg_units_before and avg_units_after, not rounded. Return one row for each price cut. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "avg_units_before",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_units_after",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per price cut from 1 to 28 February 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_units_before",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "avg_units_after",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two averages: each window's units over its number of weeks.",
+    "Every window has 8 weeks, quiet ones included, so the base of each average is the same for every price cut."
+  ],
+  "subgoals": [
+    {
+      "from": 110,
+      "to": 156,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 161,
+      "to": 245,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 248,
+      "to": 266,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 365,
+      "to": 455,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 458,
+      "to": 471,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 474,
+      "to": 507,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 512,
+      "to": 574,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 577,
+      "to": 611,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 614,
+      "to": 708,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 711,
+      "to": 803,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 804,
+      "to": 815,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 816,
+      "to": 866,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 869,
+      "to": 961,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 962,
+      "to": 997,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 612,
+    "stage2": 612
+  },
+  "faded_shape": "WITH versions AS (\n  -- one row per product and price version, with the list price of the version before it\n  SELECT product_id, valid_from, list_price_eur,\n    LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price\n  FROM price_history\n), cuts AS (\n  -- one row per price cut from 1 to 28 February 2025, with the Monday of its week\n  SELECT product_id, valid_from, CAST(date_trunc('week', valid_from) AS DATE) AS change_week\n  FROM versions\n  WHERE list_price_eur < prev_price\n    AND valid_from BETWEEN DATE '2025-02-01' AND DATE '2025-02-28'\n)\nSELECT c.product_id, c.valid_from,\n",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Dividing by all 8 weeks keeps the base fixed, so a product that sold in few weeks is not made to look busier than it was.",
+  "faded_suffix": "\nFROM cuts c\nJOIN weekly_units w ON w.product_id = c.product_id\n  AND w.week_start BETWEEN c.change_week - INTERVAL 56 DAY AND c.change_week + INTERVAL 56 DAY\nGROUP BY c.product_id, c.valid_from"
+}

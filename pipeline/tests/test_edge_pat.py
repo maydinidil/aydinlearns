@@ -225,9 +225,11 @@ class EdgePat(unittest.TestCase):
         moved = sorted(name for name, entry in BEFORE_SPRINT8B.items() if self.manifest["tables"].get(name) != entry)
         self.assertEqual(moved, [], "objects of Part 1 whose rows or hash changed")
         companies = tuple(build_course_db.MANIFEST_PREFIXES)
-        # Task E1 (S8-C39): ledgerloop_edge_cases, the six LedgerLoop inbox cases' edge schema, is held by pipeline/tests/test_edge_cases.py.
+        # Task E1 (S8-C39): ledgerloop_edge_cases, the six LedgerLoop inbox cases' edge schema, is held by pipeline/tests/test_edge_cases.py;
+        # sprint 9's mailvora_ga4 and mailvora_edge_ga4 (Task L1, S9-02, S9-03) by pipeline/tests/test_mailvora_ga4.py.
+        held_elsewhere = ("ledgerloop_edge_cases", "mailvora_ga4", "mailvora_edge_ga4")
         added = sorted(n for n in set(self.manifest["tables"]) - set(BEFORE_SPRINT8B)
-                       if n.split(".")[0].startswith(companies) and n.split(".")[0] != "ledgerloop_edge_cases")
+                       if n.split(".")[0].startswith(companies) and n.split(".")[0] not in held_elsewhere)
         self.assertEqual(added, sorted(PART2_ADDS), "voltmarkt's chain-wide stock and LedgerLoop's mrr_monthly, each with its edge copy")
         for name in ("voltmarkt.inventory_chain_daily", f"{VM}.inventory_chain_daily"):
             self.assertEqual(len(self.manifest["tables"][name]["sha256"]), 64, name)

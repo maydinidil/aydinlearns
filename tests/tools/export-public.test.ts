@@ -11,7 +11,7 @@ import { join, resolve } from 'node:path';
 const SCRIPT = process.env.EXPORT_PUBLIC_SCRIPT ?? resolve(import.meta.dirname, '../../tools/export-public.sh');
 const have = (cmd: string): boolean => spawnSync(cmd, ['--version'], { encoding: 'utf8' }).status === 0;
 const available = have('bash') && have('git');
-const PUBLIC_URL = 'https://github.com/maydinidil/aydinlearns.git';
+const PUBLIC_URL = 'https://github.com/maydinidil/grondig.git';
 
 let tmp = '';
 let env: NodeJS.ProcessEnv = {};
@@ -108,9 +108,9 @@ describe('tools/export-public.sh guards (F18, F19)', { skip: available ? false :
 
   test('F19: the https, scp-like and ssh forms of the origin are accepted, with and without .git', () => {
     for (const origin of [
-      'https://github.com/maydinidil/aydinlearns.git', 'https://github.com/maydinidil/aydinlearns',
-      'git@github.com:maydinidil/aydinlearns.git', 'git@github.com:maydinidil/aydinlearns',
-      'ssh://git@github.com/maydinidil/aydinlearns.git', 'ssh://git@github.com/maydinidil/aydinlearns',
+      'https://github.com/maydinidil/grondig.git', 'https://github.com/maydinidil/grondig',
+      'git@github.com:maydinidil/grondig.git', 'git@github.com:maydinidil/grondig',
+      'ssh://git@github.com/maydinidil/grondig.git', 'ssh://git@github.com/maydinidil/grondig',
     ]) {
       const r = run(makeMono().worktree(), publicClone(origin));
       assert.equal(r.status, 0, `${origin}: ${r.stderr}`);
@@ -119,17 +119,17 @@ describe('tools/export-public.sh guards (F18, F19)', { skip: available ? false :
 
   test('F19: look-alike origins are refused before anything is replaced', () => {
     for (const origin of [
-      'https://notgithub.com/maydinidil/aydinlearns.git',
-      'https://github.com.evil.example/maydinidil/aydinlearns',
-      'https://github.com/otherowner/aydinlearns.git',
-      'https://github.com/maydinidil/aydinlearns-fork.git',
-      'https://github.com/maydinidil/aydinlearns.git/extra',
-      '/srv/github.com/maydinidil/aydinlearns',
+      'https://notgithub.com/maydinidil/grondig.git',
+      'https://github.com.evil.example/maydinidil/grondig',
+      'https://github.com/otherowner/grondig.git',
+      'https://github.com/maydinidil/grondig-fork.git',
+      'https://github.com/maydinidil/grondig.git/extra',
+      '/srv/github.com/maydinidil/grondig',
     ]) {
       const clone = publicClone(origin);
       const r = run(makeMono().worktree(), clone);
       assert.equal(r.status, 2, `${origin} was not refused: ${r.stdout}${r.stderr}`);
-      assert.match(r.stderr, /origin is not maydinidil\/aydinlearns/, origin);
+      assert.match(r.stderr, /origin is not maydinidil\/grondig/, origin);
       assert.equal(git(clone, 'log', '--oneline').split('\n').length, 1, `${origin}: the clone was committed to`);
     }
   });
@@ -137,6 +137,6 @@ describe('tools/export-public.sh guards (F18, F19)', { skip: available ? false :
   test('a clone with no origin is refused', () => {
     const r = run(makeMono().worktree(), publicClone(null));
     assert.equal(r.status, 2);
-    assert.match(r.stderr, /origin is not maydinidil\/aydinlearns: none/);
+    assert.match(r.stderr, /origin is not maydinidil\/grondig: none/);
   });
 });

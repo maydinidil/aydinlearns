@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "predict_result",
+    "event_date"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-predict-dashed",
+  "template_params": {
+    "from": "2025-12-01"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's export holds 825,950 events on the Dublin days 1 October to 31 December 2025, and 232,670 of them fall in December. An analyst wants to read only December, to keep the query small. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "SELECT COUNT(*) AS events\nFROM events\nWHERE event_date >= '2025-12-01'",
+  "options": [
+    {
+      "oid": "od0b5cae",
+      "text": "232,670",
+      "misconception_id": "ERR-LOG-55",
+      "table": {
+        "columns": [
+          "events"
+        ],
+        "rows": [
+          [
+            232670
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oad137a3",
+      "text": "825,950",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "events"
+        ],
+        "rows": [
+          [
+            825950
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o4fb7458",
+      "text": "0",
+      "misconception_id": "ERR-LOG-55",
+      "table": {
+        "columns": [
+          "events"
+        ],
+        "rows": [
+          [
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oda93595",
+      "text": "593,280",
+      "misconception_id": "ERR-LOG-55",
+      "table": {
+        "columns": [
+          "events"
+        ],
+        "rows": [
+          [
+            593280
+          ]
+        ]
+      }
+    }
+  ]
+}

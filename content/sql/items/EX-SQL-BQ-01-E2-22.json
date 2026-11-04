@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-BQ-01-E2-22",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "first_visit",
+    "new_users",
+    "consent",
+    "fix"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-fix-count-visitors",
+  "template_params": {
+    "event_name": "first_visit",
+    "from": "20251026",
+    "to": "20251101"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many new visitors were there on each day from 26 October to 1 November 2025, by event_date? A new visitor is a user_pseudo_id with a first_visit event that day; leave out first_visit events whose user_pseudo_id is missing (visitors who denied consent). Return event_date, as the text the export stores, and new_users. Return one row for each day with a first_visit event; a day with none has no row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text"
+      },
+      {
+        "name": "new_users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "new_users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_date"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the count counts: rows, or visitors.",
+    "A first_visit with a missing user_pseudo_id is a row but not a visitor, so count the visitor IDs instead of rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 62,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 63,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 158,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 159,
+      "to": 178,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT event_date, COUNT(*) AS new_users\nFROM events\nWHERE event_name = 'first_visit'\n  AND event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_date",
+  "time_target_ms": 120000,
+  "why_this_works": "COUNT(DISTINCT user_pseudo_id) counts visitors and skips the missing IDs, which COUNT(*) would count as rows.",
+  "starter_error_id": "ERR-LOG-04"
+}

@@ -8,10 +8,20 @@ not read `logs/` or `tutor-eval/`, and must not download or delete outside the r
 This is the only list of open owner tasks (D119, sprint 7d). The roadmap's "Owner tasks by timing"
 keeps the history.
 
-## For sprint 8
+## For sprint 9
 
-Nothing left. Both downloads are done (2026-10-27). Maven Toy Store's licence line was read from its page by Claude at
-Aydin's request on 2026-10-29: "License: Public Domain", with "Source: Maven Analytics" (S8-16, ERRATA E-213).
+| Task | Steps | What it closes |
+|---|---|---|
+| A sleeping mole (optional) | Before the mascot task (M1), tell Claude yes or no. Yes costs one PixelLab generation on your account. | Whether the mole gets a fourth pose for the session end (S9-21) |
+| Each PR | Give the go for the PR, read the Codex fix plan, give the go for the merge. | Part 1 (0.9.0) and Part 2 (0.9.1) |
+| The rename and the release | After Part 2's merge: give the go for renaming the GitHub repo to `grondig`, and give the first 16 characters of each API key for the release scan (never a whole key). | The public `v0.9.1` (S9-19) |
+| The desktop shortcut | After the release: point any desktop shortcut at `Start Grondig.bat`. The old `Start aydinlearns.bat` starts the new one for one release only. | S9-17 |
+
+## Later (moved 2026-10-31, D128)
+
+| Task | Steps | What it closes |
+|---|---|---|
+| The Kaggle rules for KKBox | Only when KKBox is planned: sign in to Kaggle and check whether a new account can still accept the rules of the closed KKBox churn competition. Tell Claude yes or no. | Whether KKBox can be the SaaS capstone (Olist is the fallback; roadmap "Later") |
 
 ## Before studying more
 
@@ -43,4 +53,4 @@ Aydin's request on 2026-10-29: "License: Public Domain", with "Source: Maven Ana
 
 | Task | Steps | What it closes |
 |---|---|---|
-| The launcher on a clean machine | On a Windows machine (or a new Windows user) with Node 24 and Python 3 but no npm or pip caches: clone `maydinidil/aydinlearns`, double-click `Start aydinlearns.bat`, and note how long it takes until the browser opens on Today. | The first-run setup with no caches and the browser-opening line (build record; sprint 5a record) |
+| The launcher on a clean machine | On a Windows machine (or a new Windows user) with Node 24 and Python 3 but no npm or pip caches: clone `maydinidil/grondig`, double-click `Start Grondig.bat`, and note how long it takes until the browser opens on Today. | The first-run setup with no caches and the browser-opening line (build record; sprint 5a record) |

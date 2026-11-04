@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E2-01",
+  "item_version": 2,
+  "reference_sql": "WITH starts AS (\n  -- one row per session_start event with both IDs, 8 to 14 November 2025 (Dublin days): only the columns the counts need\n  SELECT event_date, list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251108' AND '20251114'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT event_date AS day, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions\nFROM starts\nGROUP BY event_date",
+  "alternatives": [
+    "SELECT event_date AS day, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value = '1') AS engaged_sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251108' AND '20251114'\n  AND user_pseudo_id IS NOT NULL\nGROUP BY event_date",
+    "WITH starts AS (\n  -- one row per session_start event with both IDs, 8 to 14 November 2025 (Dublin days): only the columns the counts need\n  SELECT event_date, list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251108' AND '20251114'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT event_date AS day, COUNT(*) AS sessions,\n  SUM(CASE WHEN engaged = '1' THEN 1 ELSE 0 END) AS engaged_sessions\nFROM starts\nGROUP BY event_date"
+  ],
+  "other_way": {
+    "sql": "SELECT event_date AS day, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value = '1') AS engaged_sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251108' AND '20251114'\n  AND user_pseudo_id IS NOT NULL\nGROUP BY event_date",
+    "tradeoff": "One query reads the flag inside the FILTER, which is shorter, while the CTE shows the narrowed columns as a step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH per_day AS (\n  SELECT event_date AS day, COUNT(*) AS sessions,\n    COUNT(*) FILTER (WHERE list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value = '1') AS engaged_sessions,\n    COUNT(DISTINCT user_pseudo_id) AS visitors, MIN(event_timestamp) AS first_start\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251108' AND '20251114'\n    AND user_pseudo_id IS NOT NULL\n  GROUP BY event_date\n)\nSELECT *\nFROM per_day"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-52",
+      "sql": "WITH starts AS (\n  -- one row per session_start event with both IDs, 8 to 14 November 2025 (Dublin days): only the columns the counts need\n  SELECT event_date, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id, list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251108' AND '20251114'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT event_date AS day, COUNT(DISTINCT ga_session_id) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions\nFROM starts\nGROUP BY event_date"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH starts AS (\n  -- one row per session_start event with both IDs, 8 to 14 November 2025 (Dublin days): only the columns the counts need\n  SELECT event_date, list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '2025-11-08' AND '2025-11-14'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT event_date AS day, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions\nFROM starts\nGROUP BY event_date"
+    }
+  ],
+  "hint3_partial": "WITH starts AS (\n  -- one row per session_start event with both IDs, 8 to 14 November 2025 (Dublin days): only the columns the counts need\n  SELECT event_date, list_filter(event_params, lambda p: p.key = ___)[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251108' AND '20251114'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT event_date AS day, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions\nFROM starts\nGROUP BY event_date",
+  "solver": {
+    "prompt_hash": "0599c58775dbeb47",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH starts AS (\n  SELECT event_date AS day, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id,\n    list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251108' AND '20251114'\n    AND user_pseudo_id IS NOT NULL\n), per AS (\n  SELECT day, user_pseudo_id, ga_session_id, MAX(CASE WHEN engaged = '1' THEN 1 ELSE 0 END) AS eng\n  FROM starts\n  WHERE ga_session_id IS NOT NULL\n  GROUP BY day, user_pseudo_id, ga_session_id\n)\nSELECT day, COUNT(*) AS sessions, SUM(eng) AS engaged_sessions\nFROM per\nGROUP BY day\n",
+    "at": "2026-11-03T21:23:46.754Z"
+  }
+}

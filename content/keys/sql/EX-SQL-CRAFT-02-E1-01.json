@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-01",
+  "item_version": 1,
+  "reference_sql": "WITH starts AS (\n  -- one row per session_start event of 1 to 7 December 2025 (Dublin days): only the column the count needs\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT device_category, COUNT(*) AS sessions\nFROM starts\nGROUP BY device_category",
+  "alternatives": [
+    "SELECT device.category AS device_category, COUNT(*) AS sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251201' AND '20251207'\nGROUP BY device.category",
+    "WITH starts AS (\n  -- one row per session_start event of 1 to 7 December 2025 (Dublin days): only the column the count needs\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'session_start'\n    AND CAST(strptime(event_date, '%Y%m%d') AS DATE) BETWEEN DATE '2025-12-01' AND DATE '2025-12-07'\n)\nSELECT device_category, COUNT(*) AS sessions\nFROM starts\nGROUP BY device_category"
+  ],
+  "other_way": {
+    "sql": "SELECT device.category AS device_category, COUNT(*) AS sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251201' AND '20251207'\nGROUP BY device.category",
+    "tradeoff": "One query with no CTE is shorter, while the CTE names the narrowed rows, which helps once more steps follow."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH per_device AS (\n  SELECT device.category AS device_category, COUNT(*) AS sessions, COUNT(user_pseudo_id) AS known_visitor_sessions, MIN(event_date) AS first_day\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251201' AND '20251207'\n  GROUP BY device.category\n)\nSELECT *\nFROM per_device"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH starts AS (\n  -- one row per session_start event of 1 to 7 December 2025 (Dublin days): only the column the count needs\n  SELECT device.category AS device_category, user_pseudo_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT device_category, COUNT(user_pseudo_id) AS sessions\nFROM starts\nGROUP BY device_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH starts AS (\n  -- one row per session_start event of 1 to 7 December 2025 (Dublin days): only the column the count needs\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '2025-12-01' AND '2025-12-07'\n)\nSELECT device_category, COUNT(*) AS sessions\nFROM starts\nGROUP BY device_category"
+    }
+  ],
+  "hint3_partial": "WITH starts AS (\n  -- one row per session_start event of 1 to 7 December 2025 (Dublin days): only the column the count needs\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'session_start'\n    AND ___\n)\nSELECT device_category, COUNT(*) AS sessions\nFROM starts\nGROUP BY device_category",
+  "solver": {
+    "prompt_hash": "1fd27298069248be",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT device.category AS device_category, COUNT(*) AS sessions\r\nFROM events\r\nWHERE event_name = 'session_start' AND event_date BETWEEN '20251201' AND '20251207'\r\nGROUP BY device.category",
+    "at": "2026-11-03T19:01:31.610Z"
+  }
+}

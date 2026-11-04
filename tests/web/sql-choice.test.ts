@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  chooseWhy, choicePhaseFor, optionTableView, skipWhy, sqlChoiceLayout, startWhy, usesChoicePanel, whyView,
+  chooseWhy, choicePhaseFor, codeLangLabel, optionTableView, skipWhy, sqlChoiceLayout, startWhy, usesChoicePanel, whyView,
 } from '../../web/src/lib/sql-choice.ts';
 
 const base = { shown_sql: null, unique_check: null, typed: null };
@@ -83,4 +83,15 @@ test('a closed choice item reads like a closed exercise: right is a pass, a reve
   assert.deepEqual(choiceClosedResult({ correct: true }), { passed: true, failedGraded: 0, helped: false });
   assert.deepEqual(choiceClosedResult({ correct: true, helped: true }), { passed: true, failedGraded: 0, helped: true });
   assert.deepEqual(choiceClosedResult({ correct: false, helped: false }), { passed: false, failedGraded: 1, helped: false });
+});
+
+// ---- Sprint 9 Task A1 (S9-06): fixed_choice ----------------------------------------------------------------------------------
+
+test('S9-06: fixed_choice goes to the choice panel, shows no query of its own, and draws each option as its text over its code', () => {
+  assert.equal(usesChoicePanel('fixed_choice'), true);
+  const l = sqlChoiceLayout({ ...base, sql_kind: 'fixed_choice' });
+  assert.deepEqual([l.shownSql, l.optionStyle, l.note], [null, 'statement', null]);
+  // The code block's caption names its dialect, as the solver's view and the tutor's snapshot do.
+  assert.equal(codeLangLabel('bigquery'), 'BigQuery');
+  assert.equal(codeLangLabel('duckdb'), 'DuckDB');
 });

@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "row_count",
+    "join",
+    "price_history"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-price-join",
+  "template_params": {
+    "month": "2025-04"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "A Voltmarkt report gives each order line of April 2025 the list price in force on its order day, the UTC day of order_ts, from price_history: a version runs from valid_from to valid_to, both days included, and valid_to is missing for the current price. Check that join for the orders placed in April 2025. Return three columns, in this order: lines_before (the order lines of those orders), rows_after (the rows once each line has its price version) and added_rows (rows_after minus lines_before). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "lines_before",
+        "type_class": "numeric"
+      },
+      {
+        "name": "rows_after",
+        "type_class": "numeric"
+      },
+      {
+        "name": "added_rows",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "lines_before",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "rows_after",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "added_rows",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the join to the one price version in force on each order day.",
+    "A product has many versions: match the order day to the range from valid_from to valid_to, both days included, and treat a missing valid_to as open."
+  ],
+  "subgoals": [
+    {
+      "from": 110,
+      "to": 185,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 188,
+      "to": 249,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 252,
+      "to": 356,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 498,
+      "to": 539,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 542,
+      "to": 714,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 717,
+      "to": 907,
+      "subgoal": "metrics"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Exactly one version of a product is in force on any day, so the range join gives one row per line and adds none."
+}

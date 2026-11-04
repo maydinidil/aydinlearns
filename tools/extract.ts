@@ -54,7 +54,7 @@ export function buildCurriculum(j: { concepts: any[]; levels: any[] }): Curricul
 }
 
 // New error IDs for levels 1-3 (design §12), recorded in ERRATA (E-142, E-143, E-152, E-153, E-162, E-163, E-164, E-168, E-171, E-172; templates E-173),
-// from sprint 6 (E-188, E-189), from sprint 7 (E-200) and from sprint 8 (E-209).
+// from sprint 6 (E-188, E-189), from sprint 7 (E-200), from sprint 8 (E-209) and from sprint 9 (E-219).
 export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
   { id: 'ERR-LOG-20', category: 'LOG', name: 'Averaging ratios instead of dividing sums', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
   { id: 'ERR-LOG-21', category: 'LOG', name: 'Percent scale (0.15 vs 15)', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
@@ -128,6 +128,20 @@ export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
     feedback_template: 'A cohort is the month of the event the question names, such as the signup or the first payment, so dating it by another event puts customers in the wrong cohort or leaves them out. Take the cohort date from the event the question names, as each customer\'s first one with MIN, and check one customer by hand.' },
   { id: 'ERR-LOG-51', category: 'LOG', name: 'An annual plan\'s price counted as one month\'s MRR', detection_checks: ['CHK-MUTANT-MATCH'],
     feedback_template: 'An annual plan\'s price pays for 12 months, so counting it as one month\'s MRR makes that account\'s MRR 12 times too big. Divide an annual plan\'s price by 12, after any annual discount, before you add it to MRR.' },
+  // Sprint 9 Task A1 (ERRATA E-219, S9-04; E-036's level 7 part): level 7's GA4 export mistakes that no ID held, all under SQL-BQ-01.
+  // Names as S9-04 gives them. UNNEST fan-out stays ERR-LOG-01, and a list returned where a value is asked stays ERR-OUT-02.
+  { id: 'ERR-LOG-52', category: 'LOG', name: 'GA4 sessions counted by ga_session_id alone', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'ga_session_id is the second a session started, so two visitors who start a session in the same second share one, and counting the ID alone counts their two sessions as one. Count each pair of user_pseudo_id and ga_session_id once, as in COUNT(DISTINCT user_pseudo_id || \'-\' || ga_session_id). The pair count leaves out an event with no user_pseudo_id; when the question counts those events too, count the session_start events themselves.' },
+  { id: 'ERR-LOG-53', category: 'LOG', name: 'A GA4 parameter read from one value slot when it arrives in another', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'A GA4 tag can send the same parameter as a whole number in int_value or as a decimal in double_value, so reading one slot misses every event that used another. Read every number slot with COALESCE(value.int_value, value.float_value, value.double_value). A text parameter arrives in string_value, so read it there.' },
+  { id: 'ERR-LOG-54', category: 'LOG', name: 'event_timestamp read in the wrong unit', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'event_timestamp counts microseconds since 1970, not seconds or milliseconds, so reading it in another unit puts every event in the wrong place in time. Turn it into the moment in UTC with to_timestamp(event_timestamp / 1000000), and into Dublin\'s clock with timezone(\'Europe/Dublin\', to_timestamp(event_timestamp / 1000000)).' },
+  { id: 'ERR-LOG-55', category: 'LOG', name: 'A GA4 date string compared with a date written another way', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'event_date is text such as \'20251001\', so comparing it with \'2025-10-01\' compares text character by character, and every 2025 date counts as later. Compare it with text in its own form, event_date >= \'20251001\', or turn it into a date first with strptime(event_date, \'%Y%m%d\').' },
+  // Sprint 9 Task A1 (ERRATA E-219, S9-04): DuckDB's bind errors for BigQuery's UNNEST forms, which fell to ERR-SYN-02
+  // (server/grader/engine-errors.ts).
+  { id: 'ERR-SYN-09', category: 'SYN', name: 'BigQuery\'s UNNEST form in DuckDB', detection_checks: ['CHK-ENGINE-ERROR'],
+    feedback_template: 'DuckDB\'s UNNEST(event_params) AS p names the table that unnest makes, not each item, so p.key and a bare key are not found as they are in BigQuery. Write unnest(event_params) AS t(p) to name each item p, then read p.key and p.value. Filter on event_name first, so it does not unnest every event.' },
 ];
 
 /**

@@ -1,0 +1,102 @@
+{
+  "id": "EX-SQL-BQ-01-E1-44",
+  "version": 1,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "bigquery",
+    "parse_date",
+    "fixed_choice"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-bq-parse-date",
+  "template_params": {
+    "day": "20251001"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "In BigQuery, event_date is text in the form YYYYMMDD, such as 20251001. Which query turns it into a DATE, so that date functions can use it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o0bb36a4",
+      "text": "Cast the text to DATE",
+      "misconception_id": "MIS-SQL-BQ-01-03",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT CAST(event_date AS DATE) AS event_day\nFROM `mailvora-web.analytics_254316.events_20251001`"
+      }
+    },
+    {
+      "oid": "oe2acbc6",
+      "text": "Parse the text with a dashed format",
+      "misconception_id": "ERR-LOG-55",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT PARSE_DATE('%Y-%m-%d', event_date) AS event_day\nFROM `mailvora-web.analytics_254316.events_20251001`"
+      }
+    },
+    {
+      "oid": "ob546008",
+      "text": "Use the strptime function",
+      "misconception_id": "MIS-SQL-BQ-01-04",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT strptime(event_date, '%Y%m%d') AS event_day\nFROM `mailvora-web.analytics_254316.events_20251001`"
+      }
+    },
+    {
+      "oid": "o2569559",
+      "text": "Parse the text with its own format",
+      "misconception_id": null,
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT PARSE_DATE('%Y%m%d', event_date) AS event_day\nFROM `mailvora-web.analytics_254316.events_20251001`"
+      }
+    }
+  ]
+}

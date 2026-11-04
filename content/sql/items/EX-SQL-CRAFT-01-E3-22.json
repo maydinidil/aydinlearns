@@ -1,0 +1,168 @@
+{
+  "id": "EX-SQL-CRAFT-01-E3-22",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "check_report",
+    "duplicate_key",
+    "orders"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-order-checks",
+  "template_params": {
+    "month": "2025-04"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Before Voltmarkt's April 2025 analysis, run three checks on the orders placed that month (the UTC days of order_ts) and their order lines, and return one row for each check. order_id is unique: the orders checked, and how many rows are copies of an order_id already counted. every order has a line: the orders checked, and how many of them have no order line. every line has a known product: the order lines of those orders, and how many of them name a product_id that products does not hold. A line with a missing product_id names no product_id, so it counts as checked but not as failing. In every check, checked_rows and failing_rows count rows: an order_id that appears twice in orders counts twice, and each of its order lines also counts twice, once for each copy. Return three columns, in this order: check_name (the text order_id is unique, every order has a line or every line has a known product), checked_rows and failing_rows. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "check_name",
+        "type_class": "text"
+      },
+      {
+        "name": "checked_rows",
+        "type_class": "numeric"
+      },
+      {
+        "name": "failing_rows",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "check_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "checked_rows",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "failing_rows",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "check_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the uniqueness check: the rows against the distinct order_id values.",
+    "Keep the orders step at one row per order, with no join to its lines, or every order with two lines looks like a copy."
+  ],
+  "subgoals": [
+    {
+      "from": 92,
+      "to": 107,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 110,
+      "to": 121,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 124,
+      "to": 224,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 291,
+      "to": 339,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 342,
+      "to": 409,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 412,
+      "to": 532,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 533,
+      "to": 550,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 561,
+      "to": 678,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 679,
+      "to": 696,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 707,
+      "to": 833,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 834,
+      "to": 850,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each check counts the rows it looked at and the rows that break its rule, at the grain the check names."
+}

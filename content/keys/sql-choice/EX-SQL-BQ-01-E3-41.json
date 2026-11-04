@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BQ-01-E3-41",
+  "item_version": 1,
+  "correct_oid": "o6870305",
+  "explanation": "CROSS JOIN UNNEST(event_params) AS p names each parameter p, the key filter keeps the value row, COALESCE reads whichever slot is filled, and the _TABLE_SUFFIX range reads only October's tables. A range on event_date gives the same total but reads every daily table first; double_value alone misses the purchases sent in int_value; and AS t(p) is DuckDB's way to name the element, not BigQuery's.",
+  "solver": {
+    "prompt_hash": "38db4dadb3f14c5f",
+    "grader_version": "choice.3",
+    "chosen": "o6870305",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.573Z"
+  }
+}

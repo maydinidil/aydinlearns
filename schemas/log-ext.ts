@@ -47,6 +47,7 @@ export interface RunOpen {
 }
 
 export interface AydinAttempt extends AttemptBase {
+  /** S9-14: the world of the item's data (server/world.ts). Lines written before it say 'pricing' whatever the company; nothing reads the field. */
   world: 'pricing' | 'marketing' | 'saas' | 'retail' | null;
   difficulty: 'E1' | 'E2' | 'E3' | null;
   sub_skill: string | null;

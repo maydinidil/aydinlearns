@@ -1,0 +1,174 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "sessions",
+    "fix",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SET-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-fix-device",
+  "template_params": {
+    "month": "2025-11"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "The query in the editor has one mistake, so its check does not reconcile. Fix it so that it answers this question: for the Dublin days 1 to 30 November 2025, do the export and the backend agree on sessions per device category? Count the session_start events by event_date (the day in Dublin), the events of visitors who denied consent (no user_pseudo_id) included, grouped by device.category, and count the backend sessions whose session_start falls on those Dublin days, grouped by sessions.device. Return four columns, in this order: device, export_sessions, backend_sessions and difference (export_sessions minus backend_sessions). Return one row for each device category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "device",
+        "type_class": "text"
+      },
+      {
+        "name": "export_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "device",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "export_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "device"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the export side counts: every session_start event, or only some of them.",
+    "COUNT of a column skips the rows where it is missing, and the events of visitors who denied consent have no user_pseudo_id, yet the backend holds their sessions."
+  ],
+  "subgoals": [
+    {
+      "from": 125,
+      "to": 186,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 189,
+      "to": 200,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 203,
+      "to": 290,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 293,
+      "to": 317,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 423,
+      "to": 466,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 469,
+      "to": 482,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 485,
+      "to": 585,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 588,
+      "to": 603,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 606,
+      "to": 716,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 717,
+      "to": 784,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH export_devices AS (\n  -- one row per device category: the session_start events of 1 to 30 November 2025 (Dublin days)\n  SELECT device.category AS device, COUNT(user_pseudo_id) AS export_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251101' AND '20251130'\n  GROUP BY device.category\n), backend_devices AS (\n  -- one row per device category: the backend sessions of the same Dublin days\n  SELECT device, COUNT(*) AS backend_sessions\n  FROM sessions\n  WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251101' AND '20251130'\n  GROUP BY device\n)\nSELECT e.device, e.export_sessions, b.backend_sessions,\n  e.export_sessions - b.backend_sessions AS difference\nFROM export_devices e\nJOIN backend_devices b ON b.device = e.device",
+  "time_target_ms": 210000,
+  "why_this_works": "COUNT(*) keeps the consent-denied session_start events, whose sessions the backend also holds, so each device reconciles.",
+  "starter_error_id": "ERR-LOG-04"
+}

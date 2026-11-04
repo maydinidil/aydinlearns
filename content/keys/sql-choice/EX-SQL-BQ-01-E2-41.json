@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "o54f43da",
+  "explanation": "Joining user_pseudo_id and ga_session_id names one session, and a pair with a missing part becomes missing, which COUNT skips. Counting distinct ga_session_id values alone is the tempting slip: it is the second a session started, so two visitors who start in the same second count as one. Counting every session_start row keeps the visitors who denied consent, and dashed dates never match the text in event_date.",
+  "solver": {
+    "prompt_hash": "ccc0c9288d39aa02",
+    "grader_version": "choice.3",
+    "chosen": "o54f43da",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.567Z"
+  }
+}

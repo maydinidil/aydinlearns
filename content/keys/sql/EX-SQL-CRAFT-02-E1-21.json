@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-21",
+  "item_version": 1,
+  "reference_sql": "WITH week_signups AS (\n  -- one row per sign_up event of 1 to 7 December 2025 (Dublin days): only the column the count needs\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT device_category, COUNT(*) AS signups\nFROM week_signups\nGROUP BY device_category",
+  "alternatives": [
+    "SELECT device.category AS device_category, COUNT(*) AS signups\nFROM events\nWHERE event_name = 'sign_up'\n  AND event_date BETWEEN '20251201' AND '20251207'\nGROUP BY device.category",
+    "WITH week_signups AS (\n  -- one row per sign_up event of 1 to 7 December 2025 (Dublin days): only the column the count needs\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND CAST(strptime(event_date, '%Y%m%d') AS DATE) BETWEEN DATE '2025-12-01' AND DATE '2025-12-07'\n)\nSELECT device_category, COUNT(*) AS signups\nFROM week_signups\nGROUP BY device_category"
+  ],
+  "other_way": {
+    "sql": "SELECT device.category AS device_category, COUNT(*) AS signups\nFROM events\nWHERE event_name = 'sign_up'\n  AND event_date BETWEEN '20251201' AND '20251207'\nGROUP BY device.category",
+    "tradeoff": "One query with no CTE is shorter, while the CTE names the narrowed rows, which helps once more steps follow."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH per_device AS (\n  SELECT device.category AS device_category, COUNT(*) AS signups, COUNT(user_id) AS with_user_id, MIN(event_date) AS first_day\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '20251201' AND '20251207'\n  GROUP BY device.category\n)\nSELECT *\nFROM per_device"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH week_signups AS (\n  -- one row per sign_up event of 1 to 7 December 2025 (Dublin days): only the column the count needs\n  SELECT device.category AS device_category, user_id\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT device_category, COUNT(user_id) AS signups\nFROM week_signups\nGROUP BY device_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH week_signups AS (\n  -- one row per sign_up event of 1 to 7 December 2025 (Dublin days): only the column the count needs\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '2025-12-01' AND '2025-12-07'\n)\nSELECT device_category, COUNT(*) AS signups\nFROM week_signups\nGROUP BY device_category"
+    }
+  ],
+  "hint3_partial": "WITH week_signups AS (\n  -- one row per sign_up event of 1 to 7 December 2025 (Dublin days): only the column the count needs\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND ___\n)\nSELECT device_category, COUNT(*) AS signups\nFROM week_signups\nGROUP BY device_category",
+  "solver": {
+    "prompt_hash": "c2019a442136ee1a",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT device.category AS device_category, COUNT(*) AS signups\r\nFROM events\r\nWHERE event_name = 'sign_up' AND event_date BETWEEN '20251201' AND '20251207'\r\nGROUP BY device.category",
+    "at": "2026-11-03T19:01:31.810Z"
+  }
+}

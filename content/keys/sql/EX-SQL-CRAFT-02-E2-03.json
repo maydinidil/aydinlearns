@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH week_views AS (\n  -- one row per page_view event of 7 to 13 December 2025 (Dublin days): only the page it shows\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251207' AND '20251213'\n), paths AS (\n  -- one row per page_view: its path, without the host and without any query string\n  SELECT split_part(split_part(page_location, '?', 1), 'www.mailvora.example', 2) AS page\n  FROM week_views\n)\nSELECT page, COUNT(*) AS views\nFROM paths\nGROUP BY page",
+  "alternatives": [
+    "SELECT regexp_extract([p.value.string_value FOR p IN event_params IF p.key = 'page_location'][1], '^https?://[^/]+([^?]*)', 1) AS page,\n  COUNT(*) AS views\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date BETWEEN '20251207' AND '20251213'\nGROUP BY page",
+    "WITH week_views AS (\n  -- one row per page_view event of 7 to 13 December 2025 (Dublin days): only the page it shows\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251207' AND '20251213'\n), paths AS (\n  -- one row per page_view: its path, without the host and without any query string\n  SELECT split_part(replace(page_location, 'https://www.mailvora.example', ''), '?', 1) AS page\n  FROM week_views\n)\nSELECT page, COUNT(*) AS views\nFROM paths\nGROUP BY page"
+  ],
+  "other_way": {
+    "sql": "SELECT regexp_extract([p.value.string_value FOR p IN event_params IF p.key = 'page_location'][1], '^https?://[^/]+([^?]*)', 1) AS page,\n  COUNT(*) AS views\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date BETWEEN '20251207' AND '20251213'\nGROUP BY page",
+    "tradeoff": "One regular expression in a single query takes the path in one call, but a reviewer must read the pattern to see what it keeps."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH week_views AS (\n  -- one row per page_view event of 7 to 13 December 2025 (Dublin days): only the page it shows\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251207' AND '20251213'\n), paths AS (\n  -- one row per page_view: its path, without the host and without any query string\n  SELECT split_part(page_location, 'www.mailvora.example', 2) AS page\n  FROM week_views\n)\nSELECT page, COUNT(*) AS views\nFROM paths\nGROUP BY page"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH week_views AS (\n  -- one row per page_view event of 7 to 13 December 2025 (Dublin days): only the page it shows\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251207' AND '20251213'\n), per_page AS (\n  SELECT split_part(split_part(page_location, '?', 1), 'www.mailvora.example', 2) AS page, page_location, COUNT(*) AS views, COUNT(*) * 1.0 / 7 AS views_per_day\n  FROM week_views\n  GROUP BY split_part(split_part(page_location, '?', 1), 'www.mailvora.example', 2), page_location\n)\nSELECT *\nFROM per_page"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH week_views AS (\n  -- one row per page_view event of 7 to 13 December 2025 (Dublin days): only the page it shows\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '2025-12-07' AND '2025-12-13'\n), paths AS (\n  -- one row per page_view: its path, without the host and without any query string\n  SELECT split_part(split_part(page_location, '?', 1), 'www.mailvora.example', 2) AS page\n  FROM week_views\n)\nSELECT page, COUNT(*) AS views\nFROM paths\nGROUP BY page"
+    }
+  ],
+  "hint3_partial": "WITH week_views AS (\n  -- one row per page_view event of 7 to 13 December 2025 (Dublin days): only the page it shows\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251207' AND '20251213'\n), paths AS (\n  -- one row per page_view: its path, without the host and without any query string\n  SELECT split_part(___, 'www.mailvora.example', 2) AS page\n  FROM week_views\n)\nSELECT page, COUNT(*) AS views\nFROM paths\nGROUP BY page",
+  "solver": {
+    "prompt_hash": "9e1947d43ce8e1b8",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT regexp_extract(list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value, '^https?://www\\.mailvora\\.example([^?]*)', 1) AS page, COUNT(*) AS views\r\nFROM events\r\nWHERE event_name = 'page_view' AND event_date BETWEEN '20251207' AND '20251213'\r\nGROUP BY 1",
+    "at": "2026-11-03T19:01:32.022Z"
+  }
+}

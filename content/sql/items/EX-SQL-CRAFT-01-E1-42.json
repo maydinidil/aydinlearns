@@ -1,0 +1,92 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "choose_query",
+    "row_count",
+    "price_history"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-choose-price-join",
+  "template_params": {
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Each Voltmarkt order line of March 2025 should get the list price in force on its UTC order day from price_history, where a version runs from valid_from to valid_to, both days included, and valid_to is missing for the current price. Which query checks that this join keeps one row per line?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o63617bc",
+      "text": "WITH march_lines AS (\n  SELECT l.order_line_id, l.product_id, CAST(o.order_ts AS DATE) AS order_day\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-03-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\n)\nSELECT (SELECT COUNT(*) FROM march_lines) AS lines_before,\n  (SELECT COUNT(*) FROM march_lines w\n   JOIN price_history ph ON ph.product_id = w.product_id) AS rows_after",
+      "misconception_id": "ERR-LOG-01"
+    },
+    {
+      "oid": "o049d258",
+      "text": "WITH march_lines AS (\n  SELECT l.order_line_id, l.product_id, CAST(o.order_ts AS DATE) AS order_day\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-03-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\n)\nSELECT (SELECT COUNT(*) FROM march_lines) AS lines_before,\n  (SELECT COUNT(*) FROM march_lines w\n   JOIN price_history ph ON ph.product_id = w.product_id\n     AND w.order_day >= ph.valid_from\n     AND (ph.valid_to IS NULL OR w.order_day <= ph.valid_to)) AS rows_after",
+      "misconception_id": null
+    },
+    {
+      "oid": "ofe33b92",
+      "text": "WITH march_lines AS (\n  SELECT l.order_line_id, l.product_id, CAST(o.order_ts AS DATE) AS order_day\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-03-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\n)\nSELECT (SELECT COUNT(*) FROM march_lines) AS lines_before,\n  (SELECT COUNT(*) FROM march_lines w\n   JOIN price_history ph ON ph.product_id = w.product_id\n     AND w.order_day >= ph.valid_from\n     AND w.order_day < ph.valid_to) AS rows_after",
+      "misconception_id": "ERR-LOG-03"
+    },
+    {
+      "oid": "o1969103",
+      "text": "WITH march_lines AS (\n  SELECT l.order_line_id, l.product_id, CAST(o.order_ts AS DATE) AS order_day\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-03-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\n)\nSELECT (SELECT COUNT(*) FROM march_lines) AS lines_before,\n  (SELECT COUNT(*) FROM march_lines w\n   JOIN price_history ph ON ph.product_id = w.product_id\n     AND w.order_day >= ph.valid_from\n     AND (ph.valid_to IS NULL OR w.order_day < ph.valid_to)) AS rows_after",
+      "misconception_id": "ERR-LOG-06"
+    }
+  ]
+}

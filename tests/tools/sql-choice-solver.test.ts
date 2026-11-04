@@ -16,7 +16,7 @@ import { DEFAULT_SEED, exportChoiceView, sqlChoiceView, sqlViewPromptHash } from
 import { exportSolverView } from '../../tools/export-solver-view.ts';
 import { recordSqlChoiceSolver } from '../../tools/record-choice-solver.ts';
 import { FIXTURE_CONCEPT, makeContentFixture } from '../helpers/content-fixture.ts';
-import { ALL_KINDS, IDS, sqlChoiceItem, sqlChoiceKey, writeSqlChoice } from '../helpers/sql-choice-fixture.ts';
+import { ALL_KINDS, FIXED_ID, fixedChoiceItem, fixedChoiceKey, IDS, sqlChoiceItem, sqlChoiceKey, writeSqlChoice } from '../helpers/sql-choice-fixture.ts';
 
 const AT = new Date('2026-10-05T10:00:00Z');
 const root = async () => { const r = await makeContentFixture(); await writeSqlChoice(r); return r; };
@@ -108,4 +108,39 @@ test('the CLI grades sql/<id>.txt answers against their exported views and write
   await writeFile(join(r, 'sql/items', `${changed.id}.json`), JSON.stringify(changed));
   const again = await promisify(execFile)(process.execPath, ['tools/record-choice-solver.ts', r, dir, views]);
   assert.match(again.stdout, new RegExp(`SKIP ${IDS.choose_query} \\(the item changed since the export\\)`));
+});
+
+// ---- Sprint 9 Task A1 (S9-06, S9-C12): the blind solver sees a fixed_choice item's stem and options, code included, never the key --
+
+test('S9-06: a fixed_choice view holds the prompt and the options, each with its code (lang and query) where it has one; never the key', () => {
+  const item = fixedChoiceItem();
+  const view = sqlChoiceView(item, DEFAULT_SEED);
+  assert.deepEqual(Object.keys(view), ['id', 'kind', 'prompt', 'schema', 'options']);
+  assert.deepEqual([view.kind, view.prompt], ['fixed_choice', item.prompt]);
+  assert.deepEqual(view.options!.map((o) => o.oid).sort(), item.options!.map((o) => o.oid).sort());
+  for (const o of view.options!) {
+    const source = item.options!.find((x) => x.oid === o.oid)!;
+    assert.deepEqual(o, source.code ? { oid: o.oid, text: source.text, code: { lang: source.code.lang, sql: source.code.sql } } : { oid: o.oid, text: source.text });
+  }
+  assert.doesNotMatch(JSON.stringify(view), /MIS-FAKE|ERR-SYN|misconception|explanation|correct|solver|edge|difficulty|template|hints|concept/);
+  for (const seed of [DEFAULT_SEED, 'round-2']) assert.equal(sqlViewPromptHash(sqlChoiceView(item, seed)), sqlChoicePromptHash(item), seed);
+  // A view whose code is not a lang and a query is not a view.
+  const broken = { ...view, options: view.options!.map((o, i) => (i === 0 ? { ...o, code: 'SELECT 1' } : o)) };
+  assert.equal(sqlViewPromptHash(broken), null);
+});
+
+test('S9-06: export:choice-view writes a fixed_choice item under sql/<concept>/, record:choice-solver grades its answer, export:solver-view leaves it out', async () => {
+  const r = await makeContentFixture();
+  await writeSqlChoice(r, [fixedChoiceItem()], [fixedChoiceKey()]);
+  const views = await outDir();
+  assert.deepEqual(await exportChoiceView(r, views), [{ section: 'sql', group: FIXTURE_CONCEPT, ids: [FIXED_ID] }]);
+  assert.deepEqual(await read(join(views, 'sql', FIXTURE_CONCEPT, `${FIXED_ID}.json`)), sqlChoiceView(fixedChoiceItem(), DEFAULT_SEED));
+  const dir = join(await mkdtemp(join(tmpdir(), 'al-cout-')), 'choice');
+  await mkdir(join(dir, 'sql'), { recursive: true });
+  await writeFile(join(dir, 'sql', `${FIXED_ID}.txt`), optionId(FIXED_ID, 0));
+  const { stdout } = await promisify(execFile)(process.execPath, ['tools/record-choice-solver.ts', r, dir, views]);
+  assert.deepEqual(stdout.trim().split(/\r?\n/), [`PASS ${FIXED_ID}`, '1 passed, 0 failed, 0 skipped']);
+  const saved = await read(join(r, 'keys/sql-choice', `${FIXED_ID}.json`)) as ChoiceKey;
+  assert.deepEqual([saved.solver?.prompt_hash, saved.solver?.chosen], [sqlChoicePromptHash(fixedChoiceItem()), optionId(FIXED_ID, 0)]);
+  assert.ok(!(await exportSolverView(r, join(await mkdtemp(join(tmpdir(), 'al-sview-')), 'v'))).includes(FIXED_ID));
 });

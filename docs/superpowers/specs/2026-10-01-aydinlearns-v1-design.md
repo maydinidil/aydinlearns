@@ -189,7 +189,7 @@ The owner's decisions. The "why" is the part worth keeping.
 | Case-first | Hybrid: each level opens with a manager question solved at the level's end, plus small daily cases on practised concepts | 04's cases are all capstones (review #8) |
 | Portfolio | Solved cases export as markdown pages with a CSV of the full result, each labelled with its data source | Linkable evidence and interview stories for the applications |
 | Attempt log | Append-only JSONL under `logs/`, gitignored, with an automatic backup to a folder the owner chooses | Safe whatever the repo's visibility |
-| Scope of v1 | All three sections. SQL levels 1-7, all four fictional companies, all 25 GA4 labs, and the core six real datasets (§10). Built hiring-first (§16): Noordkant, KKBox, the compare-with-others tiers, about 15 of the GA4 labs, GA4 bank growth and level 7 come after the first applications. The BigQuery / GA4-export bridge is post-v1. PL-300 is a planned future update (2026-10-02) | The owner's choices |
+| Scope of v1 | All three sections. SQL levels 1-7, all four fictional companies, all 25 GA4 labs, and the core six real datasets (§10). Built hiring-first (§16): Noordkant, KKBox, the compare-with-others tiers, about 15 of the GA4 labs, GA4 bank growth and level 7 come after the first applications. The BigQuery / GA4-export bridge is post-v1. PL-300 is a planned future update (2026-10-02). **(amended 2026-11-03, sprint 9, D128)** v1 ends with SQL level 7, built in sprint 9; Noordkant and the retail cases, KKBox, the compare-with-others tiers, the other GA4 labs, GA4 bank growth and the optimiser path are updates after v1, with no date (the roadmap's "Later"); nothing is deleted | The owner's choices |
 | Answer keys | Committed to git under `content/keys/`. Commit, PR and tune-up text that touches keys shows only item IDs and check results. **The browser receives SQL key material in exactly four logged cases** (2026-10-02): expected rows in the diff after a submission; one item's reference solution on "show answer"; one item's partial solution on hint 3; one genuinely different correct method in "other ways to write this" after a pass. **Multiple-choice and typed answers and their explanations** also live in `content/keys/`. They are graded on the server and shown only after an answer. **Held-out mock items** are never printed in a session; only background agents generate and check them. **Predict and choose-the-query options** are the item's own prompt content, never copied from another item's keys | GitHub backs up the keys, which are expensive to verify. The learner builds the app with Claude, so keys must not scroll past in sessions |
 | Master IDs | `SQL-*` from 01 and the GA4 IDs from 06 (review #4); Methodology IDs minted in slice 0 | One scheme per section, with crosswalks for the rest |
 | Scheduler | FSRS-6 through ts-fsrs 5.4.2, on the default weights through January | Review #1. ts-fsrs 5.4.2 ships the same 21 default weights as py-fsrs (§20) |
@@ -731,6 +731,18 @@ screens reject, so the learner's queries get notes. They are notes only, never a
 **Other item kinds.** "Fix this query" items are graded by the same pipeline. Predict and
 choose-the-query items use the multiple-choice and typed-answer map in §5.
 
+**(amended 2026-11-04, sprint 9 Part 1, 0.9.0) `fixed_choice`** (S9-06, S9-C13, S9-C22, E-220): a SQL choice kind for a
+question whose options the app does not run, such as BigQuery SQL or a cost statement. It has 3 or 4 options, each with a
+text, an optional code block (`lang` `bigquery` or `duckdb`) and a misconception ID on every wrong option. The key in
+`content/keys/sql-choice/` holds the right option and an explanation. It is served, graded and logged through the SQL
+choice route as `predict_result` is (the multiple-choice payload; `item_kind` `fixed_choice`, a new value of an existing
+field, so the log stays at version 8), with `predict_result`'s rating map and replay family. `CHOICE_GRADER_VERSION` stays
+`choice.3`. Check **C57** (C54 to C56 were taken) holds one right option, distinct options, a `duckdb` option that
+prepares, no explanation that names an option by letter, and the right option as the only longest in at most 35% of a
+concept's items (E-021). **C33 does not run it**, because it runs every `choose_query` option on DuckDB. The language
+caption is shown to the learner, the tutor and the blind solver, so no question may be answered by it. Readability itself
+is not graded.
+
 **Items that cannot be graded on their result** (about 18 patterns, the `CRAFT-*` concepts,
 "explain your approach") become self-checks against a rubric. The learner's text is kept for the
 weekly review. Self-checks drive scheduling, not mastery.
@@ -820,6 +832,10 @@ data's owner (P42): Noor, Analytics lead (CASE-REAL-01), and Ruben, Pricing anal
 `CASE-REAL-03` (Olist) and Noor asks `CASE-MAVEN-01` (Maven Toy Store). In LedgerLoop's world `SAAS` the five SaaS cases are
 Lieselot's (`CASE-SAAS-01` and `-04`), Wannes's (`-02`) and Griet's (`-03` and `-05`), and `CASE-MKT-05` is Nele's (S8-C29).
 Sanne asks `CASE-RETAIL-01` and Yara asks `CASE-RETAIL-04` (S8-C30).
+
+**(amended 2026-11-04, sprint 9 Part 1, 0.9.0)** The level 7 cases are asked from the existing casts (S9-12): Declan, Head of
+growth, asks the opener `CASE-MAIL-L7` on Mailvora's GA4 export; Aoife, Performance marketing manager, asks
+`CASE-DAILY-L7-01` on the same export; Marieke, CFO, asks `CASE-DAILY-L7-02` on Voltmarkt.
 
 The cast IDs (`PER-*`) are reserved now, so aydindutch can reuse them (§15).
 
@@ -1062,6 +1078,27 @@ added this section on 2026-10-02.
 - **The edge** `ledgerloop_edge_cases` (S8-C39): fixed rows built for the six LedgerLoop cases' windows, with its own
   `mrr_monthly`. `ledgerloop_edge_saas` is unchanged, because Part 1's items read it.
 - **Registry:** `DS-RETAIL-01` and `DS-MKT-03`, with `olist_edge` and `maven_toy_store_edge` (E-213, E-214), above.
+
+**(amended 2026-11-04, sprint 9 Part 1, 0.9.0) `mailvora_ga4` as built** (E-218 as amended, S9-02, S9-03, S9-C11, S9-C16 to
+S9-C18, S9-C27, S9-C29, S9-C42):
+- **The window and the days:** 1 October to 31 December 2025, by the property's day. `event_date` is the Dublin day, so an
+  event after 23:00 UTC before 26 October is dated the next day; `event_timestamp` is microseconds in UTC.
+- **Server-side events:** each `purchase`, and a `sign_up` that falls outside a session (the billing server's, GA4's
+  Measurement Protocol), carries `user_pseudo_id` and `user_id` and no session ID, session number or `page_location`. Every
+  other event of a session lies within 30 minutes of the one before. The same holds for visitors who denied consent.
+- **Reconciliation:** `session_start`, `sign_up` and `purchase` events equal Mailvora's sessions, sign-ups and first
+  payments, per Dublin day.
+- **Four views:** `sessions`, `signups`, `subscriptions` and `payments` onto Mailvora's tables, same names as the edge's
+  mirrors. They are the first views to read another schema. A graded run passes `allowedSchemas: []`, so an item on
+  `mailvora_ga4` reads Mailvora's tables only through them, and the hidden run swaps to `mailvora_edge_ga4`.
+- **Size:** 825,950 rows, under the cap of 1,000,000 (the plan's 500,000 could not hold a session start and a page view for
+  each of 273,012 sessions).
+- **The edge** `mailvora_edge_ga4`: `events` plus the four mirrors, with ten plants by purpose: an empty `event_params`; a
+  purchase `value` in `int_value`; two visitors sharing a `ga_session_id`; an event with no `ga_session_id`; an event with no
+  `user_pseudo_id`; both sides of the Dublin day boundary (23:30 UTC on 25 October, dated the next Dublin day, and
+  23:30 UTC on 27 October, where Dublin and UTC agree); a `page_location` with a query string; a session with no `page_view`; a first payment that was refunded. The
+  tenth, added in the seams review, is a sign-up at about 23:30 UTC on 30 September, dated 1 October in Dublin.
+- **The explorer** lists it as "GA4 export (BigQuery shape)" and allows 10 seconds (S9-C33); the edge is never offered.
 
 **The canonical beginner sales view** (T-15) is Voltmarkt's `sales`, at order-line grain.
 - **Columns:** order date, week and month; store, country and channel; category and product;
@@ -1607,6 +1644,23 @@ account that opened or closed during a period (a partial period too). `ERR-LOG-1
 are right (S8-C08). The other level 6 mistakes keep their IDs, and a mistake whose feedback would be about another
 mistake is `ERR-LOG-00`.
 
+**(amended 2026-11-04, sprint 9 Part 1, 0.9.0, `GRADER_VERSION` `9a.1`)** Five IDs under `SQL-BQ-01` come from E-219 and
+S9-04. Each LOG ID is found by `CHK-MUTANT-MATCH`; `ERR-SYN-09` comes from the engine's own message. `GRADER_VERSION` only
+adds diagnoses.
+
+| ID | Name | Concept |
+|---|---|---|
+| `ERR-LOG-52` | GA4 sessions counted by ga_session_id alone | `SQL-BQ-01` |
+| `ERR-LOG-53` | A GA4 parameter read from one value slot when it arrives in another | `SQL-BQ-01` |
+| `ERR-LOG-54` | event_timestamp read in the wrong unit | `SQL-BQ-01` |
+| `ERR-LOG-55` | A GA4 date string compared with a date written another way | `SQL-BQ-01` |
+| `ERR-SYN-09` | BigQuery's UNNEST form in DuckDB | `SQL-BQ-01` |
+
+UNNEST fan-out stays `ERR-LOG-01`, and a list or struct returned where one value is asked stays `ERR-OUT-02`. A query
+that uses another BigQuery habit keeps the engine's own message. The portability notes gain a BigQuery family (S9-05,
+S9-C23): notes only, never a fail. The new content check is **C57** (see §6, `fixed_choice`), and the construct
+`unnest_list` keeps unnest forms out of earlier concepts' keys (C09).
+
 **PIVOT** (S8-C07, S8-C09): a PIVOT with an IN list is one SELECT and passes the gate, with the note "This PIVOT form is
 DuckDB's own: other databases write it differently or have none. Conditional aggregation runs everywhere." Without an IN
 list the long form (a GROUP BY inside) is a syntax error and the short form `PIVOT t ON col USING ...` becomes two
@@ -1862,6 +1916,12 @@ serves (§2.2). If a slice misses its date, the slip rule in §2.3 applies.
 | **6. SQL level 5 and the recruiter mocks** | Window functions (on Voltmarkt and Mailvora). The recruiter mocks (§2.1): screen mock (held-out forms, screen mode), knowledge mock (held-out GA4 and Methodology items), case-round mock, 2-hour take-home mock. Flagship portfolio support | Every recruiter mock runs end to end, and the readiness board shows all six stages | 2026-11-20 |
 | **7. SQL level 6, LedgerLoop, more real data** | Take-home patterns. LedgerLoop with opening balances, and the SaaS and MKT-05 cases. Olist and Maven Toy Store | Level 6 is completable. SaaS cases pass on LedgerLoop | 2026-12-07 |
 | **After the first applications** | v1: level 7 (BigQuery, craft), Noordkant and the retail cases, KKBox, the compare-with-others tiers, the other GA4 labs, GA4 bank growth, the optimiser path. Post-v1: the GA4-export bridge and TheLook, the remaining datasets, copying `core/` into aydindutch. Future update: PL-300 | | January onward |
+
+**(amended 2026-11-03, sprint 9, D128)** Level 7 (BigQuery, craft) is built in sprint 9 as slice 8 (its
+ERRATA rows say Slice 8), in November 2026, with a new name and a dark UI (D130, D131), and v1 ends with it. The rest of
+the "After the first applications" row's v1 list (Noordkant and the retail cases, KKBox, the compare-with-others tiers,
+the other GA4 labs, GA4 bank growth, the optimiser path) becomes updates after v1, with no date, kept in the roadmap's
+"Later" list. Its post-v1 and future-update lists stay as written.
 
 **Release numbers (D63, 2026-10-08).** The app was released as 0.5.0 (version 0.5.0) after sprint
 5a: slices 0 to 3 and the Methodology half of slice 4. The rest of the table above ships as 0.x

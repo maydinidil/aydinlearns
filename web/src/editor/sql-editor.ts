@@ -1,11 +1,13 @@
 // CodeMirror 6 editor: Ctrl+Enter runs, Ctrl+Shift+Enter submits, at the highest precedence (design §11 UI). Screen mode has no autocomplete (S4B-22).
 // A faded item's visible prefix, and its suffix when it has one, are read-only, enforced with changeFilter.
-import { EditorState, Prec, type ChangeSpec, type Extension } from '@codemirror/state';
+// Its look comes from the tokens in both themes, with CodeMirror's own dark or light defaults under it, switched with the theme (S9-18).
+import { Compartment, EditorState, Prec, type ChangeSpec, type Extension } from '@codemirror/state';
 import { Decoration, EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { autocompletion } from '@codemirror/autocomplete';
 import { sql } from '@codemirror/lang-sql';
 import { DuckDBDialect } from './duckdb-dialect.ts';
+import { appliedTheme, watchAppliedTheme } from '../lib/theme.ts';
 
 export interface SqlEditor { getText(): string; setText(text: string): void; destroy(): void }
 /** The read-only lengths: the first `prefix` and the last `suffix` characters of the document. */
@@ -71,7 +73,38 @@ export function completionExtensions(o: { screenMode: boolean; schema: Record<st
   return [sql({ dialect: DuckDBDialect, schema: o.schema, upperCaseKeywords: true }), autocompletion()];
 }
 
+/**
+ * The editor's look, all from the tokens, so it follows the theme in force. The completion list (S9-18) takes the popup tokens: a row in
+ * --ink on --popup-bg with its detail word in --ink-2, the selected row in --popup-selected-text on --popup-selected-bg, and the selected
+ * row while new results wait in --ink on --popup-line. The list's own selectors match CodeMirror's base theme, so these win over it.
+ * Exported for the tests.
+ */
+export const EDITOR_LOOK = {
+  '&': { backgroundColor: 'var(--surface)', border: '1px solid var(--control)', borderRadius: 'var(--r1)', fontSize: 'var(--t2)' },
+  '&.cm-focused': { outline: '2px solid var(--focus)', outlineOffset: '2px' },
+  '.cm-content': { fontFamily: 'var(--mono)', caretColor: 'var(--ink)' },
+  '.cm-gutters': { backgroundColor: 'var(--canvas)', color: 'var(--muted)', borderRight: '1px solid var(--line)' },
+  '.cm-activeLine': { backgroundColor: 'transparent' },
+  '.cm-tooltip': { backgroundColor: 'var(--popup-bg)', color: 'var(--ink)', border: '1px solid var(--popup-line)', borderRadius: '6px', boxShadow: 'var(--shadow)' },
+  '.cm-tooltip.cm-tooltip-autocomplete > ul': { fontFamily: 'var(--mono)', padding: '2px 0' },
+  '.cm-tooltip-autocomplete ul li[aria-selected]': { background: 'var(--popup-selected-bg)', color: 'var(--popup-selected-text)' },
+  '.cm-tooltip-autocomplete-disabled ul li[aria-selected]': { background: 'var(--popup-line)', color: 'var(--ink)' },
+  '.cm-completionDetail': { color: 'var(--ink-2)' },
+  'li[aria-selected] .cm-completionDetail': { color: 'inherit' },
+};
+
+const looks = new Map<boolean, Extension>();
+/** The look with CodeMirror's dark defaults (`{ dark: true }`) or its light ones. Exported for the tests. */
+export function editorTheme(dark: boolean): Extension {
+  let look = looks.get(dark);
+  if (!look) { look = EditorView.theme(EDITOR_LOOK, { dark }); looks.set(dark, look); }
+  return look;
+}
+
 export function createSqlEditor(o: { parent: HTMLElement; text: string; locked: Locked; schema: Record<string, string[]>; onRun: () => void; onSubmit: () => void; screenMode?: boolean }): SqlEditor {
+  const root = document.documentElement;
+  const look = new Compartment();
+  let dark = appliedTheme(root) === 'dark';
   const extensions: Extension[] = [
     Prec.highest(keymap.of([
       { key: 'Mod-Shift-Enter', run: () => { o.onSubmit(); return true; } },
@@ -82,20 +115,19 @@ export function createSqlEditor(o: { parent: HTMLElement; text: string; locked: 
     keymap.of([...defaultKeymap, ...historyKeymap]),
     ...completionExtensions({ screenMode: o.screenMode === true, schema: o.schema }),
     EditorView.lineWrapping,
-    EditorView.theme({
-      '&': { backgroundColor: 'var(--surface)', border: '1px solid var(--control)', borderRadius: 'var(--r1)', fontSize: 'var(--t2)' },
-      '&.cm-focused': { outline: '2px solid var(--focus)', outlineOffset: '2px' },
-      '.cm-content': { fontFamily: 'var(--mono)', caretColor: 'var(--ink)' },
-      '.cm-gutters': { backgroundColor: 'var(--canvas)', color: 'var(--muted)', borderRight: '1px solid var(--line)' },
-      '.cm-activeLine': { backgroundColor: 'transparent' },
-    }),
+    look.of(editorTheme(dark)),
     EditorView.contentAttributes.of({ 'aria-label': editorLabel(o.locked) }),
   ];
   const view = new EditorView({ parent: o.parent, state: openingState(o.text, o.locked, extensions) });
+  const stopFollowing = watchAppliedTheme(root, (theme) => {
+    if ((theme === 'dark') === dark) return;
+    dark = theme === 'dark';
+    view.dispatch({ effects: look.reconfigure(editorTheme(dark)) });
+  });
   view.focus();
   return {
     getText: () => view.state.doc.toString(),
     setText: (text) => view.dispatch({ changes: middleChange(view.state, text, o.locked) }),
-    destroy: () => view.destroy(),
+    destroy: () => { stopFollowing(); view.destroy(); },
   };
 }

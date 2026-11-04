@@ -2,6 +2,7 @@
 // concepts in Today's order (D12's level 1 first, then 06's index), each with its state, its 10 concepts nested under it,
 // "Reading" where one exists and "Practice" on every one. Everything is open; a state is a signal, never a gate. Opening the
 // map logs nothing. ChoiceMapScreen is the section-neutral map, for Methodology's map too (Task C6).
+import { EmptyLine } from '../components/Mascot.tsx';
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { api, type ChoiceConceptView, type ChoiceSection } from '../api.ts';
 import { Ga4Runs } from '../components/Ga4Runs.tsx';
@@ -60,7 +61,7 @@ export function ChoiceMapScreen({ section, intro, byTopic = false, extra }: { se
     <section>
       <PageHead section={section} crumb={crumbParts({ section, hideLabels: false })} title={`${SECTION_LABEL[section]} map`} />
       {intro && <p className="muted">{intro}</p>}
-      {concepts.length === 0 ? <p>No concepts yet.</p> : byTopic
+      {concepts.length === 0 ? <EmptyLine text="No concepts yet." /> : byTopic
         ? <>
           <nav className="topic-links" aria-label="Topics">{groups.map((g, i) => (
             <span key={g.topic_id}>{i > 0 && ' · '}<a href={`#/${section}`} onClick={(e) => jumpTo(e, topicAnchor(g.topic_id))}>{g.label} ({g.rows.length})</a></span>

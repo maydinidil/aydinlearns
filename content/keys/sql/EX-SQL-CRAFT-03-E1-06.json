@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E1-06",
+  "item_version": 2,
+  "reference_sql": "WITH lfl_stores AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code\n  FROM stores\n  WHERE opened_on <= DATE '2024-01-01' AND (close_date IS NULL OR close_date >= DATE '2025-12-31')\n)\nSELECT l.store_code,\n  SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2024,\n  SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2025\nFROM lfl_stores l\nLEFT JOIN sales s ON s.store_code = l.store_code\nGROUP BY l.store_code",
+  "alternatives": [
+    "SELECT st.store_code,\n  COALESCE(SUM(s.net_revenue_eur) FILTER (WHERE s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'), 0) AS revenue_2024,\n  COALESCE(SUM(s.net_revenue_eur) FILTER (WHERE s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'), 0) AS revenue_2025\nFROM stores st\nLEFT JOIN sales s ON s.store_code = st.store_code\nWHERE st.opened_on <= DATE '2024-01-01' AND (st.close_date IS NULL OR st.close_date >= DATE '2025-12-31')\nGROUP BY st.store_code",
+    "WITH yearly AS (\n  -- one row per store and year with sales\n  SELECT store_code, year(order_date) AS sales_year, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY store_code, year(order_date)\n)\nSELECT st.store_code, COALESCE(y24.revenue, 0) AS revenue_2024, COALESCE(y25.revenue, 0) AS revenue_2025\nFROM stores st\nLEFT JOIN yearly y24 ON y24.store_code = st.store_code AND y24.sales_year = 2024\nLEFT JOIN yearly y25 ON y25.store_code = st.store_code AND y25.sales_year = 2025\nWHERE st.opened_on <= DATE '2024-01-01' AND (st.close_date IS NULL OR st.close_date >= DATE '2025-12-31')"
+  ],
+  "other_way": {
+    "sql": "WITH yearly AS (\n  -- one row per store and year with sales\n  SELECT store_code, year(order_date) AS sales_year, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY store_code, year(order_date)\n)\nSELECT st.store_code, COALESCE(y24.revenue, 0) AS revenue_2024, COALESCE(y25.revenue, 0) AS revenue_2025\nFROM stores st\nLEFT JOIN yearly y24 ON y24.store_code = st.store_code AND y24.sales_year = 2024\nLEFT JOIN yearly y25 ON y25.store_code = st.store_code AND y25.sales_year = 2025\nWHERE st.opened_on <= DATE '2024-01-01' AND (st.close_date IS NULL OR st.close_date >= DATE '2025-12-31')",
+    "tradeoff": "Adding up each store and year first and joining the two years side by side is easy to check, but it needs two joins."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT st.store_code, SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2024, SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2025 FROM stores st LEFT JOIN sales s ON s.store_code = st.store_code GROUP BY st.store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH lfl_stores AS (SELECT store_code FROM stores WHERE opened_on <= DATE '2024-01-01' AND (close_date IS NULL OR close_date >= DATE '2025-12-31')) SELECT l.store_code, SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.units ELSE 0 END) AS revenue_2024, SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.units ELSE 0 END) AS revenue_2025 FROM lfl_stores l LEFT JOIN sales s ON s.store_code = l.store_code GROUP BY l.store_code"
+    }
+  ],
+  "hint3_partial": "WITH lfl_stores AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code\n  FROM stores\n  WHERE opened_on <= ___ AND (close_date IS NULL OR ___)\n)\nSELECT l.store_code,\n  SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2024,\n  SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2025\nFROM lfl_stores l\nLEFT JOIN sales s ON s.store_code = l.store_code\nGROUP BY l.store_code",
+  "solver": {
+    "prompt_hash": "4d7c50e9a0d14d97",
+    "schema_version": "5dbd771f9d51",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT st.store_code,\n  COALESCE(SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.net_revenue_eur END), 0) AS revenue_2024,\n  COALESCE(SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.net_revenue_eur END), 0) AS revenue_2025\nFROM stores st LEFT JOIN sales s ON s.store_code = st.store_code\nWHERE st.opened_on <= DATE '2024-01-01' AND (st.close_date IS NULL OR st.close_date >= DATE '2025-12-31')\nGROUP BY st.store_code\n",
+    "at": "2026-11-03T19:01:33.460Z"
+  }
+}

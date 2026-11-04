@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-22",
+  "item_version": 1,
+  "reference_sql": "WITH week_sales AS (\n  -- one row per order line sold from 7 to 13 April 2025 (UTC days): only the columns the total needs\n  SELECT parent_category, units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-04-07' AND DATE '2025-04-13'\n)\nSELECT parent_category, SUM(units) AS units\nFROM week_sales\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, SUM(units) AS units\nFROM sales\nWHERE order_date BETWEEN DATE '2025-04-07' AND DATE '2025-04-13'\nGROUP BY parent_category",
+    "WITH week_sales AS (\n  -- one row per order line sold from 7 to 13 April 2025 (UTC days): only the columns the total needs\n  SELECT parent_category, units\n  FROM sales\n  WHERE order_week = DATE '2025-04-07'\n)\nSELECT parent_category, SUM(units) AS units\nFROM week_sales\nGROUP BY parent_category"
+  ],
+  "other_way": {
+    "sql": "SELECT parent_category, SUM(units) AS units\nFROM sales\nWHERE order_date BETWEEN DATE '2025-04-07' AND DATE '2025-04-13'\nGROUP BY parent_category",
+    "tradeoff": "One query with no CTE is shorter, while the CTE shows the narrowed rows and columns as their own step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH per_parent AS (\n  SELECT parent_category, SUM(units) AS units, SUM(net_revenue_eur) AS revenue, COUNT(DISTINCT product_id) AS products\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-04-07' AND DATE '2025-04-13'\n  GROUP BY parent_category\n)\nSELECT *\nFROM per_parent"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH week_sales AS (\n  -- one row per order line sold from 7 to 13 April 2025 (UTC days): only the columns the total needs\n  SELECT parent_category, units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-04-07' AND DATE '2025-04-12'\n)\nSELECT parent_category, SUM(units) AS units\nFROM week_sales\nGROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "WITH week_sales AS (\n  -- one row per order line sold from 7 to 13 April 2025 (UTC days): only the columns the total needs\n  SELECT parent_category, units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-04-07' AND ___\n)\nSELECT parent_category, SUM(units) AS units\nFROM week_sales\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "ce769a3cb6b25007",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT parent_category, SUM(units) AS units\r\nFROM sales\r\nWHERE order_date >= DATE '2025-04-07' AND order_date <= DATE '2025-04-13'\r\nGROUP BY parent_category",
+    "at": "2026-11-03T19:01:31.842Z"
+  }
+}

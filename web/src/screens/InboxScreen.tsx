@@ -2,6 +2,7 @@
 // manager's message: who asks, the kind and level, the decision and deadline, and a status word with the score. Reading it serves
 // and logs nothing (GET /api/cases). Every case opens at any time; the SQL tab is the current tab (lib/nav.ts). Sprint 6 (S6-13): a
 // case whose dataset is not prepared shows the line that names it and the prep command.
+import { EmptyLine } from '../components/Mascot.tsx';
 import { useEffect, useState } from 'react';
 import { PageHead } from '../components/PageHead.tsx';
 import { codeSpans } from '../lib/code-spans.ts';
@@ -21,7 +22,7 @@ export function InboxScreen() {
     <section className="inbox">
       {head}
       <p className="muted">Questions from the managers you work with. Open any case at any time, in any order.</p>
-      {cases.length === 0 ? <p>No cases yet.</p> : (
+      {cases.length === 0 ? <EmptyLine text="No cases yet." /> : (
         <ul className="inbox-list card">
           {cases.map((c) => {
             const r = inboxRow(c);

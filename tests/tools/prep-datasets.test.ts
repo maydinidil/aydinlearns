@@ -53,7 +53,7 @@ test('no --from prints the usage and runs nothing; a missing venv says how to se
   const gone = stand([null], Object.assign(new Error('spawn ENOENT'), { code: 'ENOENT' }));
   const g = quiet(() => runPrep(['--from', 'X'], gone.spawner));
   assert.equal(g.result, 1);
-  assert.match(g.err, /pipeline\/\.venv is not set up: start the app once with Start aydinlearns\.bat/);
+  assert.match(g.err, /pipeline\/\.venv is not set up: start the app once with Start Grondig.bat/);
 });
 
 test('package.json runs it as prep:datasets', async () => {

@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-BQ-01-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "unnest",
+    "purchase",
+    "value_slots"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-JOIN-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-purchase-values",
+  "template_params": {
+    "event_name": "purchase",
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "List the purchases of 1 to 7 December 2025, by event_date, with their value. Read the value parameter from whichever number slot holds it: some purchases carry it in int_value and others in double_value. Every purchase counts, a purchase whose payment was later refunded included. Return transaction_id, from ecommerce, and value, in euros. Return one row for each purchase. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "transaction_id",
+        "type_class": "text"
+      },
+      {
+        "name": "value",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per purchase from 1 to 7 December 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "transaction_id",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "value",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "transaction_id"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, unnest each purchase's parameters so that each parameter becomes a row.",
+    "In DuckDB, name each element of the list with a column alias such as t(p), then read p.key and p.value."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 134,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 135,
+      "to": 183,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 184,
+      "to": 290,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 153,
+    "stage2": 153
+  },
+  "faded_shape": "SELECT e.ecommerce.transaction_id AS transaction_id,\n  COALESCE(p.value.int_value, p.value.float_value, p.value.double_value) AS value\nFROM events AS e, ",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The unnest gives one row per parameter, the key filter keeps the value row, and COALESCE reads whichever slot holds the number.",
+  "faded_suffix": "\nWHERE e.event_name = 'purchase'\n  AND e.event_date BETWEEN '20251201' AND '20251207'\n  AND p.key = 'value'"
+}

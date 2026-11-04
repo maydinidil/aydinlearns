@@ -1,0 +1,90 @@
+{
+  "case_id": "CASE-DAILY-L7-02",
+  "kind": "daily",
+  "level": 7,
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "Net revenue per open day by physical store, 2024",
+  "persona": {
+    "name": "Marieke",
+    "role": "CFO"
+  },
+  "brief": {
+    "decision": "Which per-store figure goes into the store benchmark for the bank's 2026 credit line review",
+    "deadline": "The bank meeting in the third week of January 2026"
+  },
+  "data_needed": [
+    "stores",
+    "orders",
+    "order_lines"
+  ],
+  "expected_output": {
+    "columns": [
+      "store_code",
+      "open_days",
+      "net_revenue_eur",
+      "revenue_per_open_day_eur"
+    ],
+    "grain": "one row per physical store open on at least one day of 2024",
+    "sort": [
+      {
+        "column": "store_code",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Marieke's question.",
+      "credits_concepts": [
+        "SQL-CRAFT-03",
+        "SQL-DATE-02",
+        "SQL-AGG-02"
+      ],
+      "item_id": "EX-CASE-DAILY-L7-02"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Marieke's headline, the benchmark for the bank: take every store except the webshop (store_type web) that was open on at least one day from 1 January to 31 December 2024. A store's open days in 2024 run from its opened_on, or from 1 January 2024 if it opened earlier, to its close_date, or to 31 December 2024 if it has none or closed later, both days included. A store's net revenue is the sum of each line's quantity times its unit_price_eur, minus that line's line_discount_eur, over the lines of its orders with an order_ts on a UTC day of 2024; order_ts holds UTC time. Add up the net revenue of all those stores and divide it by the sum of their open days. Type the amount in euros, rounded to 2 decimals.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L7-02:CP4",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-DAILY-L7-02:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: open_days, the days of 2024 from the later of opened_on and 1 January to the earlier of close_date and 31 December, both included; net_revenue_eur, the sum of quantity times unit_price_eur minus line_discount_eur over the store's 2024 lines, 0 when there are none; revenue_per_open_day_eur, net_revenue_eur divided by open_days, rounded to 2 decimals.\nOutput grain: one row per physical store open on at least one day of 2024.\nTables and keys: stores for the open days; order_lines joined to orders on order_id, added up per store_id first, then left joined to the stores.\nFilters: every store_type but web; order_ts on a UTC day of 2024, from 1 January up to but not including 1 January 2025.\nEdge cases: a store that opened during 2024 is divided by its own open days, not by every day of the year; a store that opened in 2025 has no row; the first and the last open day both count.\nExpected row count: 24",
+  "model_answer_template": "Voltmarkt's physical stores took {CP4} euros of net revenue per open day in 2024, counting each store only on the days it was open. NL-13, open only from 1 September, would look far weaker on a full-year average, so revenue per open day is the fair benchmark to show the bank. Revenue per day is not margin, and a new store's first months may not show the level it settles at. Next, add 2025 for the stores open all of that year once its accounts are audited, and set NL-13's months beside those of the other standard stores.",
+  "follow_up_question": "How did NL-13's net revenue per open day in 2025 compare with its first four months in 2024?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CRAFT-03"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

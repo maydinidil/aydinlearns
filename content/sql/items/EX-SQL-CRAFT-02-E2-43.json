@@ -1,0 +1,100 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-43",
+  "version": 1,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "fixed_choice",
+    "bigquery",
+    "table_suffix"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-date-shards",
+  "template_params": {
+    "month": "2025-10"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "In BigQuery, Mailvora's GA4 export is stored as one table per day, events_YYYYMMDD. Which query counts October 2025's events while reading only the October daily tables?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o65b2750",
+      "text": "A suffix filter with dashed dates.",
+      "misconception_id": "ERR-LOG-55",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(*) AS events\nFROM `mailvora-web.analytics_312345678.events_*`\nWHERE _TABLE_SUFFIX BETWEEN '2025-10-01' AND '2025-10-31'"
+      }
+    },
+    {
+      "oid": "o91c8671",
+      "text": "A filter on event_date.",
+      "misconception_id": "MIS-SQL-CRAFT-02-03",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(*) AS events\nFROM `mailvora-web.analytics_312345678.events_*`\nWHERE event_date BETWEEN '20251001' AND '20251031'"
+      }
+    },
+    {
+      "oid": "oa65701e",
+      "text": "A filter on event_date read as a date.",
+      "misconception_id": "MIS-SQL-CRAFT-02-03",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(*) AS events\nFROM `mailvora-web.analytics_312345678.events_*`\nWHERE PARSE_DATE('%Y%m%d', event_date) BETWEEN '2025-10-01' AND '2025-10-31'"
+      }
+    },
+    {
+      "oid": "o6f8d634",
+      "text": "A suffix filter in the export's own form.",
+      "misconception_id": null,
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(*) AS events\nFROM `mailvora-web.analytics_312345678.events_*`\nWHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'"
+      }
+    }
+  ]
+}

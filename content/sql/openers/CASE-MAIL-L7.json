@@ -1,0 +1,178 @@
+{
+  "case_id": "CASE-MAIL-L7",
+  "kind": "opener",
+  "level": 7,
+  "world": "MKT",
+  "company_id": "mailvora",
+  "schema": "mailvora_ga4",
+  "title": "The GA4 export against the backend, by first touch",
+  "persona": {
+    "name": "Declan",
+    "role": "Head of growth"
+  },
+  "brief": {
+    "decision": "Whether the 2026 growth report can read sign-ups and first payments per first-touch source and medium from the GA4 export instead of the backend",
+    "deadline": "Declan's growth review in the second week of January 2026"
+  },
+  "data_needed": [
+    "events",
+    "sessions",
+    "signups",
+    "subscriptions",
+    "payments"
+  ],
+  "expected_output": {
+    "columns": [
+      "source",
+      "medium",
+      "ga4_signups",
+      "backend_signups",
+      "ga4_first_payments",
+      "backend_first_payments"
+    ],
+    "grain": "one row per first-touch source and medium with at least one sign-up or first payment on the Dublin days of Q4 2025, on either side",
+    "sort": [
+      {
+        "column": "source",
+        "desc": false
+      },
+      {
+        "column": "medium",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "prompt": "Declan asks how many sign-ups each first-touch source and medium brought in on the Dublin days from 1 October to 31 December 2025, read from the GA4 export alone. In events, event_date holds that Dublin day as text, traffic_source holds the visitor's first touch, and a visitor who denied consent sends events with no user_pseudo_id or user_id; those sign-ups count too. Before you write any SQL, which rows of events, counted how, answer that?",
+      "credits_concepts": [],
+      "item_id": "CASE-MAIL-L7:CP1",
+      "options": [
+        {
+          "oid": "oec87a3e",
+          "text": "The sign_up events with an event_date from '20251001' to '20251231' and a user_pseudo_id, each counted once, grouped by the source and medium in traffic_source."
+        },
+        {
+          "oid": "o1dcc2fe",
+          "text": "The different user_pseudo_id values among the sign_up events with an event_date from '20251001' to '20251231', grouped by the source and medium in traffic_source."
+        },
+        {
+          "oid": "o9f8a76a",
+          "text": "The sign_up events with an event_date from '20251001' to '20251231', each counted once, grouped by the source and medium in traffic_source."
+        },
+        {
+          "oid": "o1804097",
+          "text": "The sign_up events with an event_date from '20251001' to '20251231', each counted once, grouped by the utm_source and utm_medium of the session their ga_session_id points to."
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "prompt": "Declan first wants the size of the export's side. How many sign-ups does the GA4 export record over the Dublin days from 1 October to 31 December 2025? A sign-up is a sign_up event, and event_date holds its Dublin day. Count each such event once, including those with no user_pseudo_id, from visitors who denied consent, and those Mailvora's server sends. Type a whole number.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-MAIL-L7:CP2",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "sign-ups"
+      },
+      "truth_key": "CASE-MAIL-L7:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Declan's question.",
+      "credits_concepts": [
+        "SQL-CRAFT-01",
+        "SQL-BQ-01",
+        "SQL-CRAFT-03",
+        "SQL-CTE-01",
+        "SQL-AGG-02"
+      ],
+      "item_id": "EX-OPENER-L7-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Declan's headline: take the subscriptions whose first payment, the earliest paid_at among the subscription's payments, fell on a Dublin day from 1 October to 31 December 2025, that is from 2025-09-30 23:00:00 UTC up to but not including 2026-01-01 00:00:00 UTC; a first payment that was later refunded counts. In the GA4 export each of them is one purchase event, dated by event_date, with the paying visitor's first touch in traffic_source. What percentage of them came from a visitor whose first-touch medium is a paid one: cpc, paid_social, video or affiliate? Type the percentage rounded to 1 decimal, for example 12.3.",
+      "credits_concepts": [],
+      "item_id": "CASE-MAIL-L7:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-MAIL-L7:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "prompt": "Declan's result counts every sign_up and purchase event, the sign_ups with no user_pseudo_id from visitors who denied consent included, and it counts a first payment that was later refunded on both sides, as the export keeps its purchase and has no refund event. It shows the export's sign-ups and first payments equal to the backend's in every first-touch source and medium over the Dublin days of Q4 2025, and the export holds each visitor's first touch only, in traffic_source. What can Declan conclude from this result?",
+      "credits_concepts": [],
+      "item_id": "CASE-MAIL-L7:CP5",
+      "options": [
+        {
+          "oid": "o7697cc2",
+          "text": "The export also holds each session's own source and medium, so a last-touch report read from the export would match the backend just as well."
+        },
+        {
+          "oid": "o0b14509",
+          "text": "The sources with the most first payments caused those payments, so the 2026 budget can follow these counts from one source to the next."
+        },
+        {
+          "oid": "o5c533f8",
+          "text": "The export can stand in for the backend on these first-touch counts, but its purchases still include first payments refunded later."
+        },
+        {
+          "oid": "oe0f4526",
+          "text": "The export leaves out the visitors who denied consent, so the counts match only because the backend leaves the same visitors out as well."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "prompt": "Write 2 to 4 sentences for Declan: whether the export can feed the growth report, the headline number, one caveat and one next step.",
+      "credits_concepts": []
+    }
+  ],
+  "model_plan": "Metric formula: ga4_signups and ga4_first_payments, the sign_up and purchase events of a first-touch source and medium; backend_signups and backend_first_payments, the signups and the subscriptions' first payments of the visitors whose first session had that source and medium; 0 where there are none.\nOutput grain: one row per first-touch source and medium with a sign-up or a first payment on either side.\nTables and keys: events alone for the export, read through traffic_source; payments down to each subscription's earliest paid_at, joined to subscriptions on subscription_id and to signups on user_id for the visitor; sessions down to each visitor's earliest session_start, joined on visitor_id; the two sides joined on source and medium.\nFilters: event_date from 20251001 to 20251231; signup_ts and the first paid_at on the same Dublin days, each turned from a UTC instant into Europe/Dublin time first.\nEdge cases: a sign_up with no user_pseudo_id, from a visitor who denied consent, still counts; every purchase comes from the server and counts; a first payment refunded later counts on both sides; a missing UTM value reads as (direct) or (none); a visitor's first session can come before October.\nExpected row count: 34",
+  "model_answer_template": "Over the Dublin days of Q4 2025 the GA4 export's {CP2} sign-ups and its first payments matched the backend in every first-touch source and medium, so the growth report can read them from the export. {CP4} percent of the quarter's first payments came from visitors whose first touch was a paid medium, a share the report can now follow from the export alone. The match holds for each visitor's first touch with the consent-denied events counted, and the export still counts a first payment refunded later as a purchase, so net paying customers need the backend's refund flag. Next, flag refunded purchases by joining transaction_id to payments, and rerun this check each month.",
+  "follow_up_question": "Which first-touch sources had the highest share of refunded first payments in Q4 2025?",
+  "data_source": {
+    "label": "Fictional, generated data: Mailvora",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SET-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-01",
+    "SQL-CRAFT-03"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

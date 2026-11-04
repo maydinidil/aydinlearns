@@ -39,6 +39,11 @@
     "why": "SQL works out window functions after WHERE has picked the rows and GROUP BY and HAVING have grouped them, so a window function cannot go in WHERE, a join's ON, GROUP BY or HAVING. It cannot go inside an aggregate such as SUM or COUNT either, its FILTER included, inside another window function, or in another window's PARTITION BY or ORDER BY.",
     "model": "Work the window function out in a CTE or subquery and give it a name. Then use that name in the outer query: filter it with WHERE, group by it, add it up, or use it in another window function. For example: `WITH ranked AS (SELECT product_id, ROW_NUMBER() OVER (ORDER BY units DESC, product_id) AS rn FROM t) SELECT product_id FROM ranked WHERE rn <= 3`. End the ORDER BY with a tie-break, here `product_id`, so tied rows at the cutoff come out the same every time; if the question states a tie-break, it goes last."
   },
+  "ERR-SYN-09": {
+    "assumed": "You probably expected BigQuery's way into a list to work here: `UNNEST(event_params) AS p`, then `p.key`, or `FROM UNNEST(event_params) WHERE key = ...`.",
+    "why": "In DuckDB, `UNNEST(event_params) AS p` names the table that unnest makes, not each item in the list: the items come out in one column called unnest, so DuckDB finds no p.key, no key and no value. BigQuery names each item and reads its fields straight away.",
+    "model": "Name the table and its column both, with `AS t(p)`: `SELECT p.value.int_value AS ga_session_id FROM events e, unnest(e.event_params) AS t(p) WHERE e.event_name = 'session_start' AND p.key = 'ga_session_id'`. Filter on event_name first, so DuckDB does not unnest every event. Then p is each item, and `p.key` and `p.value.int_value` read its fields. Each event now has one row for each of its parameters, so filter on p.key before you count or add up."
+  },
   "ERR-SEM-01": {
     "assumed": "You probably expected SQL to show a column next to your totals without being told how to combine its values in each group.",
     "why": "After GROUP BY, each group becomes one row. A column that is neither in GROUP BY nor inside an aggregate can hold many different values within one group, and SQL will not pick one for you.",
@@ -324,6 +329,26 @@
     "why": "MRR is revenue per month. A monthly plan's price is already that, but an annual plan's price pays for 12 months: a plan of 1,200 a year is 100 of MRR, not 1,200. Counted whole, each annual account counts 12 times over, so total MRR and the share from annual plans both come out too high.",
     "model": "Turn each price into a monthly amount before you add it up: `CASE WHEN billing_period = 'annual' THEN price_eur / 12.0 ELSE price_eur END AS mrr_eur`. When the annual price has a discount in it, divide the discounted price, not the list price. Then check one annual account by hand: its MRR times 12 is its price for the year."
   },
+  "ERR-LOG-52": {
+    "assumed": "You probably expected each ga_session_id to belong to one session, so that counting the distinct IDs counts the sessions.",
+    "why": "ga_session_id is the second the session started, counted from 1970, so two visitors who start a session in the same second share the same one. Counted alone, their two sessions are one. GA4 knows a session by the visitor and the ID together: user_pseudo_id with ga_session_id.",
+    "model": "Read ga_session_id out of event_params into a column first, in a CTE, then count each pair of visitor and ID once: `COUNT(DISTINCT user_pseudo_id || '-' || ga_session_id)`, which also leaves out a pair with a missing part. The pair count leaves out an event with no user_pseudo_id (consent denied). When the question counts those events too, as a reconciliation of session_start events does, count the session_start events themselves."
+  },
+  "ERR-LOG-53": {
+    "assumed": "You probably expected a GA4 parameter such as value to arrive in the same value slot on every event.",
+    "why": "Each parameter's value has four slots, string_value, int_value, float_value and double_value, and the tag that sends it decides which one it fills. A purchase of 20 sent as a whole number lands in int_value, while 10.50 lands in double_value, so reading double_value alone gives a missing value for the first, and a SUM leaves it out without a warning.",
+    "model": "Read every number slot the parameter can arrive in, taking the first one that is filled: `COALESCE(value.int_value, value.float_value, value.double_value)`, as in `SELECT SUM(COALESCE(p.value.int_value, p.value.float_value, p.value.double_value)) AS revenue FROM events e, unnest(e.event_params) AS t(p) WHERE e.event_name = 'purchase' AND p.key = 'value'`. A text parameter, such as session_engaged or page_location, arrives in string_value, so read it there. To check, count the events where the one slot you first read is missing."
+  },
+  "ERR-LOG-54": {
+    "assumed": "You probably expected event_timestamp to count seconds or milliseconds since 1970, as many systems do.",
+    "why": "GA4's event_timestamp counts microseconds since 1970, in UTC: 1,000,000 for each second. Read as milliseconds, by dividing it by 1,000 or with epoch_ms, each event lands tens of thousands of years from now, so every time, day and gap between events comes out wrong.",
+    "model": "Divide it by 1,000,000 to get seconds: `to_timestamp(event_timestamp / 1000000)` gives the moment the event happened, in UTC. For the time in Dublin, the property's time zone, turn that moment into Dublin's clock: `timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))`. Then check one event by hand: its date on the Dublin clock is its event_date."
+  },
+  "ERR-LOG-55": {
+    "assumed": "You probably expected event_date to compare with a date written as '2025-10-01', as a DATE column does.",
+    "why": "event_date is text in the form '20251001', with no dashes. Text is compared character by character, and the fifth character of '20250930' is a 0, which sorts after the dash in '2025-10-01', so every date of 2025 counts as later and a filter keeps the wrong rows. DuckDB will not compare it with DATE '2025-10-01' at all: it asks for a cast.",
+    "model": "Compare event_date with text in its own form, `event_date >= '20251001'`, or turn it into a date first: `CAST(strptime(event_date, '%Y%m%d') AS DATE) >= DATE '2025-10-01'`. Then check the result by counting the rows on the first and the last day you keep."
+  },
   "ERR-CMP-01": {
     "assumed": "You probably expected to need DISTINCT to stop the rows from repeating.",
     "why": "Your result is right, but DISTINCT changes nothing here: no two rows of the result can be the same, because each holds a value that is unique, such as `product_id`. DISTINCT still makes the engine compare every row, and where a join repeats rows, it hides that mistake instead of fixing it.",
@@ -346,7 +371,7 @@
   },
   "ERR-OUT-02": {
     "assumed": "You probably expected a value to count as right whatever its type, for example the text '10' for the number 10, a date written as text, or a whole number written with decimals, such as 2.0 for 2.",
-    "why": "SQL keeps text, numbers and dates as different types: the text '10' never equals the number 10, and the engine stops when it cannot turn one type into another. Each column must have the type the output contract shows, in the place it shows it. In screen mode, as in an online SQL test, whole numbers and numbers with decimals are different types too: a count that comes back as 2.0, after `* 1.0` or a CAST to a decimal, does not match the whole number 2.",
+    "why": "SQL keeps text, numbers and dates as different types: the text '10' never equals the number 10, and the engine stops when it cannot turn one type into another. Each column must have the type the output contract shows, in the place it shows it. In screen mode, as in an online SQL test, whole numbers and numbers with decimals are different types too: a count that comes back as 2.0, after `* 1.0` or a CAST to a decimal, does not match the whole number 2. A column that holds a list or a struct, such as event_params, is also this mistake when the question asks for one value: pick the one value out, for example a parameter's value read from its slot.",
     "model": "Return each column in the contract's type and order: leave numbers and dates unformatted rather than casting them to text, and compare text columns with quoted text such as `'BE'` and number columns with plain numbers such as `10`. Return a count as a whole number: use `* 1.0` or a CAST to a decimal only on a value that has decimals, such as a rate."
   }
 }

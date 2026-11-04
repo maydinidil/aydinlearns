@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH views AS (\n  -- one row per page_view from 1 to 15 December 2025\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251201' AND '20251215'\n)\nSELECT split_part(replace(page_location, 'https://www.mailvora.example', ''), '?', 1) AS page_path,\n  COUNT(*) AS page_views\nFROM views\nGROUP BY split_part(replace(page_location, 'https://www.mailvora.example', ''), '?', 1)",
+  "alternatives": [
+    "SELECT regexp_replace([p.value.string_value FOR p IN event_params IF p.key = 'page_location'][1], '^https://www[.]mailvora[.]example|[?].*$', '', 'g') AS page_path,\n  COUNT(*) AS page_views\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date BETWEEN '20251201' AND '20251215'\nGROUP BY 1",
+    "SELECT split_part(substring(p.value.string_value, 29), '?', 1) AS page_path, COUNT(*) AS page_views\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date BETWEEN '20251201' AND '20251215'\n  AND p.key = 'page_location'\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT split_part(substring(p.value.string_value, 29), '?', 1) AS page_path, COUNT(*) AS page_views\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date BETWEEN '20251201' AND '20251215'\n  AND p.key = 'page_location'\nGROUP BY 1",
+    "tradeoff": "Unnesting the list and keeping the page_location key works here, but it would drop a page_view that carries no page_location."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH views AS (SELECT user_pseudo_id, list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location FROM events WHERE event_name = 'page_view' AND event_date BETWEEN '20251201' AND '20251215') SELECT split_part(replace(page_location, 'https://www.mailvora.example', ''), '?', 1) AS page_path, COUNT(user_pseudo_id) AS page_views FROM views GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH views AS (SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location FROM events WHERE event_name = 'page_view' AND event_date BETWEEN '2025-12-01' AND '2025-12-15') SELECT split_part(replace(page_location, 'https://www.mailvora.example', ''), '?', 1) AS page_path, COUNT(*) AS page_views FROM views GROUP BY 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-02",
+      "sql": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value AS page_path, COUNT(*) AS page_views FROM events WHERE event_name = 'page_view' AND event_date BETWEEN '20251201' AND '20251215' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "WITH views AS (\n  -- one row per page_view from 1 to 15 December 2025\n  SELECT list_filter(event_params, lambda p: p.key = ___)[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251201' AND '20251215'\n)\nSELECT split_part(replace(page_location, ___, ''), ___, 1) AS page_path,\n  COUNT(*) AS page_views\nFROM views\nGROUP BY split_part(replace(page_location, 'https://www.mailvora.example', ''), '?', 1)",
+  "solver": {
+    "prompt_hash": "f2121014f57cf3ec",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT CASE WHEN length(split_part(replace(list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value, 'https://www.mailvora.example', ''), '?', 1)) = 0 THEN '/' ELSE split_part(replace(list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value, 'https://www.mailvora.example', ''), '?', 1) END AS page_path, COUNT(*) AS page_views\r\nFROM events\r\nWHERE event_name = 'page_view' AND event_date BETWEEN '20251201' AND '20251215'\r\nGROUP BY 1\r\n",
+    "at": "2026-11-03T19:01:25.017Z"
+  }
+}

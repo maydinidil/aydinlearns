@@ -1,0 +1,171 @@
+{
+  "concept_id": "SQL-CRAFT-01",
+  "version": 2,
+  "reading_md": "## Readable queries and checks you can trust\n\nA take-home is judged on two things: is the answer right, and can a reviewer see why? Write each step so a stranger can follow it, then prove the numbers with a check.\n\n### Name the steps\n\nBreak the query into CTEs named for what they hold: `export_days`, `backend_days`, `first_payments`. Avoid `a`, `b` and `t1`: a reviewer should not have to decode an alias. On the first line of each step, write its grain as a comment, `-- one row per Dublin day`, and the assumptions it makes: `-- consent-denied events included`, `-- refunded first payments kept`. The result never shows a comment, but every reviewer reads it.\n\n### Three checks worth writing\n\n1. **Reconcile a total.** Count the same thing two ways and compare: the GA4 export against the backend, or `sales` against `order_lines`. Return both numbers and their difference, or a pass or fail column. A difference of 0 means the totals reconcile.\n2. **Row count before and after a join.** A join to a table whose key is unique keeps one row per row. When the count goes up, the key was not unique and the join fanned out; when it goes down, an inner join dropped rows with no match.\n3. **Duplicate key.** Before you join on a column, compare its rows with its distinct values. In the export, `ga_session_id` alone is not a key: two visitors can start a session in the same second. A session is `user_pseudo_id` with `ga_session_id`.\n\n### Compare the same rows\n\nA reconciliation means something only when both sides count the same rows:\n- **The same days.** `event_date` is the Dublin day, as text. Give the backend side its Dublin day too: `strftime(timezone('Europe/Dublin', session_start), '%Y%m%d')` meets `event_date` in its own form.\n- **The same population.** Events from visitors who denied consent have no `user_pseudo_id`, but their sessions are still in the backend. `COUNT(*)` counts them; `COUNT(user_pseudo_id)` skips them, and the check fails for the wrong reason.\n- **The same rule.** The export keeps a purchase whose first payment was later refunded, so the backend side keeps that payment too. Say so in a comment.\n\n### When a check fails\n\nA difference is information, not something to hide. Find the slip that causes it before you change anything: the day boundary, the missing IDs, the session key, a value read from one slot only, or a join that repeats rows. Fix that one step and run the check again.\n\n### Tell the manager\n\nEnd with a short summary: what one row stands for (the grain), the answer, and the caveat that limits it. \"Sessions match\" is a claim. \"Each row is one Dublin day; both sources agree on all seven days; about 2% of sessions come from visitors who denied consent\" is a statement the manager can check.",
+  "syntax_md": "```sql\nWITH export_days AS (\n  -- one row per Dublin day; consent-denied events included\n  SELECT event_date AS day, COUNT(*) AS export_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251215' AND '20251221'\n  GROUP BY event_date\n), backend_days AS (\n  -- one row per Dublin day: sessions by the Dublin day of session_start\n  SELECT strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') AS day,\n    COUNT(*) AS backend_sessions\n  FROM sessions\n  WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d')\n    BETWEEN '20251215' AND '20251221'\n  GROUP BY day\n)\nSELECT e.day, e.export_sessions, b.backend_sessions,\n  e.export_sessions - b.backend_sessions AS difference   -- 0: the day reconciles\nFROM export_days e\nJOIN backend_days b ON b.day = e.day;\n```\n\n- A row count check: the rows of the step before a join against the rows after it; more rows means a fan-out.\n- A key check: `COUNT(*)` against `COUNT(DISTINCT key)`; equal means the key is unique.\n- A pass or fail column: `CASE WHEN a = b THEN 'pass' ELSE 'fail' END`.",
+  "dialect_note": "The same WITH steps and `--` comments run in BigQuery. Tables there are named with their project and dataset in backticks, such as `mailvora-web.analytics_312345678.events_*` (a made-up name for Mailvora's export), and a check reads only the daily tables it needs: `WHERE _TABLE_SUFFIX BETWEEN '20251215' AND '20251221'`. BigQuery reads event_date as a date with `PARSE_DATE('%Y%m%d', event_date)`, where DuckDB uses `strptime`.",
+  "worked_examples": [
+    {
+      "title": "Reconcile sessions day by day",
+      "prompt": "For each Dublin day from 15 to 21 December 2025, compare the session_start events in the export (consent-denied ones included) with the backend sessions that start on that Dublin day. Return day, export_sessions, backend_sessions and difference.",
+      "clauses": [
+        {
+          "text": "WITH export_days AS (  -- one row per Dublin day; consent-denied events included",
+          "subgoal": "source_grain",
+          "why": "Each side gets its own named step, and the comment states its grain and its assumption."
+        },
+        {
+          "text": "  SELECT event_date AS day, COUNT(*) AS export_sessions",
+          "subgoal": "metrics",
+          "why": "COUNT(*) keeps the consent-denied events, whose sessions the backend also holds."
+        },
+        {
+          "text": "  FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251215' AND '20251221'",
+          "subgoal": "row_filter",
+          "why": "One session_start per session, on the Dublin days, compared as text in event_date's own form."
+        },
+        {
+          "text": "  GROUP BY event_date",
+          "subgoal": "output_grain",
+          "why": "One row per Dublin day, the grain the comment promises."
+        },
+        {
+          "text": "), backend_days AS (  -- one row per Dublin day: sessions by the Dublin day of session_start",
+          "subgoal": "source_grain",
+          "why": "The backend side, at the same grain as the export side."
+        },
+        {
+          "text": "  SELECT strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') AS day, COUNT(*) AS backend_sessions",
+          "subgoal": "metrics",
+          "why": "session_start is a UTC instant: timezone() gives Dublin time, and strftime writes the day as event_date does."
+        },
+        {
+          "text": "  FROM sessions WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251215' AND '20251221'",
+          "subgoal": "row_filter",
+          "why": "The same Dublin days as the export side."
+        },
+        {
+          "text": "  GROUP BY day)",
+          "subgoal": "output_grain",
+          "why": "One row per Dublin day."
+        },
+        {
+          "text": "SELECT e.day, e.export_sessions, b.backend_sessions, e.export_sessions - b.backend_sessions AS difference",
+          "subgoal": "metrics",
+          "why": "The check itself: 0 on a row means that day reconciles."
+        },
+        {
+          "text": "FROM export_days e JOIN backend_days b ON b.day = e.day",
+          "subgoal": "source_grain",
+          "why": "Days line up one to one, so the join keeps one row per day."
+        }
+      ]
+    },
+    {
+      "title": "Check that a join keeps one row per line",
+      "prompt": "Each order line of March 2025 gets the list price in force on its UTC order day from price_history (valid_to included, missing for the current price). Check the join: return lines_before, rows_after and added_rows.",
+      "clauses": [
+        {
+          "text": "WITH march_lines AS (  -- one row per order line of an order placed in March 2025 (UTC)",
+          "subgoal": "source_grain",
+          "why": "The step before the join, named for what it holds."
+        },
+        {
+          "text": "  SELECT l.order_line_id, l.product_id, CAST(o.order_ts AS DATE) AS order_day",
+          "subgoal": "metrics",
+          "why": "Only the columns the join and the count need."
+        },
+        {
+          "text": "  FROM order_lines l JOIN orders o ON o.order_id = l.order_id",
+          "subgoal": "source_grain",
+          "why": "Each line has one order, so this join keeps one row per line."
+        },
+        {
+          "text": "  WHERE o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'",
+          "subgoal": "row_filter",
+          "why": "March in UTC, the last day included through the half-open range."
+        },
+        {
+          "text": "), priced AS (  -- one row per line if the join is right: the version in force on order_day",
+          "subgoal": "source_grain",
+          "why": "The comment says what the grain should be, so the check can test it."
+        },
+        {
+          "text": "  SELECT w.order_line_id, ph.list_price_eur FROM march_lines w JOIN price_history ph ON ph.product_id = w.product_id",
+          "subgoal": "source_grain",
+          "why": "A product has many price versions, so product_id alone would match all of them."
+        },
+        {
+          "text": "    AND w.order_day >= ph.valid_from AND (ph.valid_to IS NULL OR w.order_day <= ph.valid_to))",
+          "subgoal": "source_grain",
+          "why": "Only one version is in force on a day; a missing valid_to means the current price."
+        },
+        {
+          "text": "SELECT (SELECT COUNT(*) FROM march_lines) AS lines_before, (SELECT COUNT(*) FROM priced) AS rows_after,",
+          "subgoal": "metrics",
+          "why": "The row count before and after the join, side by side."
+        },
+        {
+          "text": "  (SELECT COUNT(*) FROM priced) - (SELECT COUNT(*) FROM march_lines) AS added_rows",
+          "subgoal": "metrics",
+          "why": "0 added rows shows the join kept the grain; more means a fan-out."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-CRAFT-01-E1-01",
+    "EX-SQL-CRAFT-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-CRAFT-01-E1-03",
+    "EX-SQL-CRAFT-01-E1-04",
+    "EX-SQL-CRAFT-01-E2-01",
+    "EX-SQL-CRAFT-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-CRAFT-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-CRAFT-01-E1-06",
+    "EX-SQL-CRAFT-01-E1-07",
+    "EX-SQL-CRAFT-01-E2-03",
+    "EX-SQL-CRAFT-01-E2-04",
+    "EX-SQL-CRAFT-01-E2-05",
+    "EX-SQL-CRAFT-01-E2-06",
+    "EX-SQL-CRAFT-01-E3-01",
+    "EX-SQL-CRAFT-01-E3-02",
+    "EX-SQL-CRAFT-01-E2-31",
+    "EX-SQL-CRAFT-01-E2-32",
+    "EX-SQL-CRAFT-01-E1-42",
+    "EX-SQL-CRAFT-01-E2-41",
+    "EX-SQL-CRAFT-01-E2-42",
+    "EX-SQL-CRAFT-01-E1-43",
+    "EX-SQL-CRAFT-01-E2-43"
+  ],
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "why_clause": {
+    "clause": "  SELECT event_date AS day, COUNT(*) AS export_sessions",
+    "stem": "Why does the export side count with COUNT(*) rather than COUNT(user_pseudo_id)?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Events from visitors who denied consent have no user_pseudo_id, yet the backend still holds their sessions, so both sides must count them."
+      },
+      {
+        "id": "b",
+        "text": "COUNT(*) runs faster on a large table, and the two forms always give the same number."
+      },
+      {
+        "id": "c",
+        "text": "COUNT(user_pseudo_id) would count each visitor once instead of each session."
+      },
+      {
+        "id": "d",
+        "text": "COUNT(*) also counts the purchases sent from Mailvora's server, which belong to a session."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "COUNT of a column skips the rows where it is missing. The consent-denied session_start events have no user_pseudo_id, so COUNT(user_pseudo_id) leaves about 2% of the sessions out of the export side while the backend keeps them, and the check fails for the wrong reason. COUNT(user_pseudo_id) counts rows with a value, not distinct visitors, and the WHERE keeps only session_start events, so no purchase is counted."
+  }
+}

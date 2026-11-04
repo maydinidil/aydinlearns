@@ -1,0 +1,291 @@
+{
+  "id": "EX-OPENER-L7-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "opener",
+    "marketing",
+    "ga4_export",
+    "reconciliation",
+    "first_touch",
+    "events",
+    "sessions",
+    "signups",
+    "subscriptions",
+    "payments"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01",
+    "01:SQL-BQ-01",
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "opener",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SET-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-01",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-OPENER-L7-export-reconciled-by-first-touch",
+  "template_params": {
+    "from": "2025-10-01",
+    "to": "2025-12-31",
+    "clock": "Europe/Dublin days",
+    "grain": "first-touch source and medium",
+    "export_side": "sign_up and purchase events",
+    "backend_side": "signups and each subscription's first payment",
+    "refunded_first_payment": "counts",
+    "consent_denied": "counts",
+    "missing_utm": "(direct) and (none)",
+    "no_rows": 0
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Declan, the head of growth, wants the 2026 growth report to read sign-ups and first payments from the GA4 export instead of the backend, and asks whether the two agree for each first-touch source and medium over the Dublin days from 1 October to 31 December 2025. In events, event_date holds that Dublin day; signup_ts and paid_at hold UTC instants, so take their day in Europe/Dublin time. On the export side, a sign-up is a sign_up event and a first payment is a purchase event, and each such event counts once: the ones with no user_pseudo_id, from visitors who denied consent, count too, and so do the events Mailvora's server sends, every purchase among them. Their first touch is the source and medium in traffic_source, where direct traffic shows as (direct) and (none). On the backend side, a sign-up is a row of signups, dated by its signup_ts, and a first payment is each subscription's earliest payment, dated by its paid_at; a first payment that was later refunded still counts, as the export keeps its purchase. Their first touch is the utm_source and utm_medium of the visitor's first session, the one with the earliest session_start among all of the visitor's sessions, those before October included; a first payment's visitor is the visitor who signed up as the subscription's user, and a missing utm_source counts as (direct) and a missing utm_medium as (none). Return one row for each first-touch source and medium with at least one sign-up or first payment on either side, with six columns in this order: source; medium; ga4_signups and backend_signups, the sign-ups on each side; and ga4_first_payments and backend_first_payments, the first payments on each side. A count with nothing to count shows 0. Sort by source from A to Z, then by medium from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "medium",
+        "type_class": "text"
+      },
+      {
+        "name": "ga4_signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ga4_first_payments",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_first_payments",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "source",
+        "desc": false
+      },
+      {
+        "column": "medium",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "ga4_signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "ga4_first_payments",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_first_payments",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "source",
+      "medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count each side in its own step by first-touch source and medium: the export's sign_up and purchase events, then the backend's signups and each subscription's first payment.",
+    "On the backend side, take each visitor's earliest session over all of the visitor's sessions, and join the two sides so a source and medium found on one side only still gets a row."
+  ],
+  "subgoals": [
+    {
+      "from": 214,
+      "to": 446,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 449,
+      "to": 460,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 463,
+      "to": 559,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 562,
+      "to": 615,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 730,
+      "to": 782,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 785,
+      "to": 798,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 801,
+      "to": 820,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 951,
+      "to": 1078,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1081,
+      "to": 1199,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1302,
+      "to": 1355,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1358,
+      "to": 1371,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1374,
+      "to": 1398,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1637,
+      "to": 1672,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1675,
+      "to": 1687,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1690,
+      "to": 1794,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1809,
+      "to": 1853,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1856,
+      "to": 2000,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2003,
+      "to": 2114,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 2200,
+      "to": 2381,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 2384,
+      "to": 2461,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2464,
+      "to": 2491,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 2494,
+      "to": 2830,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 2831,
+      "to": 2923,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2924,
+      "to": 2947,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Both sides count the same Dublin days and group by the same first touch, so a gap between two columns of a row would be a real difference, not a slip in the definition."
+}

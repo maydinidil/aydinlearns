@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-MAIL-L7",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\n-- the export's sign_up events on the Dublin days of Q4 2025, each counted once,\n-- the consent-denied ones (no user_pseudo_id) and the server's included\nFROM events\nWHERE event_name = 'sign_up'\n  AND event_date BETWEEN '20251001' AND '20251231'",
+    "CP4": "SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE traffic_source.medium IN ('cpc', 'paid_social', 'video', 'affiliate')) / COUNT(*), 1)\n-- the export's purchase events on the Dublin days of Q4 2025: one per subscription's first payment, a refunded one\n-- included; the share whose first-touch medium is a paid one\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251001' AND '20251231'"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o9f8a76a",
+      "explanation": "Counting every sign_up event by its text event_date and traffic_source keeps the consent-denied sign-ups, which counting different user_pseudo_id values or requiring a user_pseudo_id drops."
+    },
+    "CP5": {
+      "correct_oid": "o5c533f8",
+      "explanation": "Equal counts show that the two sources agree on this first-touch definition, not why customers came; the export has no session-level source and keeps a refunded first payment as a purchase."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "4e2dad18b288c51a",
+      "key_hash": "388c5cd34d99c83a",
+      "at": "2026-11-03T21:23:51.437Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "0479b68a22837866",
+      "key_hash": "e06340ba6b66d339",
+      "at": "2026-11-03T21:23:51.437Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "4b8bd0a42ac37ed1",
+      "key_hash": "b0eea4f3b240f98f",
+      "at": "2026-11-03T21:23:51.437Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "67a060b075996d6b",
+      "key_hash": "417f4edb6f095643",
+      "at": "2026-11-03T21:23:51.437Z"
+    }
+  }
+}

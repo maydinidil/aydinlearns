@@ -4,9 +4,15 @@
 
 | Files | Licence |
 |---|---|
-| Code: `core/`, `server/`, `web/`, `schemas/`, `tools/`, `pipeline/`, `tests/`, `Start aydinlearns.bat` and the configuration files | PolyForm Noncommercial 1.0.0 (`LICENSE`) |
-| Content and documentation: `content/`, `docs/`, `knowledge/`, `README.md`, `CLAUDE.md`, `CHANGELOG.md`, the screenshots in `docs/screenshots/` | CC BY-NC 4.0 (`LICENSE-CONTENT.md`) |
+| Code: `core/`, `server/`, `web/` (except `web/src/assets/mascot/`), `schemas/`, `tools/`, `pipeline/`, `tests/`, `Start Grondig.bat`, `Start aydinlearns.bat` and the configuration files | PolyForm Noncommercial 1.0.0 (`LICENSE`) |
+| Content and documentation: `content/`, `docs/`, `knowledge/`, `README.md`, `CLAUDE.md`, `CHANGELOG.md`, the screenshots in `docs/screenshots/`, the mascot images in `web/src/assets/mascot/` | CC BY-NC 4.0 (`LICENSE-CONTENT.md`) |
 | `LICENSE`, `LICENSE-CONTENT.md`, `NOTICE.md` and `LICENSES/` | The licence texts and notices themselves; not relicensed |
+
+## The mascot
+
+The pixel-art mole (`web/src/assets/mascot/`, also seen in `docs/screenshots/` and the README) was made with PixelLab and
+is owned by Aydin. It is licensed with the content, under CC BY-NC 4.0 (D135, 2026-11-04). PixelLab's terms (3.3, read
+2026-11-03) allow its outputs to be used and distributed for any purpose except training other models.
 
 ## Parts that belong to others
 

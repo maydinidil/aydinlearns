@@ -57,7 +57,7 @@ test('finding 41: the lesson step bar uses the segmented style', async () => {
 test('findings 1, 2, 40, 45, 48: the small-screen, marker, input and badge rules exist in the styles', async () => {
   const comp = await src('src/styles/components.css');
   const base = await src('src/styles/base.css');
-  assert.ok(/@media \(max-width: 700px\)[^}]*\.shell/.test(comp), 'shell wraps on narrow screens');
+  assert.ok(/@media \(max-width: 900px\)[^}]*\.shell/.test(comp), 'shell wraps on narrow screens (900px since S9-C50)');
   assert.ok(/@media \(max-width: 600px\)[^}]*main/.test(base), 'main side padding is 16px on narrow screens');
   assert.ok(base.includes('.badge') && /\.badge[^}]*white-space: nowrap/.test(base));
   assert.ok(/^label\.field textarea, details > textarea \{ min-height: 5em; \}/m.test(base), 'the textarea min-height is scoped to field labels and report details');

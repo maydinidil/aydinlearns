@@ -310,3 +310,45 @@ test('S8-18: G-SQL-LEVEL-6 in goals.json names the SaaS criterion after its conc
   const g = JSON.parse(await readFile('content/goals.json', 'utf8')).goals.find((x: { id: string }) => x.id === 'G-SQL-LEVEL-6');
   assert.deepEqual(g.criteria, [{ kind: 'concept_state', section: 'sql', level: 6, state: 'practised' }, { kind: 'case_solved', world: 'SAAS', count: 5 }]);
 });
+
+// ---- Sprint 9 (Task A2): G-SQL-LEVEL-7 names the job-ready benchmark, as 01's LVL-07 "ready when" does (S9-11) -------------------------
+const LEVEL7_GOAL = (JSON.parse(await readFile('content/goals.json', 'utf8')) as { goals: Goal[] }).goals.find((g) => g.id === 'G-SQL-LEVEL-7')!;
+const SQL_L7 = ['SQL-BQ-01', 'SQL-CRAFT-01', 'SQL-CRAFT-02', 'SQL-CRAFT-03'];
+/** Every SQL level 1 to 7 concept, so the level 7 criterion has concepts to count. */
+const l7View = (states: Record<string, ConceptStateName>, over: Partial<GoalView> = {}): GoalView =>
+  view(states, { conceptsOf: (s, n) => (s !== 'sql' ? [] : [...SQL_L1, ...(n >= 2 ? SQL_L2 : []), ...(n >= 7 ? SQL_L7 : [])]), ...over });
+const practisedL7 = Object.fromEntries([...SQL_L1, ...SQL_L2, ...SQL_L7].map((id) => [id, 'practised' as ConceptStateName]));
+const BOTH_MOCKS = new Map([['screen', '2027-01-10'], ['take_home', '2027-01-20']]);
+
+test('S9-11: G-SQL-LEVEL-7 in goals.json is "SQL level 7 practised and the job-ready benchmark passed": level 7 practised, the screen mock and the take-home mock, its date kept', () => {
+  assert.equal(LEVEL7_GOAL.title, 'SQL level 7 practised and the job-ready benchmark passed');
+  assert.deepEqual(LEVEL7_GOAL.criteria, [
+    { kind: 'concept_state', section: 'sql', level: 7, state: 'practised' },
+    { kind: 'mock_pass', mock: 'screen' },
+    { kind: 'mock_pass', mock: 'take_home' },
+  ]);
+  assert.deepEqual([LEVEL7_GOAL.target_date, LEVEL7_GOAL.stage], ['2027-01-29', null]);
+  assert.deepEqual(goalCriterionProblems(LEVEL7_GOAL.criteria[1]), []);
+  assert.deepEqual(goalCriterionProblems(LEVEL7_GOAL.criteria[2]), []);
+});
+
+test('S9-11: G-SQL-LEVEL-7 is met with level 7 practised and both mocks passed, and not with either mock missing or level 7 short', () => {
+  const met = evaluateGoal(LEVEL7_GOAL, l7View(practisedL7, { mocksPassed: BOTH_MOCKS }));
+  assert.equal(met.met, true);
+  assert.deepEqual(met.criteria.map((c) => [c.label, c.met]), [
+    ['SQL level 7 at practised', true], ['Screen mock passed on 2027-01-10', true], ['Take-home mock passed on 2027-01-20', true]]);
+  for (const missing of ['screen', 'take_home']) {
+    const one = new Map([...BOTH_MOCKS].filter(([m]) => m !== missing));
+    const r = evaluateGoal(LEVEL7_GOAL, l7View(practisedL7, { mocksPassed: one, mocksAvailable: new Set(['screen', 'take_home']) }));
+    assert.equal(r.met, false, `${missing} not passed`);
+    assert.deepEqual(r.criteria.map((c) => c.met), [true, missing !== 'screen', missing !== 'take_home'], missing);
+  }
+  const short = evaluateGoal(LEVEL7_GOAL, l7View({ ...practisedL7, 'SQL-CRAFT-03': 'learning' }, { mocksPassed: BOTH_MOCKS }));
+  assert.equal(short.met, false, 'one level 7 concept below practised');
+  assert.deepEqual(short.criteria[0], { label: 'SQL level 7 at practised', met: false, available: true, done: 15, total: 16 });
+  assert.equal(evaluateGoal(LEVEL7_GOAL, l7View({}, {})).met, false, 'nothing done');
+});
+
+test('S9-11: G-SQL-LEVEL-7 belongs to the SQL section only: its two mocks are SQL mocks', () => {
+  assert.deepEqual((['sql', 'ga4', 'methodology'] as const).map((s) => goalInSection(LEVEL7_GOAL, s)), [true, false, false]);
+});

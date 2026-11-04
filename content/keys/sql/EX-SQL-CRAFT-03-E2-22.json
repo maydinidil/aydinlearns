@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E2-22",
+  "item_version": 1,
+  "reference_sql": "WITH base AS (\n  -- one row per account with MRR at the end of June 2025\n  SELECT m.account_id, a.acquisition_channel\n  FROM mrr_monthly m\n  JOIN accounts a ON a.account_id = m.account_id\n  WHERE m.month = DATE '2025-06-01'\n), churned AS (\n  -- one row per account with a churn event from July to December 2025\n  SELECT DISTINCT account_id\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31'\n)\nSELECT b.acquisition_channel, COUNT(*) AS accounts_at_start, COUNT(c.account_id) AS churned_accounts,\n  COUNT(c.account_id) * 1.0 / COUNT(*) AS churn_rate\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id\nGROUP BY b.acquisition_channel",
+  "alternatives": [
+    "WITH flagged AS (\n  -- one row per account with MRR at the end of June 2025, with a churn flag for July to December\n  SELECT a.acquisition_channel,\n    CASE WHEN EXISTS (SELECT 1 FROM subscription_events e WHERE e.account_id = m.account_id AND e.event_type = 'churn'\n      AND e.event_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31') THEN 1 ELSE 0 END AS churned\n  FROM mrr_monthly m\n  JOIN accounts a ON a.account_id = m.account_id\n  WHERE m.month = DATE '2025-06-01'\n)\nSELECT acquisition_channel, COUNT(*) AS accounts_at_start, SUM(churned) AS churned_accounts, AVG(churned) AS churn_rate\nFROM flagged\nGROUP BY acquisition_channel",
+    "SELECT a.acquisition_channel, COUNT(*) AS accounts_at_start,\n  COUNT(*) FILTER (WHERE m.account_id IN (SELECT account_id FROM subscription_events\n    WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31')) AS churned_accounts,\n  COUNT(*) FILTER (WHERE m.account_id IN (SELECT account_id FROM subscription_events\n    WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31')) * 1.0 / COUNT(*) AS churn_rate\nFROM mrr_monthly m\nJOIN accounts a ON a.account_id = m.account_id\nWHERE m.month = DATE '2025-06-01'\nGROUP BY a.acquisition_channel"
+  ],
+  "other_way": {
+    "sql": "WITH flagged AS (\n  -- one row per account with MRR at the end of June 2025, with a churn flag for July to December\n  SELECT a.acquisition_channel,\n    CASE WHEN EXISTS (SELECT 1 FROM subscription_events e WHERE e.account_id = m.account_id AND e.event_type = 'churn'\n      AND e.event_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31') THEN 1 ELSE 0 END AS churned\n  FROM mrr_monthly m\n  JOIN accounts a ON a.account_id = m.account_id\n  WHERE m.month = DATE '2025-06-01'\n)\nSELECT acquisition_channel, COUNT(*) AS accounts_at_start, SUM(churned) AS churned_accounts, AVG(churned) AS churn_rate\nFROM flagged\nGROUP BY acquisition_channel",
+    "tradeoff": "A churn flag per base account set with EXISTS makes the rate an AVG, which reads short but hides the division."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH active AS (SELECT DISTINCT m.account_id, a.acquisition_channel FROM mrr_monthly m JOIN accounts a ON a.account_id = m.account_id WHERE m.month BETWEEN DATE '2025-07-01' AND DATE '2025-12-01'), churned AS (SELECT DISTINCT account_id FROM subscription_events WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31') SELECT b.acquisition_channel, COUNT(*) AS accounts_at_start, COUNT(c.account_id) AS churned_accounts, COUNT(c.account_id) * 1.0 / COUNT(*) AS churn_rate FROM active b LEFT JOIN churned c ON c.account_id = b.account_id GROUP BY b.acquisition_channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH starts AS (SELECT a.acquisition_channel, COUNT(*) AS accounts_at_start FROM mrr_monthly m JOIN accounts a ON a.account_id = m.account_id WHERE m.month = DATE '2025-06-01' GROUP BY a.acquisition_channel), churns AS (SELECT a.acquisition_channel, COUNT(DISTINCT e.account_id) AS churned_accounts FROM subscription_events e JOIN accounts a ON a.account_id = e.account_id WHERE e.event_type = 'churn' AND e.event_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31' GROUP BY a.acquisition_channel) SELECT s.acquisition_channel, s.accounts_at_start, COALESCE(c.churned_accounts, 0) AS churned_accounts, COALESCE(c.churned_accounts, 0) * 1.0 / s.accounts_at_start AS churn_rate FROM starts s LEFT JOIN churns c ON c.acquisition_channel = s.acquisition_channel"
+    }
+  ],
+  "hint3_partial": "WITH base AS (\n  -- one row per account with MRR at the end of June 2025\n  SELECT m.account_id, a.acquisition_channel\n  FROM mrr_monthly m\n  JOIN accounts a ON a.account_id = m.account_id\n  WHERE m.month = ___\n), churned AS (\n  -- one row per account with a churn event from July to December 2025\n  SELECT DISTINCT account_id\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31'\n)\nSELECT b.acquisition_channel, COUNT(*) AS accounts_at_start, COUNT(c.account_id) AS churned_accounts,\n  ___ AS churn_rate\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id\nGROUP BY b.acquisition_channel",
+  "solver": {
+    "prompt_hash": "95f7733a235f2068",
+    "schema_version": "471600eb77da",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH base AS (\n  SELECT r.account_id, a.acquisition_channel\n  FROM mrr_monthly r JOIN accounts a ON a.account_id = r.account_id\n  WHERE r.month = DATE '2025-06-01'\n), ch AS (\n  SELECT DISTINCT account_id FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31'\n)\nSELECT b.acquisition_channel, COUNT(*) AS accounts_at_start, COUNT(c.account_id) AS churned_accounts,\n  COUNT(c.account_id) * 1.0 / COUNT(*) AS churn_rate\nFROM base b LEFT JOIN ch c ON c.account_id = b.account_id\nGROUP BY b.acquisition_channel\n",
+    "at": "2026-11-03T19:01:35.259Z"
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "id": "EX-SQL-BQ-01-E3-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "sessions",
+    "engaged",
+    "traffic_source",
+    "rate"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-engagement-rate-by-source",
+  "template_params": {
+    "from": "20251101",
+    "to": "20251130"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "For each first-touch source and medium, work out the engagement rate of the sessions that started from 1 to 30 November 2025, by event_date. A session is one user_pseudo_id with one ga_session_id, counted from its session_start event; leave out session_start events whose user_pseudo_id or ga_session_id is missing. A session is engaged when its session_engaged parameter is '1', as text. The engagement rate is engaged sessions divided by sessions, as a fraction (0.5 for half). The source and medium are traffic_source.source and traffic_source.medium; direct traffic shows as (direct) and (none). Return source, medium, sessions, engaged_sessions and engagement_rate. Return one row for each source and medium with at least one session. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "medium",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "engagement_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "engagement_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "source",
+      "medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read ga_session_id and session_engaged out of each session_start, with the first-touch source and medium.",
+    "Keep the sessions with both IDs, count them and the engaged ones per source and medium, then divide without whole-number division."
+  ],
+  "subgoals": [
+    {
+      "from": 83,
+      "to": 381,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 384,
+      "to": 395,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 398,
+      "to": 485,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 544,
+      "to": 582,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 585,
+      "to": 596,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 599,
+      "to": 661,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 664,
+      "to": 871,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 872,
+      "to": 885,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 886,
+      "to": 909,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each session with both IDs has one session_start, so counting those rows per first touch gives sessions, and the engaged share follows."
+}

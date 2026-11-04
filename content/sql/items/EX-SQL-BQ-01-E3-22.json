@@ -1,0 +1,168 @@
+{
+  "id": "EX-SQL-BQ-01-E3-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "sessions",
+    "engagement",
+    "left_join",
+    "device"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-session-engagement-by-device",
+  "template_params": {
+    "from": "20251101",
+    "to": "20251130"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "How long are sessions engaged on each device? For each device category, count the sessions that started from 1 to 30 November 2025, by event_date, and their average engagement time in seconds. A session is one user_pseudo_id with one ga_session_id, counted from its session_start event; leave out session_start events whose user_pseudo_id or ga_session_id is missing. A session's engagement time is the sum of the engagement_time_msec parameter (milliseconds, in int_value) over its page_view events of the same days, matched on both IDs; a session with no page_view has 0. The device is device.category of the session_start event. Return device_category, sessions and avg_engagement_sec: the sessions' engagement time added up, divided by the number of sessions, in seconds. Return one row for each device category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "device_category",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_engagement_sec",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "device_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_engagement_sec",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "device_category"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the engagement time of each session's page views, by visitor and session ID.",
+    "Join that to every session with a LEFT JOIN on both IDs, give a session with no page view 0, then average in seconds."
+  ],
+  "subgoals": [
+    {
+      "from": 105,
+      "to": 264,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 267,
+      "to": 278,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 281,
+      "to": 403,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 527,
+      "to": 766,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 769,
+      "to": 780,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 783,
+      "to": 866,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 869,
+      "to": 882,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 885,
+      "to": 1012,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1013,
+      "to": 1133,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1134,
+      "to": 1167,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1168,
+      "to": 1194,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Page views add up per session on both IDs, and the LEFT JOIN keeps a session with no page view at 0 in the average."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-44",
+  "item_version": 2,
+  "correct_oid": "oa9b68fe",
+  "explanation": "BigQuery charges for the data a query reads. With no later step, a star returns and so reads every column of the tables it reads, and on tables that are not clustered a LIMIT does not change the data read: both star queries read every column of October. Three named columns with the suffix filter read the least: only those columns, and only the October daily tables. Picking October by event_date returns the same rows, but events_* with no suffix filter reads every daily table, all three months of them.",
+  "solver": {
+    "prompt_hash": "9425653948c38851",
+    "grader_version": "choice.3",
+    "chosen": "oa9b68fe",
+    "typed": null,
+    "at": "2026-11-03T21:23:49.214Z"
+  }
+}

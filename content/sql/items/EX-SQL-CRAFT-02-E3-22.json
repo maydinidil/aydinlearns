@@ -1,0 +1,154 @@
+{
+  "id": "EX-SQL-CRAFT-02-E3-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "aggregate_first",
+    "orders",
+    "order_lines"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-discount-orders",
+  "template_params": {
+    "from": "2025-04",
+    "to": "2025-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each Voltmarkt channel, how many orders were placed from 1 April to 30 June 2025 (the UTC days of order_ts), how many of them had at least one line with a discount (line_discount_eur above 0), and how many units did they hold? Return exactly four columns, in this order: channel, orders, discounted_orders and units. Return one row for each channel. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "discounted_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "discounted_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give each order one flag that says whether any of its lines had a discount.",
+    "Add the lines up per order first, with the largest of a per-line 1 or 0 as the flag, then add the flags up per channel."
+  ],
+  "subgoals": [
+    {
+      "from": 149,
+      "to": 258,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 261,
+      "to": 277,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 280,
+      "to": 424,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 427,
+      "to": 444,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 447,
+      "to": 546,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 547,
+      "to": 607,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 608,
+      "to": 626,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "One row per order with a single discount flag lets the channel totals count orders, not lines, for both counts."
+}

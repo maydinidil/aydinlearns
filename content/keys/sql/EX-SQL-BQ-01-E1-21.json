@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT device.category AS device_category, COUNT(*) AS page_views\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date = '20251215'\nGROUP BY device.category",
+  "alternatives": [
+    "WITH views AS (\n  -- one row per page_view on 15 December 2025\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251215'\n)\nSELECT device_category, COUNT(*) AS page_views\nFROM views\nGROUP BY device_category",
+    "SELECT device['category'] AS device_category, COUNT(*) AS page_views\nFROM events\nWHERE event_name = 'page_view'\n  AND CAST(strptime(event_date, '%Y%m%d') AS DATE) = DATE '2025-12-15'\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH views AS (\n  -- one row per page_view on 15 December 2025\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251215'\n)\nSELECT device_category, COUNT(*) AS page_views\nFROM views\nGROUP BY device_category",
+    "tradeoff": "A CTE that names the device first lets GROUP BY use the plain name, at the cost of one more step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT device.category AS device_category, COUNT(user_pseudo_id) AS page_views FROM events WHERE event_name = 'page_view' AND event_date = '20251215' GROUP BY device.category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-55",
+      "sql": "SELECT device.category AS device_category, COUNT(*) AS page_views FROM events WHERE event_name = 'page_view' AND event_date = '2025-12-15' GROUP BY device.category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-02",
+      "sql": "SELECT device AS device_category, COUNT(*) AS page_views FROM events WHERE event_name = 'page_view' AND event_date = '20251215' GROUP BY device"
+    }
+  ],
+  "hint3_partial": "SELECT device.___ AS device_category, COUNT(___) AS page_views\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date = '20251215'\nGROUP BY device.category",
+  "solver": {
+    "prompt_hash": "5e0930c1efcaf658",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT device.category AS device_category, COUNT(*) AS page_views\r\nFROM events\r\nWHERE event_name = 'page_view' AND event_date = '20251215'\r\nGROUP BY 1\r\n",
+    "at": "2026-11-03T19:01:24.728Z"
+  }
+}

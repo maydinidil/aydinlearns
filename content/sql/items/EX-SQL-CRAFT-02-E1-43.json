@@ -1,0 +1,84 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-43",
+  "version": 2,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "fixed_choice",
+    "bigquery",
+    "limit"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-limit-cost",
+  "template_params": {
+    "month": "2025-10"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "A teammate adds LIMIT 100 to a BigQuery query that reads Mailvora's GA4 export through events_* with a _TABLE_SUFFIX filter for October 2025, hoping to make it cheaper. The daily tables are not clustered. What does the LIMIT change?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o73fb3df",
+      "text": "The query now reads only the first 100 rows of the October tables, so it costs about one hundredth of what the full scan of those tables cost before.",
+      "misconception_id": "MIS-SQL-CRAFT-02-01"
+    },
+    {
+      "oid": "o38ed824",
+      "text": "Only the rows shown: on a table that is not clustered, a LIMIT does not change the data the query reads, so the cost stays as it was before.",
+      "misconception_id": null
+    },
+    {
+      "oid": "o3a16a8b",
+      "text": "BigQuery reads 100 rows from each daily table the suffix filter keeps, so the cost now depends on the number of days rather than on their size.",
+      "misconception_id": "MIS-SQL-CRAFT-02-05"
+    },
+    {
+      "oid": "o17f7143",
+      "text": "The bytes read drop only when the query also has an ORDER BY, which tells BigQuery which 100 rows to read first and lets it skip the rest.",
+      "misconception_id": "MIS-SQL-CRAFT-02-06"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-31",
+  "item_version": 2,
+  "reference_sql": "WITH starts AS (\n  -- one row per session_start event from 1 to 15 November 2025\n  SELECT event_date, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251101' AND '20251115'\n)\nSELECT event_date,\n  COUNT(DISTINCT user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR)) AS sessions,\n  COUNT(DISTINCT user_pseudo_id) AS visitors\nFROM starts\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY event_date",
+  "alternatives": [
+    "WITH sessions AS (\n  -- one row per session (user_pseudo_id and ga_session_id) that started from 1 to 15 November 2025\n  SELECT DISTINCT event_date, user_pseudo_id,\n    [p.value.int_value FOR p IN event_params IF p.key = 'ga_session_id'][1] AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251101' AND '20251115'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT event_date, COUNT(*) AS sessions, COUNT(DISTINCT user_pseudo_id) AS visitors\nFROM sessions\nWHERE ga_session_id IS NOT NULL\nGROUP BY event_date",
+    "SELECT e.event_date,\n  COUNT(DISTINCT e.user_pseudo_id || '-' || CAST(p.value.int_value AS VARCHAR)) AS sessions,\n  COUNT(DISTINCT e.user_pseudo_id) AS visitors\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'session_start'\n  AND e.event_date BETWEEN '20251101' AND '20251115'\n  AND p.key = 'ga_session_id'\n  AND e.user_pseudo_id IS NOT NULL\nGROUP BY e.event_date"
+  ],
+  "other_way": {
+    "sql": "WITH sessions AS (\n  -- one row per session (user_pseudo_id and ga_session_id) that started from 1 to 15 November 2025\n  SELECT DISTINCT event_date, user_pseudo_id,\n    [p.value.int_value FOR p IN event_params IF p.key = 'ga_session_id'][1] AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251101' AND '20251115'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT event_date, COUNT(*) AS sessions, COUNT(DISTINCT user_pseudo_id) AS visitors\nFROM sessions\nWHERE ga_session_id IS NOT NULL\nGROUP BY event_date",
+    "tradeoff": "Keeping one row per session first and counting rows makes the session grain plain, at the cost of a second step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-52",
+      "sql": "WITH starts AS (\n  -- one row per session_start event from 1 to 15 November 2025\n  SELECT event_date, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251101' AND '20251115'\n)\nSELECT event_date,\n  COUNT(DISTINCT ga_session_id) AS sessions,\n  COUNT(DISTINCT user_pseudo_id) AS visitors\nFROM starts\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY event_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT event_date, COUNT(*) AS sessions, COUNT(DISTINCT user_pseudo_id) AS visitors FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251101' AND '20251115' GROUP BY event_date"
+    }
+  ],
+  "hint3_partial": "WITH starts AS (\n  -- one row per session_start event from 1 to 15 November 2025\n  SELECT event_date, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251101' AND '20251115'\n)\nSELECT event_date,\n  COUNT(DISTINCT ___ || '-' || CAST(___ AS VARCHAR)) AS sessions,\n  COUNT(DISTINCT user_pseudo_id) AS visitors\nFROM starts\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY event_date",
+  "solver": {
+    "prompt_hash": "80a0177ebb2f434c",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "629fe78dc6bbdb7a",
+    "grader_version": "9a.1",
+    "query": "WITH starts AS (\n  SELECT event_date, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251101' AND '20251115'\n)\nSELECT event_date,\n  COUNT(DISTINCT (user_pseudo_id, ga_session_id)) AS sessions,\n  COUNT(DISTINCT user_pseudo_id) AS visitors\nFROM starts\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY event_date\n",
+    "at": "2026-11-04T01:02:11.289Z"
+  }
+}

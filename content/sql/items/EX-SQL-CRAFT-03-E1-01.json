@@ -1,0 +1,163 @@
+{
+  "id": "EX-SQL-CRAFT-03-E1-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "logo_churn",
+    "base",
+    "mrr_monthly"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-logo-churn-parts",
+  "template_params": {
+    "table": "mrr_monthly",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Customer Success asks whether LedgerLoop is losing more customers each month. Before any rate, count its two parts for each month of 2025. The base of a month is the accounts with MRR at the end of the month before: those with a row in mrr_monthly for the month before (mrr_monthly.month is the first day of a month). December 2024's rows are January 2025's base. An account churned in a month when it has a churn event (event_type churn in subscription_events) dated in that month; count each account once. An account that starts or comes back during the month is not in that month's base, and is in neither count, even if it churned in that month. Return three columns, in this order: month_start (the first day of the month), accounts_at_start and churned_accounts. Return one row for each month of 2025; a month with no churn shows 0. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "accounts_at_start",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churned_accounts",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "accounts_at_start",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "churned_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build the base: one row per month and account with MRR at the end of the month before.",
+    "Shift each mrr_monthly row one month forward, so December 2024's accounts become January 2025's base, then join the churn events onto it without losing a month."
+  ],
+  "subgoals": [
+    {
+      "from": 100,
+      "to": 176,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 179,
+      "to": 197,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 200,
+      "to": 261,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 334,
+      "to": 422,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 425,
+      "to": 449,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 452,
+      "to": 541,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 544,
+      "to": 636,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 637,
+      "to": 648,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 649,
+      "to": 733,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 734,
+      "to": 756,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The base is fixed at the start of each month, so an account that joins during the month never changes that month's count."
+}

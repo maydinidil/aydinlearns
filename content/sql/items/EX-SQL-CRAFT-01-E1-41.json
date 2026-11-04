@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "predict_result",
+    "missing_values",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-predict-count",
+  "template_params": {
+    "day": "20251105"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "On the Dublin day 5 November 2025 the export holds 3,279 session_start events. 57 of them come from visitors who denied consent, so their user_pseudo_id is missing. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT COUNT(*) AS session_starts, COUNT(user_pseudo_id) AS with_pseudo_id\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date = '20251105'",
+  "options": [
+    {
+      "oid": "o78d42da",
+      "text": "3,279 and 3,279",
+      "misconception_id": "ERR-LOG-04",
+      "table": {
+        "columns": [
+          "session_starts",
+          "with_pseudo_id"
+        ],
+        "rows": [
+          [
+            3279,
+            3279
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o01e84ef",
+      "text": "3,279 and 3,222",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "session_starts",
+          "with_pseudo_id"
+        ],
+        "rows": [
+          [
+            3279,
+            3222
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oc1cd5b3",
+      "text": "3,222 and 3,222",
+      "misconception_id": "ERR-LOG-03",
+      "table": {
+        "columns": [
+          "session_starts",
+          "with_pseudo_id"
+        ],
+        "rows": [
+          [
+            3222,
+            3222
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o5767eaf",
+      "text": "3,279 and 57",
+      "misconception_id": "ERR-LOG-04",
+      "table": {
+        "columns": [
+          "session_starts",
+          "with_pseudo_id"
+        ],
+        "rows": [
+          [
+            3279,
+            57
+          ]
+        ]
+      }
+    }
+  ]
+}

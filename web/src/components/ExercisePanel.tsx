@@ -291,7 +291,7 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
         </div>}
         </div>
         {message && <p role="alert">{message}</p>}
-        {grade && <GradePanel grade={grade} onDispute={canDispute(grade, overridden) ? (r) => alertOnError(dispute(grade, r)) : null} disputing={disputing} otherWay={otherWay} />}
+        {grade && <GradePanel mascot={!run} grade={grade} onDispute={canDispute(grade, overridden) ? (r) => alertOnError(dispute(grade, r)) : null} disputing={disputing} otherWay={otherWay} />}
         {keyFault && reportForm}
         {showsRunTable(results) && <ResultTable result={results.run} caption="Your result" />}
         {/* The drill's header shows the help line once (s3b:L35), so a run's panel shows none, and the review's panel no note (S7-35). */}

@@ -1,0 +1,191 @@
+{
+  "id": "EX-CASE-DAILY-L7-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "case",
+    "daily",
+    "marketing",
+    "ga4_export",
+    "sessions",
+    "engagement",
+    "first_touch",
+    "events"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-CASE-DAILY-L7-engaged-sessions-by-first-touch-medium",
+  "template_params": {
+    "from": "2025-11-01",
+    "to": "2025-11-30",
+    "clock": "Europe/Dublin days, by event_date",
+    "session": "user_pseudo_id with ga_session_id, from session_start events",
+    "consent_denied": "left out",
+    "engaged": "session_engaged is the text 1",
+    "channel": "traffic_source.medium"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Aoife, the performance marketing manager, is choosing which channels' landing pages to rework first and asks how often each channel's sessions in November 2025 were engaged, from the GA4 export. A channel is the visitor's first-touch medium, the medium in traffic_source, which is the same on every event of a visitor, so a returning visitor's later sessions count under the medium that first brought the visitor in; direct traffic shows as (none). Take the session_start events on the Dublin days from 1 to 30 November 2025, by event_date. A session is one user_pseudo_id with one ga_session_id, counted once; a session_start with no user_pseudo_id or no ga_session_id comes from a visitor who denied consent and belongs to no session you can count, so leave it out, and the events Mailvora's server sends belong to no session either. A session is engaged when the session_engaged parameter of its session_start event is the text '1'. Return one row for each first-touch medium with at least one session, with four columns in this order: first_touch_medium; sessions; engaged_sessions, the sessions that are engaged; and engaged_pct, 100 times engaged_sessions divided by sessions, rounded to 1 decimal. Sort by first_touch_medium from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "first_touch_medium",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "engaged_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "first_touch_medium",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "first_touch_medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "engaged_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "first_touch_medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read ga_session_id and session_engaged out of each session_start event's parameters, one value per event.",
+    "Count a session as the pair of user_pseudo_id and ga_session_id, leaving out a start where either is missing, then group by the medium in traffic_source."
+  ],
+  "subgoals": [
+    {
+      "from": 139,
+      "to": 435,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 438,
+      "to": 449,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 452,
+      "to": 539,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 672,
+      "to": 804,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 807,
+      "to": 827,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 830,
+      "to": 896,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 899,
+      "to": 957,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 960,
+      "to": 1120,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1121,
+      "to": 1139,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1140,
+      "to": 1167,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1168,
+      "to": 1195,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "A session is the pair of visitor and session ID, so two visitors who start in the same second stay two sessions, and session_engaged is read as the text it is."
+}

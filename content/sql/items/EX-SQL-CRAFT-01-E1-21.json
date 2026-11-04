@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "sign_up",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-signup-total",
+  "template_params": {
+    "month": "2025-11"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Check November 2025's sign-ups in Mailvora's export against the backend. Count the sign_up events of the Dublin days 1 to 30 November (by event_date), every one of them, those of visitors who denied consent and those sent from Mailvora's server included, and count the rows of signups whose signup_ts falls on those Dublin days. Return three columns, in this order: export_signups, backend_signups and difference (export_signups minus backend_signups). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "export_signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "export_signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count each side over the same Dublin days.",
+    "Every sign_up event counts, with or without a user_id, and signup_ts needs its Dublin day before the backend side is filtered."
+  ],
+  "subgoals": [
+    {
+      "from": 94,
+      "to": 127,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 130,
+      "to": 141,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 144,
+      "to": 225,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 314,
+      "to": 348,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 351,
+      "to": 363,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 366,
+      "to": 462,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 465,
+      "to": 559,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 560,
+      "to": 604,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Both sides count every sign-up of the same Dublin days, so the difference is 0 when the export is complete."
+}

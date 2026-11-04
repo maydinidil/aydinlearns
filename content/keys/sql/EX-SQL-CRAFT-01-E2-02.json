@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CRAFT-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "WITH tagged AS (\n  -- one row per event of 1 to 7 November 2025 (Dublin days), with its ga_session_id read out\n  SELECT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_date BETWEEN '20251101' AND '20251107'\n), per_id AS (\n  -- one row per ga_session_id: how many visitors hold it; an event missing either ID belongs to no session\n  SELECT ga_session_id, COUNT(DISTINCT user_pseudo_id) AS visitors\n  FROM tagged\n  WHERE user_pseudo_id IS NOT NULL\n    AND ga_session_id IS NOT NULL\n  GROUP BY ga_session_id\n)\nSELECT COUNT(*) AS id_values, SUM(visitors) AS sessions,\n  COUNT(*) FILTER (WHERE visitors > 1) AS shared_ids\nFROM per_id",
+  "alternatives": [
+    "WITH pairs AS (\n  -- one row per session: each distinct user_pseudo_id and ga_session_id of 1 to 7 November 2025 (Dublin days)\n  SELECT DISTINCT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_date BETWEEN '20251101' AND '20251107'\n    AND user_pseudo_id IS NOT NULL\n), per_id AS (\n  -- one row per ga_session_id: the sessions that share it\n  SELECT ga_session_id, COUNT(*) AS visitors\n  FROM pairs\n  WHERE ga_session_id IS NOT NULL\n  GROUP BY ga_session_id\n)\nSELECT COUNT(*) AS id_values, SUM(visitors) AS sessions, COUNT(*) FILTER (WHERE visitors > 1) AS shared_ids\nFROM per_id",
+    "WITH pairs AS (\n  -- one row per session: each distinct user_pseudo_id and ga_session_id of 1 to 7 November 2025 (Dublin days)\n  SELECT DISTINCT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_date BETWEEN '20251101' AND '20251107'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT (SELECT COUNT(DISTINCT ga_session_id) FROM pairs WHERE ga_session_id IS NOT NULL) AS id_values,\n  (SELECT COUNT(*) FROM pairs WHERE ga_session_id IS NOT NULL) AS sessions,\n  (SELECT COUNT(*) FROM (/* one row per shared ga_session_id */ SELECT ga_session_id FROM pairs WHERE ga_session_id IS NOT NULL GROUP BY ga_session_id HAVING COUNT(*) > 1) AS shared) AS shared_ids"
+  ],
+  "other_way": {
+    "sql": "WITH pairs AS (\n  -- one row per session: each distinct user_pseudo_id and ga_session_id of 1 to 7 November 2025 (Dublin days)\n  SELECT DISTINCT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_date BETWEEN '20251101' AND '20251107'\n    AND user_pseudo_id IS NOT NULL\n), per_id AS (\n  -- one row per ga_session_id: the sessions that share it\n  SELECT ga_session_id, COUNT(*) AS visitors\n  FROM pairs\n  WHERE ga_session_id IS NOT NULL\n  GROUP BY ga_session_id\n)\nSELECT COUNT(*) AS id_values, SUM(visitors) AS sessions, COUNT(*) FILTER (WHERE visitors > 1) AS shared_ids\nFROM per_id",
+    "tradeoff": "Taking the distinct pairs first makes each row one session, so the later counts need no DISTINCT."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-52",
+      "sql": "WITH tagged AS (\n  -- one row per event of 1 to 7 November 2025 (Dublin days), with its ga_session_id read out\n  SELECT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_date BETWEEN '20251101' AND '20251107'\n), per_id AS (\n  -- one row per ga_session_id: how many visitors hold it; an event missing either ID belongs to no session\n  SELECT ga_session_id, COUNT(DISTINCT user_pseudo_id) AS visitors\n  FROM tagged\n  WHERE user_pseudo_id IS NOT NULL\n    AND ga_session_id IS NOT NULL\n  GROUP BY ga_session_id\n)\nSELECT COUNT(*) AS id_values, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE visitors > 1) AS shared_ids\nFROM per_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH tagged AS (\n  -- one row per event of 1 to 7 November 2025 (Dublin days), with its ga_session_id read out\n  SELECT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_date BETWEEN '20251101' AND '20251107'\n), per_id AS (\n  -- one row per ga_session_id: how many visitors hold it; an event missing either ID belongs to no session\n  SELECT ga_session_id, COUNT(*) AS visitors\n  FROM tagged\n  WHERE user_pseudo_id IS NOT NULL\n    AND ga_session_id IS NOT NULL\n  GROUP BY ga_session_id\n)\nSELECT COUNT(*) AS id_values, SUM(visitors) AS sessions,\n  COUNT(*) FILTER (WHERE visitors > 1) AS shared_ids\nFROM per_id"
+    }
+  ],
+  "hint3_partial": "WITH tagged AS (\n  -- one row per event of 1 to 7 November 2025 (Dublin days), with its ga_session_id read out\n  SELECT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_date BETWEEN '20251101' AND '20251107'\n), per_id AS (\n  -- one row per ga_session_id: how many visitors hold it; an event missing either ID belongs to no session\n  SELECT ga_session_id, COUNT(DISTINCT user_pseudo_id) AS visitors\n  FROM tagged\n  WHERE user_pseudo_id IS NOT NULL\n    AND ga_session_id IS NOT NULL\n  GROUP BY ga_session_id\n)\nSELECT COUNT(*) AS id_values, SUM(visitors) AS sessions,\n  COUNT(*) FILTER (WHERE ___) AS shared_ids\nFROM per_id",
+  "solver": {
+    "prompt_hash": "2cc2d375595ab767",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH ev AS (\r\n  SELECT user_pseudo_id, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\r\n  FROM events\r\n  WHERE event_date BETWEEN '20251101' AND '20251107' AND user_pseudo_id IS NOT NULL\r\n), ev2 AS (\r\n  SELECT DISTINCT user_pseudo_id, ga_session_id FROM ev WHERE ga_session_id IS NOT NULL\r\n), per_id AS (\r\n  SELECT ga_session_id, COUNT(*) AS visitors FROM ev2 GROUP BY ga_session_id\r\n)\r\nSELECT COUNT(*) AS id_values, SUM(visitors)::BIGINT AS sessions,\r\n  COUNT(*) FILTER (WHERE visitors >= 2) AS shared_ids\r\nFROM per_id",
+    "at": "2026-11-03T19:01:29.362Z"
+  }
+}

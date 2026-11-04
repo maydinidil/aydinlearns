@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-BQ-01-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "sessions",
+    "session_key",
+    "choose"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-choose-sessions-per-day",
+  "template_params": {
+    "from": "20251208",
+    "to": "20251214"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Which query counts the sessions that started on each day from 8 to 14 December 2025, by event_date, where a session is one user_pseudo_id with one ga_session_id, counted from its session_start event, and session_start events with a missing user_pseudo_id or ga_session_id are left out?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o5439528",
+      "text": "SELECT event_date,\n  COUNT(DISTINCT list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value) AS sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251208' AND '20251214'\n  AND user_pseudo_id IS NOT NULL\nGROUP BY event_date",
+      "misconception_id": "ERR-LOG-52"
+    },
+    {
+      "oid": "obb26fc1",
+      "text": "SELECT event_date, COUNT(*) AS sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251208' AND '20251214'\nGROUP BY event_date",
+      "misconception_id": "ERR-LOG-04"
+    },
+    {
+      "oid": "o54f43da",
+      "text": "SELECT event_date,\n  COUNT(DISTINCT user_pseudo_id || '-' || CAST(list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS VARCHAR)) AS sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251208' AND '20251214'\nGROUP BY event_date",
+      "misconception_id": null
+    },
+    {
+      "oid": "o3575998",
+      "text": "SELECT event_date,\n  COUNT(DISTINCT user_pseudo_id || '-' || CAST(list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS VARCHAR)) AS sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '2025-12-08' AND '2025-12-14'\nGROUP BY event_date",
+      "misconception_id": "ERR-LOG-55"
+    }
+  ]
+}

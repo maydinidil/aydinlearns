@@ -3,6 +3,7 @@
 // Nothing is locked: any level's drill and a chosen drill can start at any time. The countdown is display only; the server is
 // the clock, so at 0 this screen asks the server to end the run and shows the server's score. Either drill may start in screen mode
 // (S4B-23): the same items, time limit and pass mark, graded and edited as an online test is (S4B-22); the history shows the mode.
+import { EmptyLine } from '../components/Mascot.tsx';
 import { useEffect, useRef, useState } from 'react';
 import { api, type ConceptView, type CumulativeOffer, type DrillEnded, type DrillSpecView, type DrillStarted } from '../api.ts';
 import { ga4RunFromRefusal } from '../lib/run-flow.ts';
@@ -309,7 +310,7 @@ export function DrillScreen() {
       </fieldset>
       <p><button type="button" disabled={busy || chosen.length === 0} aria-label={`Start chosen drill on ${chosen.length} ${chosen.length === 1 ? 'concept' : 'concepts'}`} onClick={() => void start({ concept_ids: chosen })}>Start chosen drill</button></p>
       <h2>History</h2>
-      {history.length === 0 ? <p className="muted">No drills yet.</p> : (
+      {history.length === 0 ? <EmptyLine text="No drills yet." className="muted" /> : (
         <div className="table-scroll card"><table className="history-table">
           <thead><tr>{HISTORY_COLUMNS.map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
           <tbody>{historyRows(history).map((r) => (

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-44",
+  "item_version": 1,
+  "correct_oid": "o8f7bef8",
+  "explanation": "A subquery over UNNEST(event_params) reads one parameter per event and gives a missing value where the key is not there, so every page_view keeps its row. The cross join with a key filter is the tempting one, but it is an inner join: a page_view with no page_location has no row to keep. Without the key filter each page_view repeats once per parameter, and page_location is text, so its int_value slot is always missing.",
+  "solver": {
+    "prompt_hash": "02a922c3d25512a5",
+    "grader_version": "choice.3",
+    "chosen": "o8f7bef8",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.572Z"
+  }
+}

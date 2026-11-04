@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-01-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT event_name, COUNT(*) AS events,\n  COUNT(*) - COUNT(user_pseudo_id) AS without_pseudo_id\nFROM events\nWHERE event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_name",
+  "alternatives": [
+    "SELECT event_name, COUNT(*) AS events,\n  COUNT(*) FILTER (WHERE user_pseudo_id IS NULL) AS without_pseudo_id\nFROM events\nWHERE event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_name",
+    "SELECT event_name, COUNT(*) AS events,\n  SUM(CASE WHEN user_pseudo_id IS NULL THEN 1 ELSE 0 END) AS without_pseudo_id\nFROM events\nWHERE event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_name"
+  ],
+  "other_way": {
+    "sql": "SELECT event_name, COUNT(*) AS events,\n  COUNT(*) FILTER (WHERE user_pseudo_id IS NULL) AS without_pseudo_id\nFROM events\nWHERE event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_name",
+    "tradeoff": "A FILTER on IS NULL names the rows it counts, while the subtraction relies on COUNT of a column skipping missing values."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT event_name, COUNT(*) AS events,\n  COUNT(user_pseudo_id) AS without_pseudo_id\nFROM events\nWHERE event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT event_name, COUNT(*) AS events,\n  COUNT(*) FILTER (WHERE user_pseudo_id = NULL) AS without_pseudo_id\nFROM events\nWHERE event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "SELECT event_name, COUNT(*) AS events,\n  COUNT(*) - COUNT(user_pseudo_id) AS without_pseudo_id\nFROM events\nWHERE event_date BETWEEN '2025-10-26' AND '2025-11-01'\nGROUP BY event_name"
+    }
+  ],
+  "hint3_partial": "SELECT event_name, COUNT(*) AS events,\n  COUNT(*) - ___ AS without_pseudo_id\nFROM events\nWHERE event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_name",
+  "solver": {
+    "prompt_hash": "782abbe9ac666220",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT event_name, COUNT(*) AS events, COUNT(*) FILTER (WHERE user_pseudo_id IS NULL) AS without_pseudo_id\r\nFROM events\r\nWHERE event_date BETWEEN '20251026' AND '20251101'\r\nGROUP BY event_name",
+    "at": "2026-11-03T19:01:28.858Z"
+  }
+}

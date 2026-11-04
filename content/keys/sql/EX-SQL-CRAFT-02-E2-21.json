@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E2-21",
+  "item_version": 1,
+  "reference_sql": "WITH december_purchases AS (\n  -- one row per purchase event of 1 to 31 December 2025 (Dublin days): only the columns the totals need\n  SELECT traffic_source.medium AS medium, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n)\nSELECT medium, COUNT(*) AS purchases,\n  SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS revenue\nFROM december_purchases\nGROUP BY medium",
+  "alternatives": [
+    "SELECT traffic_source.medium AS medium, COUNT(*) AS purchases, SUM(ecommerce.purchase_revenue) AS revenue\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251201' AND '20251231'\nGROUP BY traffic_source.medium",
+    "WITH december_purchases AS (\n  -- one row per purchase event of 1 to 31 December 2025 (Dublin days): only the columns the totals need\n  SELECT traffic_source.medium AS medium, [p.value FOR p IN event_params IF p.key = 'value'][1] AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n)\nSELECT medium, COUNT(*) AS purchases,\n  SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS revenue\nFROM december_purchases\nGROUP BY medium"
+  ],
+  "other_way": {
+    "sql": "SELECT traffic_source.medium AS medium, COUNT(*) AS purchases, SUM(ecommerce.purchase_revenue) AS revenue\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251201' AND '20251231'\nGROUP BY traffic_source.medium",
+    "tradeoff": "ecommerce.purchase_revenue gives the same amount without reading a parameter, but only purchase events carry it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-53",
+      "sql": "WITH december_purchases AS (\n  -- one row per purchase event of 1 to 31 December 2025 (Dublin days): only the columns the totals need\n  SELECT traffic_source.medium AS medium, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n)\nSELECT medium, COUNT(*) AS purchases,\n  SUM(v.double_value) AS revenue\nFROM december_purchases\nGROUP BY medium"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH december_purchases AS (\n  SELECT *\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n)\nSELECT traffic_source.medium AS medium, traffic_source.source AS source, COUNT(*) AS purchases, SUM(ecommerce.purchase_revenue) AS revenue, COUNT(DISTINCT user_id) AS buyers\nFROM december_purchases\nGROUP BY traffic_source.medium, traffic_source.source"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH december_purchases AS (\n  -- one row per purchase event of 1 to 31 December 2025 (Dublin days): only the columns the totals need\n  SELECT traffic_source.medium AS medium, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '2025-12-01' AND '2025-12-31'\n)\nSELECT medium, COUNT(*) AS purchases,\n  SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS revenue\nFROM december_purchases\nGROUP BY medium"
+    }
+  ],
+  "hint3_partial": "WITH december_purchases AS (\n  -- one row per purchase event of 1 to 31 December 2025 (Dublin days): only the columns the totals need\n  SELECT traffic_source.medium AS medium, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n)\nSELECT medium, COUNT(*) AS purchases,\n  SUM(___) AS revenue\nFROM december_purchases\nGROUP BY medium",
+  "solver": {
+    "prompt_hash": "c4f30fce2bdbe351",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT traffic_source.medium AS medium, COUNT(*) AS purchases, SUM(COALESCE(list_filter(event_params, lambda p: p.key = 'value')[1].value.int_value, list_filter(event_params, lambda p: p.key = 'value')[1].value.float_value, list_filter(event_params, lambda p: p.key = 'value')[1].value.double_value)) AS revenue\r\nFROM events\r\nWHERE event_name = 'purchase' AND event_date BETWEEN '20251201' AND '20251231'\r\nGROUP BY traffic_source.medium",
+    "at": "2026-11-03T19:01:32.228Z"
+  }
+}

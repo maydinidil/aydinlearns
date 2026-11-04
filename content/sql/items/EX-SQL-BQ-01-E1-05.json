@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-BQ-01-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "list_filter",
+    "sessions",
+    "landing_page"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-sessions-per-landing-page",
+  "template_params": {
+    "day": "20251112"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "For each landing page, count the sessions that started on 12 November 2025, by event_date. The landing page is the page_location parameter of the session's session_start event, as text. A session is one user_pseudo_id with one ga_session_id, counted from its session_start event; leave out session_start events whose user_pseudo_id or ga_session_id is missing. Return page_location and sessions. Return one row for each landing page with at least one session. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "page_location"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read ga_session_id and page_location out of each session_start's parameters.",
+    "Leave out the events with a missing ID, then count distinct pairs of visitor and session ID for each page."
+  ],
+  "subgoals": [
+    {
+      "from": 76,
+      "to": 304,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 307,
+      "to": 318,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 321,
+      "to": 387,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 390,
+      "to": 495,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 496,
+      "to": 507,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 508,
+      "to": 570,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 571,
+      "to": 593,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The session_start carries the landing page and the session ID, so one pass over those events counts each session under its first page."
+}

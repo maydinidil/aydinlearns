@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-CRAFT-03-E1-41",
+  "version": 2,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "predict_result",
+    "logo_churn",
+    "base"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-predict-base",
+  "template_params": {
+    "table": "mrr_monthly",
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "At LedgerLoop, 1,005 accounts had MRR at the end of February 2025. During March 2025, 39 of them churned and 18 accounts started or came back, so 984 accounts had MRR at the end of March. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "SELECT COUNT(*) AS accounts,\n  ROUND((SELECT COUNT(DISTINCT account_id) FROM subscription_events\n    WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31') * 1.0 / COUNT(*), 4) AS churn_rate\nFROM mrr_monthly\nWHERE month = DATE '2025-03-01'",
+  "options": [
+    {
+      "oid": "o40af319",
+      "text": "1,005 accounts, a rate of 0.0388",
+      "misconception_id": "MIS-SQL-CRAFT-03-10",
+      "table": {
+        "columns": [
+          "accounts",
+          "churn_rate"
+        ],
+        "rows": [
+          [
+            1005,
+            "0.0388"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "of6b0a5d",
+      "text": "984 accounts, a rate of 0.0396",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "accounts",
+          "churn_rate"
+        ],
+        "rows": [
+          [
+            984,
+            "0.0396"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ofccb3c6",
+      "text": "1,023 accounts, a rate of 0.0381",
+      "misconception_id": "MIS-SQL-CRAFT-03-01",
+      "table": {
+        "columns": [
+          "accounts",
+          "churn_rate"
+        ],
+        "rows": [
+          [
+            1023,
+            "0.0381"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o40b6305",
+      "text": "984 accounts, a rate of 0.0388",
+      "misconception_id": "MIS-SQL-CRAFT-03-11",
+      "table": {
+        "columns": [
+          "accounts",
+          "churn_rate"
+        ],
+        "rows": [
+          [
+            984,
+            "0.0388"
+          ]
+        ]
+      }
+    }
+  ]
+}

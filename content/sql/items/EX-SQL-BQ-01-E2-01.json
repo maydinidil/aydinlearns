@@ -1,0 +1,147 @@
+{
+  "id": "EX-SQL-BQ-01-E2-01",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "list_filter",
+    "sessions",
+    "engaged"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-engaged-sessions-per-day",
+  "template_params": {
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "For each day from 1 to 7 December 2025, by event_date, count the sessions and the engaged sessions. A session is one user_pseudo_id with one ga_session_id, counted from its session_start event; leave out session_start events whose user_pseudo_id or ga_session_id is missing. A session is engaged when its session_engaged parameter is '1', as text. Return event_date, as the text the export stores, sessions and engaged_sessions. Return one row for each day with a session start; a day with none has no row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per event_date from 1 to 7 December 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_date"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read ga_session_id and session_engaged out of each session_start's parameters.",
+    "Count distinct pairs of visitor and session ID; an engaged session has session_engaged '1' as text, in the text slot."
+  ],
+  "subgoals": [
+    {
+      "from": 82,
+      "to": 326,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 329,
+      "to": 340,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 343,
+      "to": 430,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 433,
+      "to": 673,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 674,
+      "to": 685,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 686,
+      "to": 705,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 121,
+    "stage2": 121
+  },
+  "faded_shape": "WITH starts AS (\n  -- one row per session_start event from 1 to 7 December 2025\n  SELECT event_date, user_pseudo_id,\n    ",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Two list_filter calls read two parameters of the same event, and the visitor with the session ID counts each session once.",
+  "faded_suffix": "\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT event_date,\n  COUNT(DISTINCT user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR)) AS sessions,\n  COUNT(DISTINCT CASE WHEN session_engaged = '1' THEN user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR) END) AS engaged_sessions\nFROM starts\nGROUP BY event_date"
+}

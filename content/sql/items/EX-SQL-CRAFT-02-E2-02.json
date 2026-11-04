@@ -1,0 +1,156 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "aggregate_first",
+    "orders",
+    "order_lines"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-channel-orders",
+  "template_params": {
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each Voltmarkt channel, how many orders were placed in March 2025 (the UTC days of order_ts), how many units did they hold, and what was their revenue (quantity times unit_price_eur minus line_discount_eur, over all their lines)? Return exactly four columns, in this order: channel, orders, units and revenue. Return one row for each channel. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the filter that keeps only the lines of March's orders, before they are added up.",
+    "The lines carry no date: keep a line when its order_id belongs to an order whose order_ts falls in March."
+  ],
+  "subgoals": [
+    {
+      "from": 141,
+      "to": 243,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 246,
+      "to": 262,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 265,
+      "to": 409,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 412,
+      "to": 429,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 432,
+      "to": 518,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 519,
+      "to": 579,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 580,
+      "to": 598,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 265,
+    "stage2": 265
+  },
+  "faded_shape": "WITH order_totals AS (\n  -- one row per order placed in March 2025 (UTC days of order_ts): its units and revenue, added up before any join\n  SELECT order_id, SUM(quantity) AS units, SUM(quantity * unit_price_eur - line_discount_eur) AS revenue\n  FROM order_lines\n  ",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each order's lines are filtered and added up before the join, so the join keeps one row per order and COUNT(*) counts orders.",
+  "faded_suffix": "\n  GROUP BY order_id\n)\nSELECT o.channel, COUNT(*) AS orders, SUM(t.units) AS units, SUM(t.revenue) AS revenue\nFROM order_totals t\nJOIN orders o ON o.order_id = t.order_id\nGROUP BY o.channel"
+}

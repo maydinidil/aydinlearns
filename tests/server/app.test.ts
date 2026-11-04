@@ -93,7 +93,7 @@ test('static files cannot escape the dist folder', async () => {
   const app = createApp(await deps());
   for (const path of ['/../package.json', '/..%2fpackage.json', '/%2e%2e/package.json', '/..\\package.json', '/%2e%2e%5cpackage.json']) {
     const body = await (await get(app, path)).text();
-    assert.ok(!body.includes('"name": "aydinlearns"'), path);
+    assert.ok(!body.includes('"name": "grondig"'), path);
   }
 });
 test('the Host check covers static files, and unknown API paths answer JSON 404', async () => {
@@ -876,4 +876,26 @@ test('F2 I2: a UNC portfolio folder is refused when it is saved in Settings, wit
     assert.equal((await r.json()).error, await folderProblem(unc, d.logger.dir), unc);
   }
   assert.equal(((await d.logger.readAll('events')) as any[]).filter((e) => e.event === 'setting_change').length, 0);
+});
+
+// S9-14 (S8-B2): a new SQL attempt logs the world of its item's data, and an override copies it.
+test('S8-B2: a Mailvora write attempt logs marketing, a Voltmarkt one pricing, and "I was right" copies its attempt\'s world', async () => {
+  const mdb = await makeFixtureDb(['CREATE SCHEMA mailvora', 'CREATE SCHEMA mailvora_edge_basics',
+    "CREATE TABLE mailvora.stores AS SELECT * FROM (VALUES (1,'Amsterdam'),(2,'Gent')) v(store_id, city)",
+    "CREATE TABLE mailvora_edge_basics.stores AS SELECT * FROM (VALUES (1,'Zürich'),(2,'Gent')) v(store_id, city)"]);
+  const mrunner = await startRunner(mdb);
+  try {
+    const pool = lesson.pool_item_ids[0]!;
+    const base = content.item(pool)!;
+    const inMailvora = { ...base, schema: 'mailvora', company: 'mailvora' as const, edge_schema: 'mailvora_edge_basics' };
+    const d = await deps({ runner: mrunner, content: { ...content, item: (id: string) => (id === pool ? inMailvora : content.item(id)) } });
+    const app = createApp(d);
+    await post(app, '/api/submit', { item_id: pool, item_instance_id: 'I-M', sql: 'SELECT city FROM stores', phase: 'free' });
+    await post(app, '/api/override', { item_id: pool, item_instance_id: 'I-M', disputed_row: ['Gent'] });
+    const logged = (await attempts(d)).filter((r) => r.record === 'attempt');
+    assert.deepEqual(logged.map((a) => [a.grading_source, a.world]), [['auto', 'marketing'], ['override', 'marketing']]);
+  } finally { await mrunner.close(); }
+  const d2 = await deps({ runner });
+  await post(createApp(d2), '/api/submit', { item_id: lesson.pool_item_ids[0]!, item_instance_id: 'I-V', sql: 'SELECT city FROM stores', phase: 'free' });
+  assert.deepEqual((await attempts(d2)).filter((r) => r.record === 'attempt').map((a) => a.world), ['pricing']);
 });

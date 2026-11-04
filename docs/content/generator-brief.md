@@ -7,15 +7,16 @@ write or fix GA4 and Methodology questions get the [Choice items](#choice-items-
 section at the end instead, and agents that write SQL choice items and a lesson's "why this
 clause?" question get the [SQL choice items](#sql-choice-items-task-c4-for-task-c6) section.
 Agents that write a case (a level opener, an inbox case or a daily case) also follow the
-[Cases](#cases-sprint-4b-task-b2-for-task-c1) section.
+[Cases](#cases-sprint-4b-task-b2-for-task-c1) section, and for level 7
+[Cases at level 7](#cases-at-level-7-sprint-9-task-c2).
 
 - Rule IDs such as R9 and R21 are rulings in
   [`../planning/2026-10-03-build-record.md`](../planning/2026-10-03-build-record.md).
 - Check IDs C01 to C18, and C38 to C40 for level 3 (sprint 4a), are the content checks in
   `tools/check-content.ts` (design §12). C20 to C28, for GA4 and Methodology items, are in
   `tools/check-choice.ts`, and C31 to C37, for SQL choice items and the lessons' `why_clause`, in
-  `tools/check-sql-choice.ts`; `npm run check:content` runs them all. C41 (sprint 4b), the cases,
-  is in `tools/check-content.ts`.
+  `tools/check-sql-choice.ts`, with C57 (sprint 9) for `fixed_choice` items; `npm run check:content` runs them all. C41
+  (sprint 4b), the cases, is in `tools/check-content.ts`.
 - Level 3 content (sprint 4a) also follows [Level 3](#level-3-joins-grain-ctes-dates-and-sets-sprint-4a)
   below. Where that section differs from the rest, it wins for level 3.
 - Level 4 content (sprint 6) follows the Level 3 section too, then
@@ -27,6 +28,10 @@ Agents that write a case (a level opener, an inbox case or a daily case) also fo
 - Level 6 content (sprint 8) follows the Level 3 to Level 5 sections too, then
   [Level 6](#level-6-business-patterns-sprint-8), and an item on LedgerLoop also follows
   [LedgerLoop](#ledgerloop-the-saas-company-sprint-8). Where they differ from the rest, they win for level 6.
+- Level 7 content (sprint 9) follows the Level 3 to Level 6 sections too, then
+  [Level 7](#level-7-bigquery-ga4-export-data-and-take-home-craft-sprint-9); an item on Mailvora's GA4 export also follows
+  [Mailvora's GA4 export](#mailvoras-ga4-export-mailvora_ga4-sprint-9), and an item on LedgerLoop
+  [LedgerLoop](#ledgerloop-the-saas-company-sprint-8). Where they differ from the rest, they win for level 7.
 - A held-out mock item (sprint 7) follows the sections for its level, then
   [Mock items](#mock-items-sprint-7-task-c3). Where it differs from the rest, it wins for mock items.
 - Paths are relative to `aydinlearns/`. Work in the folder the controller names in the `Root`
@@ -1074,6 +1079,317 @@ the clean segment spellings, no test account), its rows follow LedgerLoop's rule
 - A question about CAC payback states its formula (the build calibrates CAC over mean new MRR times gross margin), and
   one about NRR or GRR states its rate rule (the truth converts start and end MRR at the 2025-12-31 rate).
 
+## Level 7: BigQuery, GA4 export data and take-home craft (sprint 9)
+
+For the four level 7 concepts, in curriculum order: `SQL-BQ-01` (BigQuery dialect and GA4 export data), `SQL-CRAFT-01`
+(readable queries and sanity checks), `SQL-CRAFT-02` (performance and cost basics) and `SQL-CRAFT-03` (from business
+question to query plan). Everything above still applies, the Level 3 to Level 6 sections included (the grain line fades,
+keys run on the edge schema, every key has an `other_way`, each CTE step names its grain in a comment, frames are written
+out, C53's tie rule, and S8-22: no prompt says where missing values go in a sort); where this section differs, it wins. An
+item on Mailvora's GA4 export also follows [Mailvora's GA4 export](#mailvoras-ga4-export-mailvora_ga4-sprint-9), and an
+item on LedgerLoop follows [LedgerLoop](#ledgerloop-the-saas-company-sprint-8). The rulings are in the sprint 9 plan
+(`docs/superpowers/plans/2026-10-31-aydinlearns-sprint-9.md`): S9-04 to S9-09, with the controller's S9-C13 (the
+`fixed_choice` check is C57, not the plan's C54), S9-C16 to S9-C18, S9-C24, S9-C26 and S9-C29. The ERRATA rows are E-218
+(the GA4 sample), E-219 (the level 7 error IDs) and E-220 (`fixed_choice`).
+
+### What to write per concept
+
+| Concept | Data | Must-have traps | Also |
+|---|---|---|---|
+| `SQL-BQ-01` | Mailvora's GA4 export | `ERR-LOG-52`, `ERR-LOG-53`, `ERR-LOG-54` and `ERR-LOG-55` (E-219); `ERR-LOG-01` UNNEST fan-out; `ERR-LOG-11` an event lost by an inner unnest; `ERR-SYN-09`, as a fix item | 01's E2 (`page_location` and `ga_session_id` read out of `event_params`) and E3 (daily sessions and purchases by channel) as write items; E1 (translating to BigQuery) as its 6 `fixed_choice` items |
+| `SQL-CRAFT-01` | Mailvora's GA4 export with the views onto Mailvora's tables; Voltmarkt | A total that does not reconcile (below the trap table); a duplicate key (`ERR-LOG-36`, or `ERR-LOG-52` when the key checked is `ga_session_id` alone) | Its write items return check results (S9-08): the export reconciled to the backend, a duplicate-key check, a row count before and after a join. 01's E3 (a manager summary) as its 2 `fixed_choice` items |
+| `SQL-CRAFT-02` | Mailvora's GA4 export; Voltmarkt (order lines added up per order before the join to `orders`: 01's example 2, as Voltmarkt has no customers table) | `ERR-OUT-01` `SELECT *` in the answer | Its write items keep `allow_extra_columns: false` (as in `DEFAULT_RULES`), so a `SELECT *` answer fails with `ERR-OUT-01`. Where an item adds up before a join, a join that repeats rows before they are added up is `ERR-LOG-01`. Cost (01's E2 and E3) as its 4 `fixed_choice` items |
+| `SQL-CRAFT-03` | Voltmarkt (a price change, 01's example 1); LedgerLoop (monthly logo churn, example 2) | A denominator that changes with the window (`ERR-LOG-00`, Values differ: `ERR-LOG-45` is a funnel step rate and `ERR-LOG-48` a partial period, so neither fits a base population); a metric other than the one asked (`ERR-LOG-00` too, Ruling S9-C31; plant it with a query that returns the other metric) | Its write items compute a metric under a definition the prompt states in full (S9-08); the plan template (01's E1) as its 4 `fixed_choice` items |
+
+For each concept (S9-08, as S8-10):
+- the lesson: the reading, 2 worked examples with subgoals and fading, the pretest (2 write items, then 1 predict item),
+  the lesson block, the re-test, a `why_clause`, and a `dialect_note` that gives the BigQuery form (below);
+- a write pool of 8 to 10 items;
+- one fix item per trap ID the grader raises for that concept (`kind: "fix"`, `use: "pool"`);
+- 3 run-checked pool choice items, at least one a predict kind and one a `choose_query`, as at levels 3 to 6;
+- the `fixed_choice` items: 6 for `SQL-BQ-01`, 2 for `SQL-CRAFT-01`, 4 for `SQL-CRAFT-02` and 4 for `SQL-CRAFT-03`
+  ([below](#fixed_choice-items-s9-06-e-220-c57));
+- 6 drill items, `use: "drill"`, two each of E1, E2 and E3, numbered `E1-21`, `E1-22`, `E2-21`, `E2-22`, `E3-21` and
+  `E3-22`: 24 across the level. A drill serves only write and fix items, so every drill item is one of those (S9-C34): the 6 per concept are write or fix items, two each of E1, E2 and E3, whatever the concept's `fixed_choice` items are. `fixed_choice` items are practice and lesson items, never drill items. Do not edit
+  `content/sql/drills.json`: its level 7 entry is there with an empty pool (S9-09: 10 questions, 35 minutes, 90% to pass,
+  normal mode, 70% unseen, the 4 level 7 concepts), and the controller lists the 24 after the blind solve, in S9-13's
+  rotated order (each concept's six in the cycle E1-21, E2-21, E3-21, E1-22, E2-22, E3-22, shifted one place from the
+  concept before, as level 4's are). Until then the app lists the drill as not available, and C19 warns;
+- every key with an `other_way`.
+
+| Data | `company`, `schema` | `edge_schema` |
+|---|---|---|
+| Mailvora's GA4 export, and Mailvora's sessions, signups, subscriptions and payments through its views | `"mailvora"`, `"mailvora_ga4"` | `"mailvora_edge_ga4"` |
+| Voltmarkt | `"voltmarkt"`, `"voltmarkt"` | `"voltmarkt_edge_pat"` |
+| LedgerLoop | `"ledgerloop"`, `"ledgerloop"` | `"ledgerloop_edge_saas"` |
+
+A graded run reads one schema by unqualified names (design §6), so an item that reconciles the export to Mailvora's
+backend is on `mailvora_ga4`, which holds both: `events` and the views `sessions`, `signups`, `subscriptions` and
+`payments` (S9-C18). Its edge schema has the same five names. Each edge schema in the table holds every table and view of
+its visible schema (checked 2026-11-03), so C52 passes. You may query `data/course.duckdb` read-only on these schemas.
+
+Item numbers follow levels 3 to 6: `01` upward for the pretest, lesson, re-test and write pool items, `21` upward for drill
+items, `31` upward for fix items and `41` upward for every choice item, `fixed_choice` included, each counted within its
+difficulty.
+
+### Prompts at level 7 (S9-08, Review Focus 1)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| A prompt on the export states in words, never in SQL: the grain; which day (`event_date`, which is the day in Dublin, or the UTC day of `event_timestamp`); the session key ("a session is one user_pseudo_id with one ga_session_id"); which value slot, or "from whichever number slot holds it"; what an event with a missing `user_pseudo_id` or `ga_session_id` does; whether events from Mailvora's server (every purchase) count where sessions are counted; and whether a purchase whose first payment was later refunded counts | Each one left out has two right answers on this data, and the edge plants each case (Review Focus 1) | Blind solver, review |
+| Give dates in words ("1 to 31 October 2025, by event_date"), never in a format | The learner chooses the form; a dashed date against `event_date` is the `ERR-LOG-55` trap | Review |
+| A prompt that counts sessions says where from: the `session_start` events, or every event that carries the pair. On this sample both give the same pairs (every session has its `session_start`, and a purchase carries no session), so "from session_start events" keeps the query small | Both readings must agree, or the prompt picks one | Blind solver |
+| No prompt asks for a purchase's session ("sessions with a purchase", a session's conversion to purchase). A purchase links to a visitor (`user_pseudo_id`, `user_id`) and to a payment (`ecommerce.transaction_id` is `payments.payment_id` as text) | Purchases belong to no session in this export, and any join rule a prompt makes up is not GA4's | Review |
+| A prompt about channels or sources says which: the visitor's first touch (`traffic_source`, the same on every event of a visitor) or the session's own (`utm_source` and `utm_medium` in `sessions`, through the join under [Sessions, users and missing IDs](#sessions-users-and-missing-ids)), and how direct traffic shows (`(direct)` and `(none)` in `traffic_source`; missing UTM values in `sessions`) | The export has no session-level source, and the two readings differ for a returning visitor | Blind solver |
+| A prompt that groups by page says what a page is: the whole `page_location`, or its path without the host and any query string | The edge holds a `page_location` with a query string; the visible data has none | C03, blind solver |
+| "Engaged" means `session_engaged` is `'1'` (text) on the session's events, as the schema notes say, and a prompt that uses it says so | GA4's own definition is wider; the export carries only the flag | Blind solver |
+| Keep each question's period inside the edge data: `mailvora_edge_ga4`'s events fall on 12 Dublin days from 1 October to 15 December 2025 (`20251001` to `20251215`) | A key whose period misses the edge data returns nothing there and tests nothing | C03, review |
+| A prompt over `events` names a subset that a natural answer filters on: one `event_name`, or a span of days up to about a month. No question needs a lateral unnest over all 825,950 events | A lateral unnest costs about 2 seconds per 300,000 events in the app's runner, which stops each step at 5 seconds ([Performance in the runner](#performance-in-the-runner)), so a learner's correct query over every event can time out | Blind solver (a time-out fails its record), review |
+| A write item never asks for BigQuery SQL: writing BigQuery is a `fixed_choice` question | DuckDB cannot run BigQuery (S9-06) | Review |
+| A `SQL-CRAFT-03` prompt states the metric's definition in full: what is counted, the base of every rate, the window with both ends, and what a store, product or account that is not there for the whole window does | S9-08: its items compute a metric under a stated definition | Blind solver |
+| A `SQL-CRAFT-01` check item says what the check returns (one row per check with its name and a pass or fail column, a count of offending rows, or both totals with their difference) and what reconciled means (equal, or within a stated tolerance) | A check reports what it found, as `SQL-CLEAN-01`'s do (S6-12) | Blind solver |
+
+### Trap IDs at level 7 (E-219)
+
+Use only IDs the grader raises on DuckDB (R9). The five new IDs belong to `SQL-BQ-01` (grader `9a.1`), the first level 7
+concept, so every level 7 concept may use them. Every fact below was checked on DuckDB 1.5.6 on the built
+`mailvora_ga4` and `mailvora_edge_ga4` (2026-11-03).
+
+| ID | How DuckDB raises it | A planted query that works |
+|---|---|---|
+| `ERR-LOG-52` | Planted match | Sessions counted as distinct `ga_session_id` values alone: 260,674 where the pairs are 267,380 on the visible data, and 9 where they are 10 on the edge |
+| `ERR-LOG-53` | Planted match | The purchase `value` read from `double_value` alone: 469 of the 3,128 visible purchases (15%) and 1 of the 3 edge purchases carry it in `int_value`. `float_value` is never filled |
+| `ERR-LOG-54` | Planted match | `event_timestamp` read as milliseconds: `to_timestamp(event_timestamp / 1000)` or `epoch_ms(event_timestamp)`, which run and land in the year 57720 |
+| `ERR-LOG-55` | Planted match | `event_date` compared with dashed text: `event_date >= '2025-10-15'` keeps every row (after `2025`, the digit sorts after the dash) and `event_date BETWEEN '2025-10-01' AND '2025-10-31'` keeps none. A comparison with a DATE value, or a CAST of `event_date` to DATE, stops with DuckDB's conversion error, which the classifier gives `ERR-OUT-02`: it is never this ID's plant |
+| `ERR-SYN-09` | Engine error, on a query that calls `unnest(`: `Referenced table "<x>" not found` (x is `key`, `value` or a name the query gives an unnest call), `does not have a column named "key"` or `"value"`, or `Referenced column "key"` or `"value"` `not found` | BigQuery's forms written in DuckDB: `FROM events, UNNEST(event_params) AS p WHERE p.key = ...`, or `(SELECT value.int_value FROM UNNEST(event_params) WHERE key = ...)`. Its fix item's starter is one of these. `PARSE_DATE`, `TIMESTAMP_MICROS`, backtick names and `_TABLE_SUFFIX` keep the engine's own message under another ID (`ERR-SYN-02` or `ERR-SYN-01`), so none of them is an `ERR-SYN-09` starter |
+| `ERR-LOG-01` | Planted match | UNNEST fan-out: an event-level number (a count of events, `ecommerce.purchase_revenue`) added up after a lateral unnest with no filter on `p.key`, so each event counts once per parameter. Plant it on events with several parameters: `first_visit`, `session_start` and `sign_up` carry 4 and `page_view` 5, but a purchase carries only `value`, so on purchases alone the plant equals the reference and C05 fails |
+| `ERR-LOG-11` | Planted match | An inner lateral unnest with a key filter (`FROM events e, unnest(e.event_params) AS t(p) WHERE p.key = 'page_location'`) where the question keeps every event: it drops each event without that parameter (every purchase) and each event whose list is empty (the 4 server-side sign_ups on the visible data, a page_view on the edge). A key that keeps every event reads the parameter with `list_filter(...)[1]`, which gives a missing value where the key is absent. The feedback speaks of joined tables: the lesson says that the comma before `unnest(` is an inner join |
+| `ERR-OUT-02` | Shape (the type class) | A list or struct returned where one value is asked: `event_params`, `p.value` or `traffic_source` where the contract wants a number or text |
+| `ERR-OUT-01` | Shape | `SELECT *`, or any answer with columns the contract does not list. An answer with exactly one extra column that is also a GROUP BY column is diagnosed `ERR-LOG-07` instead (design §6), so a `SELECT *` plant returns more than one extra column |
+| `ERR-LOG-36` | Planted match | `SQL-CRAFT-01`: a duplicate-key check or a total that counts copies of a key, as at level 4 |
+| `ERR-LOG-04` | Planted match | Rows or events counted where distinct users or sessions are asked, or `COUNT(user_pseudo_id)` where every event counts, which leaves out the consent-denied ones |
+
+A total that does not reconcile (`SQL-CRAFT-01`) is planted with the slip that causes it: the session key (`ERR-LOG-52`),
+the consent-denied events left out on one side (`ERR-LOG-04`), a value slot (`ERR-LOG-53`), a dashed date (`ERR-LOG-55`)
+or a fan-out (`ERR-LOG-01`). Two slips have no ID whose feedback fits, so plant neither, and let the prompt state the rule:
+- the UTC day taken where the Dublin day was asked: `ERR-LOG-26`'s feedback speaks of Amsterdam and gives Voltmarkt's
+  two-step form for TIMESTAMP columns, which on Mailvora's TIMESTAMPTZ columns gives the UTC day (checked: 23:30 UTC on
+  1 October 2025 stays 1 October). The edge fails such a query, with the fallback diagnosis, only where a window or a
+  per-day row meets one of its Dublin-day plants. The new visitor's session and sign_up at 23:32 and 23:38 UTC on
+  30 September (`20251001`, S9-C42) catch a window that starts on 1 October, or a row for 1 October, on the export side
+  (`event_date`) and the backend side (`sessions.session_start`, `signups.signup_ts`). The session at 23:28 UTC on
+  25 October (`20251026`) catches a window that starts on 26 October or ends on 25 October, or a row for 26 October, on
+  the export side and in `sessions`. Elsewhere the edge passes such a query, and no first payment falls near midnight on
+  either dataset, so a UTC day of `paid_at` is never caught: the prompt states the rule;
+- a refunded first payment left out on one side only, which falls to `ERR-LOG-00`.
+
+The diagnosis order (engine error, shape, planted match, then the fallback) holds as at levels 3 to 6: a planted query
+returns the reference's number of columns, each in the same type class, unless it is an engine-error or shape trap such as
+`ERR-SYN-09`, `ERR-OUT-01` or `ERR-OUT-02`.
+
+### Keys at level 7
+
+| Rule | Why | Checked by |
+|---|---|---|
+| Where a key reads the `value` parameter, it reads every number slot: `COALESCE(p.value.int_value, p.value.float_value, p.value.double_value)`, or the same on `list_filter(...)[1].value` | Review Focus 1; Google's cookbook reads `value` this way (07 §5.3) | C03 on the edge, review |
+| The Dublin time of an event is `timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))`, in keys and lessons (S9-C24). Never `timezone('Europe/Dublin', make_timestamp(event_timestamp))`: it runs, but reads the UTC wall time as Dublin's and turns the wrong way, giving another day than `event_date` on 2,077 visible events | A1's runner test pins both forms | C03, review |
+| The Dublin day of a backend TIMESTAMPTZ column (`sessions.session_start`, `signups.signup_ts`, `payments.paid_at`) is `timezone('Europe/Dublin', <column>)` taken once, then cast to DATE, or formatted with `strftime(..., '%Y%m%d')` to meet `event_date`. Never P-10's two-step form, which is for Voltmarkt's TIMESTAMP columns and gives the UTC day on these | Checked on DuckDB 1.5.6 | C03 on the edge |
+| `event_date` is compared as text in its own form (`'20251001'`), or parsed with `CAST(strptime(event_date, '%Y%m%d') AS DATE)`. Never `CAST(event_date AS DATE)`, which stops with a conversion error | `ERR-LOG-55`; checked | C03 |
+| Sessions are distinct pairs of `user_pseudo_id` and `ga_session_id`; a pair with a missing part is left out only as the prompt says | `ERR-LOG-52` | C03, blind solver |
+| Every key query runs in under 1 second on `mailvora_ga4`: time it read-only on `data/course.duckdb` after `SET threads = 2`, the runner's setting. Read one parameter per event with `list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value`, the list comprehension `[p.value.int_value FOR p IN event_params IF p.key = 'ga_session_id'][1]`, or `unnest(event_params)` in the SELECT list of a CTE (each about 0.1 seconds over all 825,950 events). A lateral `unnest(e.event_params) AS t(p)`, a `LEFT JOIN unnest(...)` or a correlated scalar subquery belongs in a key only over a small subset (purchases, sign_ups, a week). The same holds for a `choose_query` option and a predict item's `shown_sql` on `mailvora_ga4`, which C31 to C33 run | The grader runs the learner's query and the key in one statement under the 5 second limit, so a slow key leaves a slower but correct answer no time | Review, C31 to C33 |
+| Speed (S9-C33): every level 7 write or fix item whose key reads `events` declares `rules.timeout_ms` 10000 (the default is 5000), and its prompt still names a subset of events (an `event_name`, a period) where it can. Keys and planted wrong queries (a fix item's `starter_sql`, a mutant) use the fast forms above (`list_filter`, a list comprehension, a SELECT-list unnest, or a lateral unnest after a filter on `event_name`), never an unfiltered lateral unnest over every event | An unfiltered lateral unnest over all events takes 4.4 seconds or more, close to the 5 second limit, and the grader runs the learner's query and the key in one step | Review, C05 |
+| A lateral unnest in a key filters on `p.key` before anything is counted or added up | It makes one row per parameter (`ERR-LOG-01`) | C03, C05 |
+| A reconciliation key compares the two sides on the same rows (the same Dublin days; every `session_start`, the consent-denied ones included, against every backend session) and says in a comment which rows each side counts | `SQL-CRAFT-01`; the comment is what "show answer" teaches | Review |
+| A reference's result stays under 1,000 rows (C08), as at levels 5 and 6: ask per day, per channel or per page, never per event | C08's display cap | C08 |
+
+### Constructs at level 7 (C09)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| The one level 7 construct is `unnest_list` (`SQL-BQ-01`): the `unnest` table function or a lateral unnest, a list function with a lambda (`->` or `lambda x:`), and a list comprehension. Its detector fires on any `unnest(` call, the SELECT list included. `SQL-CRAFT-01` to `-03` have none of their own: their keys use the level 1 to 7 constructs, `unnest_list` included, as `SQL-BQ-01` comes first | `content/sql/constructs.json`, S9-07 | C09, C16 |
+| C11 does not flag a lambda or an unnest; keys stay portable-first otherwise (no QUALIFY, PIVOT, GROUP BY ALL or FROM-first) | The GA4 forms have no portable spelling; the lesson's dialect note gives BigQuery's | C11 |
+| A learner's query with `unnest(...) AS t(p)`, a lambda, `strptime(event_date, '%Y%m%d')` or `make_timestamp(event_timestamp)` gets a BigQuery note after grading (S9-05), never a fail. The grader adds it; write nothing for it | `server/grader/portability.ts` | Grader |
+| Lesson fading: C16 looks for `unnest_list` in `SQL-BQ-01`'s lesson items, so stage 1's visible text (`faded_shape` and `faded_suffix`) holds no `unnest(`, `->`, `lambda` or list comprehension, and the blank holds the unnest or the list function. The CRAFT concepts have no construct, so their fading is checked by review only: stage 1's blank holds the concept's new step (`SQL-CRAFT-01` the check's comparison, `SQL-CRAFT-02` the narrowed column list or the early filter, `SQL-CRAFT-03` the metric's formula) | The learner writes the new step (design §4) | C16, review |
+
+### `fixed_choice` items (S9-06, E-220, C57)
+
+A `fixed_choice` item asks a question whose options the app does not run: BigQuery SQL, or a statement about cost or a
+plan. It is served, graded, logged and rated as `predict_result` is (by the right option's oid, `choice.3`). Everything in
+[SQL choice items](#sql-choice-items-task-c4-for-task-c6) applies; where this differs, it wins.
+
+**Item file** (`content/sql/items/<id>.json`, `SqlItem`, checked by `validateSqlItem`):
+
+| Field | What goes in |
+|---|---|
+| `kind`, `use` | `"fixed_choice"`, `"pool"`. Never `pretest` (only a predict kind may be a pretest item) and never `drill` (a drill serves write and fix items) |
+| `prompt` | The question. There is no separate stem, and no `shown_sql`: the screen shows the prompt as plain text, never as a code block, so describe a query's job in words and put code only in the options |
+| `options` | 3 or 4 `{ oid, text, misconception_id, code? }` in file order, `oid` = `optionId(id, position)` (S2-60). `code`, when an option has one, is `{ "lang": "bigquery", "sql": "..." }` or `{ "lang": "duckdb", "sql": "..." }` and nothing else. No `table` on any option |
+| `misconception_id` | `null` on the right option only. Every other option names its mistake: an error ID of `content/sql/errors.json` at or before the item's concept when one fits (`ERR-SYN-09`, `ERR-LOG-52` to `-55`, `ERR-LOG-01`), otherwise a misconception ID `MIS-<concept>-NN` (for example `MIS-SQL-CRAFT-02-01`), one per mistake, which keeps its ID across the concept's items |
+| `schema`, `edge_schema` | As the concept's write items. C57 prepares a `duckdb` option on `schema`, and the schema panel shows its tables |
+| `shown_sql`, `typed`, `unique_check` | Left out: the validator refuses them |
+| `rules`, `output_contract`, `hints`, `subgoals`, `why_this_works`, `fading`, `faded_shape`, `starter_sql` | Exactly `DEFAULT_RULES`, `null`, `[]`, `[]`, `""`, `null`, `null` and `null`, as on every SQL choice item |
+
+**Key file** (`content/keys/sql-choice/<id>.json`): `{ item_id, item_version, correct_oid, explanation, solver: null }`,
+as `predict_result`'s.
+
+| Rule | Why | Checked by |
+|---|---|---|
+| Exactly one option is right: it alone has `misconception_id: null`, and it is the key's `correct_oid` | One right answer (S9-06) | C57 |
+| No two options have the same text, and no two the same code block (the same language and query, case and spacing aside) | Two equal options cannot be one right and one wrong | C57 |
+| A `duckdb` option is one SELECT the gate accepts on the item's schema: C57 prepares it and never runs it. A `bigquery` option is never run | DuckDB cannot run BigQuery | C57 |
+| An option's language shows as a caption ("BigQuery" or "DuckDB") to the learner, the tutor and the blind solver, so no question may be answered by the caption: never "which of these is BigQuery?" or "which runs in DuckDB?" with mixed captions. A translation question captions every code option `bigquery`, so the learner has to read the code | S9-C24 | Review, blind solver |
+| No option letter and no position reference in the prompt, an option or the explanation: no "option B", "(C)", "both of the above", "A and C" or "the first query". The explanation may name an option by what it says | The options are shuffled for every learner (S9-C26, E-021) | C57 (the explanation), review |
+| Distractors are plausible: the right code with one common slip (a dashed date against `event_date`, DuckDB's spelling of `UNNEST`, `events_*` with no `_TABLE_SUFFIX` filter), or a statement a working analyst believes (a LIMIT cuts the bytes read; `SELECT *` costs no more). Never a joke, a made-up function or a second true option | The learner should need the knowledge (E-021) | Blind solver, review |
+| Write options close in length. In each concept, the right option (text and code together, spacing aside) may be the only longest in at most 35% of its `fixed_choice` items: count it for your concept. The counts (S9-C32): at most 2 of `SQL-BQ-01`'s 6 items, 0 of `SQL-CRAFT-01`'s 2, 1 of `SQL-CRAFT-02`'s 4 and 1 of `SQL-CRAFT-03`'s 4. Give a wrong option an extra caveat or more words so the right one is not alone at the top | Length gives the answer away (E-021, E-108) | C57 (per concept) |
+| BigQuery facts come only from 01's DIALECT table and 07 §5 where neither marks them [UNVERIFIED], and from S9-05's notes: `CROSS JOIN UNNEST(event_params) AS p` then `p.key`; `(SELECT value.int_value FROM UNNEST(event_params) WHERE key = '...')`; `PARSE_DATE('%Y%m%d', event_date)`; `TIMESTAMP_MICROS(event_timestamp)`; `events_*` with `WHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'` (DIALECT-15, 07 §5.3); `SAFE_DIVIDE` (DIALECT-03); and 01's quote for `SQL-CRAFT-02` that on a table that is not clustered a LIMIT does not change the data read ([44]). A cell 01 marks [UNVERIFIED] (`DATE_TRUNC(d, MONTH)`, `DATE_DIFF`, BigQuery's ILIKE) never decides an answer | Unverified syntax could make the right option wrong | Review |
+| The explanation says why the right option is right and why the most tempting wrong one is wrong, in plain words | It shows after the answer | Review |
+| Readability itself is not graded (E-220): no question asks which query reads better as a matter of taste. `SQL-CRAFT-01`'s two items ask which manager summary states the grain and a caveat, which one can check | E-220 | Review |
+| Never edit an oid by hand and never reorder options. To change a distractor, change its text or code in place, and raise `version` in the item and `item_version` in the key | Every oid follows its option's position, and the solver record names oids | C01, C14 |
+
+| Concept | Items | What they ask (S9-08, E-220) |
+|---|---|---|
+| `SQL-BQ-01` | 6 | 01's E1, translating to BigQuery: reading the daily tables with `events_*` and `_TABLE_SUFFIX`, parsing `event_date` with `PARSE_DATE`, `event_timestamp` with `TIMESTAMP_MICROS`, and reading a parameter with BigQuery's UNNEST forms |
+| `SQL-CRAFT-01` | 2 | 01's E3: which manager summary states the grain and a caveat |
+| `SQL-CRAFT-02` | 4 | 01's E2 and E3: filter early, select only the columns needed, a LIMIT does not cut the data read on a table that is not clustered, and date shards |
+| `SQL-CRAFT-03` | 4 | 01's E1, the plan: the metric, the grain, the window and the edge cases for a stated question |
+
+### Lessons at level 7
+
+| Concept | The reading teaches | `dialect_note`: the BigQuery form |
+|---|---|---|
+| `SQL-BQ-01` | The export's shape: one row per event; `event_params` as a list of key and value pairs, the value in one of four slots; one table per day in BigQuery, stacked here. One parameter per event (`list_filter(...)[1]`, a list comprehension) against one row per parameter (the lateral `unnest(...) AS t(p)` with `p.key`), which changes the grain and drops an event with no such parameter. Filter the events by name or day before a lateral unnest: over every event it can reach the time limit. `event_date` is the Dublin day as text, `event_timestamp` microseconds in UTC, the session `user_pseudo_id` with `ga_session_id`; consent-denied and server-side events | `CROSS JOIN UNNEST(event_params) AS p` with `p.key`; `(SELECT value.int_value FROM UNNEST(event_params) WHERE key = '...')`; `PARSE_DATE('%Y%m%d', event_date)`; `TIMESTAMP_MICROS(event_timestamp)`; `events_*` with `_TABLE_SUFFIX` (S9-05; DIALECT-10, -14 and -15) |
+| `SQL-CRAFT-01` | Named CTE steps, a grain comment and an assumptions comment on each, and a final check that totals reconcile (01's syntax line); the export reconciled to the backend ([Reconciliation](#reconciliation-s9-02)) as a worked example | The same CTEs and comments run in BigQuery; its tables are named in backticks with their project and dataset, as in 07 §5.3 |
+| `SQL-CRAFT-02` | Filter early, select only the columns needed, add up before a join to a big table (01's explanation); in BigQuery, limit the date shards read with `_TABLE_SUFFIX`, and a LIMIT does not cut the data read on a table that is not clustered ([44]). Here results are graded, not cost: a filter moved into an earlier CTE returns the same rows, so cost is asked in `fixed_choice` items, while the write items grade an exact column list | `WHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'` on `events_*` (01's syntax line, DIALECT-15) |
+| `SQL-CRAFT-03` | The plan before the query: Question, Metric formula, Output grain, Tables and keys, Filters, Edge cases, Check (01's template, which a case's model plan follows); choosing between two metric definitions and saying why | The plan does not depend on the engine; the note gives BigQuery's form of the plan's date window (`_TABLE_SUFFIX` on `events_*`, or `PARSE_DATE` on `event_date`) |
+
+Compare engines only through 01's dialect table and S9-05's notes, and leave out any cell 01 marks [UNVERIFIED].
+
+### Checks for level 7
+
+| Check | Here |
+|---|---|
+| C57 | A `fixed_choice` item: one right option and the others each naming a misconception; distinct options; a `duckdb` option that prepares; no letter in the explanation; per concept, the right option the only longest in at most 35% |
+| C33 | Does not run on a `fixed_choice` item; it still runs on `choose_query` |
+| C14 | Every new item needs a blind solve. A `fixed_choice` item's record also covers each option's code (its language and query) |
+| C19 | Warns on the level 7 drill until the controller writes its pool |
+| C40, C52 | Every key runs on its edge schema (`mailvora_edge_ga4`, `voltmarkt_edge_pat` or `ledgerloop_edge_saas`), which holds every table its visible schema shows |
+| C09 | `unnest_list` appears in no key before `SQL-BQ-01` |
+
+Before you hand back, run `npm run check:content` and `npm test` ([Before you hand back](#before-you-hand-back)). The
+report follows [Report format](#report-format), plus per concept: the `fixed_choice` count, each `MIS-` ID you minted with
+the 01 card mistake it stands for (never an option's text), and how many of the concept's `fixed_choice` items have the
+right option as the only longest.
+
+## Mailvora's GA4 export: `mailvora_ga4` (sprint 9)
+
+Mailvora's website as GA4 would export it to BigQuery (05's CO-03 with E-218; built by Task L1: S9-02, S9-03, S9-C11 and
+S9-C16 to S9-C18, S9-C29). It is fictional data. The schema shows from level 7 (`from_level` 7), and the explorer lists it
+under Mailvora as "GA4 export (BigQuery shape)". Read its notes in `data/schema-notes.json` (schema `mailvora_ga4`) and
+the edge description `content/sql/edge/mailvora_edge_ga4.json`. Every number below was checked on the built data
+(2026-11-03).
+
+### The table and its views
+
+| Object | One row per | What to know |
+|---|---|---|
+| `events` (825,950 rows) | Event | The BigQuery export's columns, cut to what level 7 uses (below). No key: an export has none |
+| `sessions`, `signups`, `subscriptions`, `payments` | As Mailvora's tables of the same names | Views onto `mailvora`'s tables, every row from 2024 on, a wider span than `events`: 1,983,227 sessions, 122,383 signups, 17,654 subscriptions and 99,447 payments. They are here so a graded query on `mailvora_ga4` can join the export to the backend by unqualified names (S9-C18) |
+
+| Column of `events` | Type | What it holds |
+|---|---|---|
+| `event_date` | VARCHAR | The day in Europe/Dublin, the property's time zone, as text `YYYYMMDD`: `20251001` to `20251231`, 92 days |
+| `event_timestamp` | BIGINT | Microseconds since 1970-01-01, UTC |
+| `event_name` | VARCHAR | `first_visit`, `session_start`, `page_view`, `sign_up` or `purchase` |
+| `event_params` | `STRUCT(key VARCHAR, value STRUCT(string_value VARCHAR, int_value BIGINT, float_value DOUBLE, double_value DOUBLE))[]` | One element per parameter (below) |
+| `user_id` | VARCHAR | `signups.user_id` as text, from the visitor's `sign_up` on; missing before it, for a visitor who never signs up, and on a consent-denied event |
+| `user_pseudo_id` | VARCHAR | The browser's ID, `sessions.visitor_id`; missing on a consent-denied event |
+| `traffic_source` | `STRUCT(name, medium, source)` | The visitor's first touch, from the visitor's first row in `sessions`: `name` is its `utm_campaign`, or `(organic)`, `(referral)` or `(direct)`; `medium` and `source` are its UTM values, or `(none)` and `(direct)` for direct. The same on every event of the visitor, purchases included |
+| `device` | `STRUCT(category)` | `desktop`, `mobile` or `tablet`, from the session; missing on an event from the server |
+| `geo` | `STRUCT(country)` | The country's English name (Ireland, not IE); on an event from the server, the account's country |
+| `ecommerce` | `STRUCT(transaction_id, purchase_revenue)` | On purchases only: `transaction_id` is `payments.payment_id` as text, and `purchase_revenue` the amount in euros |
+
+| Event | Its parameters |
+|---|---|
+| `first_visit`, `session_start`, `sign_up` | `ga_session_id` and `ga_session_number` in `int_value`; `page_location` and `session_engaged` in `string_value` |
+| `page_view` | The same four, and `engagement_time_msec` in `int_value` |
+| `purchase` | `value` only: in `double_value` on 2,659 purchases and in `int_value` on 469 (15%); `float_value` is never filled. It is the same amount as `ecommerce.purchase_revenue` on every purchase of both schemas, so an answer that adds up `purchase_revenue` passes too |
+
+`ga_session_id` is the session's start in seconds since 1970. `ga_session_number` counts the visitor's sessions from the
+visitor's first row in `sessions` (2024 on). `session_engaged` is `'1'` when the session has 2 or more `page_view` events,
+10 seconds or more of engagement time, or a `sign_up`, and `'0'` otherwise, the same on every event of the session: 160,291
+of the 273,012 sessions are engaged. `engagement_time_msec` is the time spent on that page: the session's next `page_view`
+comes that long after it. Every event of a session comes within 30 minutes of the one before.
+
+### Time zone and days
+
+| Fact | Source |
+|---|---|
+| `event_date` is the Dublin day of `event_timestamp` on every row of both schemas: `strftime(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000)), '%Y%m%d')` equals `event_date` on all 825,950 visible and all 43 edge events | Checked |
+| The UTC day differs from `event_date` on 1,390 visible events, each between 23:00 and 23:59 UTC before 26 October 2025, while Dublin is on UTC+1, and on 9 edge events: the 4 of a session that starts at 23:28 UTC on 25 October and the 5 of one that starts at 23:32 UTC on 30 September (S9-C42) | Checked |
+| `timezone('Europe/Dublin', make_timestamp(event_timestamp))` turns the wrong way: its day differs from `event_date` on 2,077 visible events | Checked; S9-C24 |
+| BigQuery stores one table per day, `events_YYYYMMDD`, and a query over several days reads `events_*` with a `_TABLE_SUFFIX` filter. Here the days are stacked in one table and filtered on `event_date` | 07 §5.1, DIALECT-15 |
+| The views keep Mailvora's TIMESTAMPTZ columns, UTC instants. Their Dublin day is `timezone('Europe/Dublin', <column>)` taken once ([Keys at level 7](#keys-at-level-7)) | Checked |
+
+### Sessions, users and missing IDs
+
+| Fact | Visible | Edge |
+|---|---|---|
+| A session is `user_pseudo_id` with `ga_session_id` (07 §5.4). Two visitors can start a session in the same second and share an ID | 267,380 pairs, 260,674 IDs | 10 pairs, 9 IDs |
+| Consent denied: a website event with no `user_pseudo_id`, `ga_session_id`, `ga_session_number` or `user_id` (2.06% of events). It belongs to no session that can be counted; a prompt says whether it counts as an event | 5,632 `session_start`, 7,554 `page_view`, 3,442 `first_visit` and 347 `sign_up` events | An event with no `user_pseudo_id` whose `ga_session_id` is there, and a `page_view` with no `ga_session_id` |
+| Every `purchase` comes from Mailvora's billing server (GA4's Measurement Protocol): it carries `user_pseudo_id`, `user_id`, `value`, `ecommerce` and the account's country, and no `ga_session_id`, `ga_session_number`, `page_location` or `device`. A `sign_up` more than 30 minutes after its session's previous event is sent the same way, with an empty `event_params` list | 3,128 purchases; 4 such sign_ups | 3 purchases; no such sign_up |
+| Joined to `sessions` on `sessions.visitor_id = events.user_pseudo_id` and `epoch(sessions.session_start)` equal to the event's `ga_session_id`, each `session_start` that has both IDs matches exactly one session | 267,380 of 267,380 | 10 of 10 |
+| Sessions counted from the `session_start` events and from every event that carries the pair are the same pairs | 267,380 | 10 |
+
+### Reconciliation (S9-02)
+
+On each Dublin day from 1 October to 31 December 2025, on both schemas:
+
+| Export | Backend, through the views | Visible total |
+|---|---|---|
+| `session_start` events, the consent-denied ones included | `sessions` whose `session_start` falls on that Dublin day | 273,012 |
+| `sign_up` events | `signups` by the Dublin day of `signup_ts` | 17,585 |
+| `purchase` events | Each subscription's first payment (its earliest `paid_at`) by its Dublin day. 122 of them were later refunded (`payments.refunded`), and the export keeps their purchase | 3,128 |
+
+The same holds per first-touch source and medium: the `sign_up` and `purchase` events grouped by `traffic_source.source`
+and `traffic_source.medium` equal the backend's signups and first payments grouped by the `utm_source` and `utm_medium`
+of the visitor's first session (earliest `session_start`), with a missing value read as `(direct)` and `(none)`, in all
+34 groups (3 on the edge). By the UTC day the session counts differ on 24 of the 92 days. So a reconciliation uses the
+Dublin day on both sides, counts the consent-denied events, and states how it treats a refund.
+
+### The edge schema `mailvora_edge_ga4`
+
+The same five names: `events` (43 rows), `sessions` (10), `signups` (4), `subscriptions` (3) and `payments` (4). Its
+events fall on 12 Dublin days from 1 October to 15 December 2025, and the reconciliation holds there too (a later payment
+has no purchase). Its ten plants, one row or pair each, which every key must stay right on:
+
+| Plant | What a key must do |
+|---|---|
+| A `page_view` whose `event_params` list is empty | Keep it where the question keeps every event: an inner lateral unnest drops it (`ERR-LOG-11`) |
+| A purchase whose `value` is in `int_value`, beside two in `double_value` | Read every number slot (`ERR-LOG-53`) |
+| Two visitors whose sessions start in the same second, so they share a `ga_session_id` | Count pairs (`ERR-LOG-52`) |
+| A `page_view` with no `ga_session_id`, while its other parameters are there | Leave it out of sessions, or count it as an event, as the prompt says |
+| An event with no `user_pseudo_id`, while its `ga_session_id` is there | Do what the prompt says a missing ID does |
+| An event at 23:30 UTC on 25 October 2025 (`event_date` `20251026`) and one at 23:30 UTC on 27 October (`20251027`, after the clock change) | Use `event_date`, or the Dublin day, where the prompt asks for it |
+| A new visitor's session at 23:32 UTC on 30 September 2025 and its sign_up at 23:38, all `20251001` in Dublin, with their `sessions` and `signups` rows (S9-C42) | Use `event_date`, or the Dublin day of `session_start` and `signup_ts`: a UTC day drops them from a window that starts on 1 October |
+| A `page_location` with a query string | Group pages as the prompt defines a page |
+| A session with no `page_view` | Count a session from its `session_start`, not from its page views |
+| A purchase whose first payment was later refunded | Count it or not, as the prompt says |
+
+### Performance in the runner
+
+Measured on 2026-11-03 through the app's runner, which gives a query 2 threads, 1 GB and 5 seconds per step. A grade runs
+the learner's query, then the learner's and the key's together, on the visible and on the edge data.
+
+| Form, on `mailvora_ga4` | Time |
+|---|---|
+| `list_filter(event_params, lambda p: p.key = '...')[1]`, the list comprehension, or `unnest(event_params)` in a SELECT list | About 0.1 seconds over all 825,950 events |
+| A lateral `FROM events e, unnest(e.event_params) AS t(p) WHERE p.key = '...'` | About 1.7 seconds over the 273,012 `session_start` events, 2 seconds over the 363,667 `page_view` events or over October's 302,623 events, 0.5 seconds over one week, 4.4 seconds over every event |
+| A `LEFT JOIN unnest(...) ON ...`, or a correlated scalar subquery `(SELECT p.value.int_value FROM unnest(e.event_params) AS t(p) WHERE p.key = '...')` | About the lateral form's time over a subset; over every event, 4.7 seconds or a time-out |
+| A whole grade of a correct lateral answer over the `session_start` events, with a `list_filter` key | About 5.7 seconds in all, each step under 5 |
+
+So prompts name a subset ([Prompts at level 7](#prompts-at-level-7-s9-08-review-focus-1)), keys use the fast forms
+([Keys at level 7](#keys-at-level-7)), and the `SQL-BQ-01` reading tells the learner to filter the events first.
+
 ## Mock items (sprint 7, Task C3)
 
 For the held-out SQL items of the recruiter mocks (design §2.1). A mock item is a write item that only
@@ -1320,7 +1636,7 @@ item IDs, concept IDs and counts only, never a prompt, a query, an option, a tab
 answer or an explanation. Write every option as this item's own content, never copied from
 another item's key (design §12).
 
-The five kinds:
+The kinds:
 
 | Kind | The learner sees | And answers | Key |
 |---|---|---|---|
@@ -1329,6 +1645,7 @@ The five kinds:
 | `choose_query` | A question and 2 to 8 complete queries | The one query that answers it | `correct_oid` |
 | `which_table` | A question and 2 to 8 table names | The table the question needs | `correct_oid` |
 | `is_unique` | A question about one table and column | "Yes" or "No": one row per value? | `correct_oid` |
+| `fixed_choice` (sprint 9, level 7) | A question and 3 or 4 options, each a text with an optional code block captioned BigQuery or DuckDB, never run | The one right option | `correct_oid`. Its own rules are in [Level 7](#fixed_choice-items-s9-06-e-220-c57) |
 
 ### Files (SQL choice)
 
@@ -1392,7 +1709,7 @@ file itself.
 
 | Step | Command (from the Root folder) | Pass when |
 |---|---|---|
-| 1 | `npm run check:content` | No FAIL line for your item IDs or your concept except C14. The `sql choice checks (passed / total)` line sums up C31 to C37 |
+| 1 | `npm run check:content` | No FAIL line for your item IDs or your concept except C14. The `sql choice checks (passed / total)` line sums up C31 to C37 and C57 |
 | 2 | `npm test` | Passes |
 
 C14 fails for every new or changed SQL choice item until the blind solver records it. Never
@@ -1405,6 +1722,7 @@ write a solver record and never write into `tools/.solver-out/`, because you hav
 | C14 | No fresh blind-solver record ([`blind-solver.md`](blind-solver.md), "SQL choice items") |
 | C31 to C35 | The kind's key does not match the data (rules above) |
 | C36, C37 | The `why_clause`'s `correct_id` is not an option, or two options have the same text |
+| C57 | A `fixed_choice` item breaks its rules ([Level 7](#fixed_choice-items-s9-06-e-220-c57)) |
 
 ## Cases (sprint 4b, Task B2, for Task C1)
 
@@ -1733,3 +2051,34 @@ As [Before you hand back (cases)](#before-you-hand-back-cases). The report follo
 [Report format (cases)](#report-format-cases), plus per case: the asker, the schema and the CP3 edge schema, the closest
 shipped case by ID, one line per truth key with its P16 proof (PASS or FAIL on the case schema and on the edge schema,
 never the value), and for `CASE-SAAS-03` one reconciliation line per month on each schema.
+
+## Cases at level 7 (sprint 9, Task C2)
+
+For the agent that writes the level 7 opener and its two daily cases (S9-12), and for their fix rounds. Everything in
+[Cases](#cases-sprint-4b-task-b2-for-task-c1) applies; each CP3 item also follows
+[Level 7](#level-7-bigquery-ga4-export-data-and-take-home-craft-sprint-9) and, on the export,
+[Mailvora's GA4 export](#mailvoras-ga4-export-mailvora_ga4-sprint-9). Where this section differs, it wins.
+
+| Case | Kind, world | `company_id`, `schema` | CP3 item, its edge schema | Asked by | Checkpoints | The question |
+|---|---|---|---|---|---|---|
+| `CASE-MAIL-L7` | Opener, level 7, `MKT` | `mailvora`, `mailvora_ga4` | `EX-OPENER-L7-01`, `mailvora_edge_ga4` | One of Mailvora's four managers (design §7) | CP1 to CP6 | From LVL-07's "ready when": sign-ups and first payments by source and medium from the export, reconciled to the backend |
+| `CASE-DAILY-L7-01` | Daily, `MKT` | `mailvora`, `mailvora_ga4` | `EX-CASE-DAILY-L7-01`, `mailvora_edge_ga4` | One of Mailvora's four managers | CP3, CP4 | Sessions and engaged sessions by channel, from the export |
+| `CASE-DAILY-L7-02` | Daily, `PRICE` or `RETAIL` | `voltmarkt` (no `schema` field) | `EX-CASE-DAILY-L7-02`, `voltmarkt_edge_pat` | One of Voltmarkt's five managers | CP3, CP4 | A sanity check or a planning question, for `SQL-CRAFT-01` or `-03` |
+
+| Rule | Why | Checked by |
+|---|---|---|
+| A case's CP3 and its truths run on one schema, by unqualified names. So the two Mailvora cases name `"schema": "mailvora_ga4"`, which holds the export and the views onto Mailvora's `sessions`, `signups`, `subscriptions` and `payments` (S9-C18): S9-12's "schemas `mailvora_ga4` and `mailvora`" is that one schema. `data_needed` lists `events` and the views the answer reads | A graded run refuses any other schema (`allowedSchemas: []`, design §6), and the build runs each truth on the case's own schema (S6-13) | C41, the gate |
+| A daily case on `mailvora_ga4` is asked by one of Mailvora's four managers in their own role, as one on `mailvora` is (S9-10) | `validateCaseRecord` reads the case's schema | `validateCaseRecord` |
+| The opener's `level` is 7. C41 reads it as the highest level its credits reach (`openerLevel`), so at least one checkpoint credits a level 7 concept, and none credits a concept above level 7 | C41 checks the level against the credits | C41 |
+| The opener's question: sign-ups and first payments per first-touch source and medium (`traffic_source`) from the export, beside the backend's (signups by `signup_ts`, first payments by `paid_at`, each grouped by the `utm_source` and `utm_medium` of the visitor's first session), over stated Dublin days. Its prompts state what a first payment is (each subscription's earliest payment), whether a refunded one counts, that days are Dublin days, and how direct traffic and a missing UTM value show. On the visible data the two sides agree in every group ([Reconciliation](#reconciliation-s9-02)), so a CP2 or CP4 whose truth is a difference between them is 0: ask for a count or a share instead | LVL-07's "ready when"; the reconciliation facts | C03, blind solver, review |
+| The opener's model plan is `SQL-CRAFT-03`'s template, in the six labelled lines of [The model plan](#the-model-plan-and-the-model-answer-design-7-s4b-10), and its expected row count is the CP3 reference's row count on `mailvora_ga4` | S9-12; Task C2's content review checks the plan step | Review |
+| `CASE-DAILY-L7-01` says what a channel is: the visitor's first-touch medium (`traffic_source.medium`, the same on every event of a visitor, and no join needed, which suits a daily case) or the session's own `utm_medium` through the join to `sessions`; that a session is one `user_pseudo_id` with one `ga_session_id`, counted from the `session_start` events; what an event with no `user_pseudo_id` does; and that an engaged session is one whose `session_engaged` is `'1'` | Each one left out has two right answers | Blind solver |
+| `CASE-DAILY-L7-02` reads Voltmarkt's tables and credits `SQL-CRAFT-01` or `-03`: a sanity check that returns check results (a total reconciled to a stated one, a count of duplicate keys), or a metric under a definition the prompt states in full. Its period lies inside `voltmarkt_edge_pat`'s data (orders from January 2024 to December 2025) | S9-12 | C40, review |
+| A daily case has difficulty 1, CP3 and CP4, and the ID `CASE-DAILY-L7-NN`; it credits only concepts of level 7 or below | S4B-04 | `validateCaseRecord`, C41 |
+| The opener answers none of the daily cases' questions, and no CP2 or CP4 asks for a number a shipped Mailvora or Voltmarkt case already shows. Name the closest shipped case by ID in the report | Task C2's content review; a number learnt in one case gives another away | Review |
+| Every CP2 and CP4 truth returns one number on the case's schema and on its CP3 edge schema (P16), with the Level 7 keys' forms (the Dublin day, every number slot, session pairs) | As in Cases | C41 |
+
+Before you hand back, as [Before you hand back (cases)](#before-you-hand-back-cases). The report follows
+[Report format (cases)](#report-format-cases), plus per case: the asker, the schema and the CP3 edge schema, the closest
+shipped case by ID, and one line per truth key with its P16 proof (PASS or FAIL on the case schema and on the edge schema,
+never the value).

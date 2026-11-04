@@ -1,0 +1,171 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "sessions",
+    "midnight",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-STR-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-daily-sum",
+  "template_params": {
+    "from": "20251207",
+    "to": "20251213"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "A dashboard adds up daily sessions to get a weekly total. Check that total for the Dublin days 7 to 13 December 2025 (by event_date), counting sessions from every event that carries both a user_pseudo_id and a ga_session_id; a session is one user_pseudo_id with one ga_session_id. Return three columns, in this order: week_sessions (the distinct sessions over the seven days), sum_of_daily_sessions (each day's distinct sessions, added up) and difference (sum_of_daily_sessions minus week_sessions). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "week_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sum_of_daily_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "week_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "sum_of_daily_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count each day's distinct sessions.",
+    "Count each pair of user_pseudo_id and ga_session_id once per day; a session that runs past midnight then counts on both days."
+  ],
+  "subgoals": [
+    {
+      "from": 125,
+      "to": 260,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 263,
+      "to": 274,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 277,
+      "to": 362,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 437,
+      "to": 522,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 525,
+      "to": 536,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 539,
+      "to": 570,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 573,
+      "to": 592,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 664,
+      "to": 742,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 745,
+      "to": 756,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 759,
+      "to": 790,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 793,
+      "to": 944,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 945,
+      "to": 956,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "A session that runs past midnight has events on two Dublin days, so it counts once in the week but once on each day."
+}

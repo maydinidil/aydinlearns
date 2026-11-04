@@ -1,0 +1,155 @@
+{
+  "id": "EX-SQL-BQ-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "sessions",
+    "purchase",
+    "traffic_source",
+    "channel"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-daily-sessions-purchases-by-medium",
+  "template_params": {
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's marketing team wants a daily table by first-touch medium for 1 to 7 December 2025, by event_date: for each day and medium, the sessions that started and the purchases. A session is one user_pseudo_id with one ga_session_id, counted from its session_start event; leave out session_start events whose user_pseudo_id or ga_session_id is missing. Purchases come from Mailvora's billing server and belong to no session: count every purchase event, one whose payment was later refunded included. The medium is traffic_source.medium, how the visitor first arrived; direct traffic shows as (none). Return event_date, as the text the export stores, medium, sessions and purchases, with 0 where a day and medium has none. Return one row for each day and medium with at least one session or purchase. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text"
+      },
+      {
+        "name": "medium",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "purchases",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "purchases",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_date",
+      "medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the session_start and purchase events of the week with each one's ga_session_id and first-touch medium.",
+    "Count distinct visitor and session pairs on the session_start rows, and count the purchase rows on their own, per day and medium."
+  ],
+  "subgoals": [
+    {
+      "from": 98,
+      "to": 278,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 281,
+      "to": 292,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 295,
+      "to": 397,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 400,
+      "to": 624,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 625,
+      "to": 640,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 641,
+      "to": 668,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "One pass over both events gives sessions from the session_start pairs and purchases from the server events, per day and medium."
+}

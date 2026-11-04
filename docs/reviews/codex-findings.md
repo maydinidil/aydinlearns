@@ -3,6 +3,66 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
+## PR #61: sprint 9 Part 2, Grondig, the mole and a dark UI, version 0.9.1 (reviewed 2026-11-04)
+
+Codex left one line comment (P2) on `14a857d6`, plus its summary comment. It is confirmed. F4's fix that lets another tab
+follow a theme change (`f1bd46d9`) brought it in, and no review had raised it. Under D119 it was fixed on the branch
+before the merge, at Aydin's go on the fix plan.
+
+Codex's review of the F42 fix (`0dba3c78`, 2026-11-04, asked for in a PR comment because a push does not start one) left no
+line comments; its receipt reads "Didn't find any major issues" (checked through the API on 2026-11-04: still 1 review
+comment, F42's). No new findings.
+
+### F42: Settings' theme radios do not follow a theme change made in another tab
+
+**P2 · `web/src/screens/SetupScreen.tsx:65` · Verdict: CONFIRMED · Status: FIXED 2026-11-04**
+
+The claim: with Settings open in one tab, a theme change made in another tab turns this tab's page (through `startTheme`'s
+`storage` listener), but the Appearance radios keep their first value. Clicking the radio that still looks picked fires no
+change, so the learner cannot get that theme back without first picking another one or reopening Settings.
+
+What I found: `SetupScreen` reads the choice into its `theme` state once, when it mounts (line 62), and nothing updates it
+after that. `startTheme` in `web/src/lib/theme.ts` re-applies the page's theme on a `storage` event for the theme key, so
+the page and the radios disagree. A scratch render test against `14a857d6` (happy-dom, deleted after the run) reproduced it:
+with Dark saved and Settings open, another tab saves Light; the page turns light, the Dark radio stays checked, and clicking
+it leaves the page light and the saved choice Light. It needs Settings open in one tab while the theme changes in another;
+nothing is lost, and a reload or picking another option puts it right. Before `f1bd46d9`, other tabs did not follow at all,
+so this could not happen.
+
+**Fix direction:** one helper in `web/src/lib/theme.ts` that calls back with the saved choice on a `storage` event for the
+theme key (or a cleared store). `startTheme` applies the theme through it, and `SetupScreen` keeps its `theme` state in step
+through it while mounted. A render test: Settings open, another tab saves Light, the Light radio is checked; picking Dark
+then turns the page dark and saves Dark.
+
+**Fixed 2026-11-04, at Aydin's go on the fix plan.** Red first: the render test above, added to `tests/web/theme.test.ts`,
+failed on unchanged product code with the radios at Dark checked, Light and Follow Windows unchecked. The fix:
+`watchThemeChoice` in `web/src/lib/theme.ts` calls back with the saved choice on a `storage` event for the theme key or a
+cleared store; `startTheme` applies the theme through it, and `SetupScreen` subscribes its `theme` state to it while
+mounted (and stops when it closes). Six mutations, each failing a test: no Settings subscription; a subscription never
+stopped; no key filter; `startTheme` not following other tabs; `startTheme`'s stop leaving the listener; a cleared store
+ignored. In a real browser: a scratch Playwright script (not shipped) opened Settings in two Chromium tabs of one profile
+on a test server; Light picked in one turned the other light with Light checked, and Dark picked there turned both dark.
+Gate g9d: typecheck 0, `npm test` 3,345 of 3,345 (3,344 before), `check:imports` 0, `build:web` 0, `test:e2e` 120 of 120
+in the dark run and in the light run, 0 page errors. The content checks, pipeline tests, `extract` and `check:errata`
+were skipped at Aydin's choice, as nothing they read changed.
+
+**Still unproven:** the two-tab check ran in Playwright's Chromium, not in Aydin's own browser, and not in Firefox.
+
+## PR #60: sprint 9 Part 1, SQL level 7 and the GA4 export sample, version 0.9.0 (reviewed 2026-11-04, merged 2026-11-04)
+
+Codex completed its review of `624998d2` with no line comments; its summary comment reports no findings (checked through
+the API on 2026-11-04: 0 review comments, 0 reviews). No findings; nothing to log.
+
+## PR #59: the release check allows addresses on reserved top-level domains (reviewed 2026-10-30, merged 2026-10-30)
+
+Codex completed its review of `e0dad603` with no line comments; its summary comment reports no findings (checked through
+the API on 2026-10-30). No findings; nothing to log.
+
+## PR #58: sprint 8 Part 2, the SaaS cases, Olist and Maven Toy Store, release 0.8.1 (reviewed 2026-10-30, merged 2026-10-30)
+
+Codex completed its review of `9a5ba27b` with no line comments; its summary comment reports no findings (checked through
+the API on 2026-10-30: 0 review comments, 0 reviews). No findings; nothing to log.
+
 ## PR #57: sprint 8 Part 1, SQL level 6 and LedgerLoop, release 0.8.0 (reviewed 2026-10-29, merged 2026-10-29)
 
 Codex completed its review of `17733e03` with no line comments; its summary comment reports no findings (checked through

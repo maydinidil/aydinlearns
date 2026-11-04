@@ -52,6 +52,7 @@ import { mountMocks, type MockAnswerView } from './routes/mocks.ts';
 import { CODE_PLAN_FIRST } from './routes/mock-cases.ts';
 import { checkpointTarget } from './routes/cases.ts';
 import { answered, funnel, httpRoute, itemFunnel, levelName, markFailed, recordError, sqlFunnel } from './observe.ts';
+import { worldOfSchema } from './world.ts';
 import { journey, journeyScreen } from './journey.ts';
 import { JOURNEY_PATH, SCREENS, SUBJECT_ID, type Screen } from '../schemas/journey.ts';
 import { TUTOR_KEY_PATH, type TutorEffort } from '../schemas/tutor.ts';
@@ -903,7 +904,7 @@ export function createApp(d: AppDeps): Hono {
         // S7-03: a mock runs in exam mode, which asks no confidence (null), as a GA4 exam-mode run does.
         confidence: !mock && (b.confidence === 1 || b.confidence === 2 || b.confidence === 3 || b.confidence === 4) ? b.confidence : null,
         content_version: d.content.contentVersion, grader_version: GRADER_VERSION,
-        world: 'pricing', difficulty: item.difficulty, sub_skill: item.sub_skill, dataset_version: d.manifest.dataset_version, duckdb_version: d.manifest.library_version,
+        world: worldOfSchema(item.schema, d.content.datasets?.() ?? []), difficulty: item.difficulty, sub_skill: item.sub_skill, dataset_version: d.manifest.dataset_version, duckdb_version: d.manifest.library_version,
         ...(i.cardId === null ? {} : { card_id: i.cardId }),        // D28: a mistake-card review; the override copies it with the rest
         payload: { kind: 'sql', submitted_query: sql,
           per_dataset: r.datasets.map((x) => ({ schema: x.schema, passed: x.passed, missing: x.missing, extra: x.extra, mismatched: x.mismatched, timed_out: x.timedOut })),

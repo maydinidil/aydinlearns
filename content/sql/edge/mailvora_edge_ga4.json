@@ -1,0 +1,42 @@
+{
+  "schema": "mailvora_edge_ga4",
+  "mirrors": "mailvora_ga4",
+  "family": "ga4",
+  "contains": [
+    "an event whose event_params list is empty",
+    "a purchase whose value is in int_value, beside two whose value is in double_value",
+    "two visitors whose sessions start in the same second, so they share a ga_session_id",
+    "a page_view with no ga_session_id, while its other parameters are there",
+    "an event with no user_pseudo_id, while its ga_session_id is there",
+    "an event at 23:30 UTC on 25 October 2025, dated 20251026 in Dublin, and one at 23:30 UTC on 27 October 2025, dated 20251027",
+    "a session starting at 23:32 UTC on 30 September 2025 and its sign_up at 23:38, both dated 20251001 in Dublin",
+    "a page_location with a query string",
+    "a session with no page_view",
+    "a purchase whose first payment was later refunded"
+  ],
+  "tables": {
+    "events": [
+      "an event whose event_params list is empty",
+      "a purchase whose value is in int_value, beside two whose value is in double_value",
+      "two visitors whose sessions start in the same second, so they share a ga_session_id",
+      "a page_view with no ga_session_id, while its other parameters are there",
+      "an event with no user_pseudo_id, while its ga_session_id is there",
+      "an event at 23:30 UTC on 25 October 2025, dated 20251026 in Dublin, and one at 23:30 UTC on 27 October 2025, dated 20251027",
+      "a session starting at 23:32 UTC on 30 September 2025 and its sign_up at 23:38, both dated 20251001 in Dublin",
+      "a page_location with a query string",
+      "a session with no page_view",
+      "a purchase whose first payment was later refunded"
+    ],
+    "sessions": [
+      "two visitors whose sessions start in the same second, so they share a ga_session_id",
+      "a session starting at 23:32 UTC on 30 September 2025 and its sign_up at 23:38, both dated 20251001 in Dublin",
+      "a session with no page_view"
+    ],
+    "signups": [
+      "a session starting at 23:32 UTC on 30 September 2025 and its sign_up at 23:38, both dated 20251001 in Dublin"
+    ],
+    "payments": [
+      "a purchase whose first payment was later refunded"
+    ]
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-21",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "stores",
+    "per_store",
+    "like_for_like"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-revenue-per-open-store",
+  "template_params": {
+    "table": "sales",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each month of 2025, Voltmarkt's average net revenue per store: the net revenue (net_revenue_eur in sales, by sales.order_date, the UTC day) of the stores open on every day of that month, divided by the number of those stores. A store is open on every day of a month when opened_on is on or before the month's first day and close_date is missing or on or after its last day; a store that opened or closed during a month is left out of that month, its revenue and its count alike. A store open all month with no sale counts with 0. The webshop counts as a store. Round to 2 decimals with ROUND. Return three columns, in this order: month_start (the first day of the month), stores_open and revenue_per_store. Return one row for each month of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "stores_open",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_per_store",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "stores_open",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_per_store",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list for each month the stores that were open on its first day and still open on its last.",
+    "Then add each open store's revenue for that month onto it, with 0 for one that sold nothing, and divide by how many there are."
+  ],
+  "subgoals": [
+    {
+      "from": 79,
+      "to": 152,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 155,
+      "to": 168,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 171,
+      "to": 233,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 236,
+      "to": 256,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 336,
+      "to": 370,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 373,
+      "to": 386,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 389,
+      "to": 489,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 553,
+      "to": 665,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 668,
+      "to": 678,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 681,
+      "to": 745,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 748,
+      "to": 814,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 817,
+      "to": 933,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 934,
+      "to": 952,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 953,
+      "to": 1037,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1038,
+      "to": 1060,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The base of each month is the stores open all month, so a store opening or closing mid-month cannot drag the average down."
+}

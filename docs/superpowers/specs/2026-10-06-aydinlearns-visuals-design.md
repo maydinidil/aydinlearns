@@ -26,7 +26,7 @@ Success means:
 | Direction | C, Balanced | Between a calm study app and a polished SaaS product (owner, 2026-10-06) |
 | Scope | Look and feel, plus the app shell (top bar and navigation) and a two-column Today | Owner's choice; layouts and flows of other screens stay |
 | Brand | Its own identity, with a quiet "by Zehir Labs" | `docs/brand/brand-foundations.md`: a product brand does not take the umbrella palette unless co-branded |
-| Theme | Light only | Keeps the sprint small. Colours are tokens, so a dark theme can come later |
+| Theme | Light only | Keeps the sprint small. Colours are tokens, so a dark theme can come later. **(amended 2026-11-04)** Dark by default since 0.9.1; see §11 |
 | Progress on Today | Only numbers the app already computes | No new logic in a visuals sprint |
 | How | Plain CSS with tokens | No new packages (installs need the owner's approval) |
 | Fonts | System fonts: Segoe UI Variable Text (fallback Segoe UI, system-ui) for text; Cascadia Code (fallback Consolas) for SQL | The app makes no network calls, and font files would be a download |
@@ -162,6 +162,34 @@ because it touches the run screen.
 
 ## 10. Out of scope
 
-Dark mode; new progress logic or a goal tracker; new screens (the v1 design's Progress screen is
-slice 3 and later); a logo or wordmark exploration; icons beyond the colour dots and ✓/✗; any
+New progress logic or a goal tracker; new screens (the v1 design's Progress screen is
+slice 3 and later); a logo exploration (the wordmark and the mole came in sprint 9, §11); icons beyond the colour dots and ✓/✗; any
 package install.
+
+**(amended 2026-11-04) "Dark mode" left this list in sprint 9 Part 2 (0.9.1, D131); see §11.**
+
+## 11. Sprint 9 Part 2: the dark theme and the mole (amended 2026-11-04, 0.9.1)
+
+Added after the fact. Where this section differs from §2, §3 and §10, this section wins. The app is now named Grondig (D130,
+formerly aydinlearns); the folder and the class B names keep `aydinlearns`.
+
+| Topic | As built |
+|---|---|
+| Default (D131) | Dark by default, light kept. Settings, under Appearance, offers Dark, Light and Follow Windows. The setup screen has the same card |
+| Where it is stored | `localStorage['aydinlearns.theme']` (`dark`, `light` or `system`), in this browser only. No `/api/settings` call, no log line. An empty, unknown or throwing store reads as `dark` (S9-18) |
+| How it applies | An inline script in `web/index.html`'s head sets `data-theme` on `<html>` before first paint, so there is no flash; Follow Windows reads `matchMedia('(prefers-color-scheme: dark)')` and follows a change without a reload. `web/src/lib/theme.ts` does the same in the app. `color-scheme` follows the theme |
+| Two token sets | `:root` holds the light values and `:root[data-theme="dark"]` the dark ones, both in `tokens.css`. Screens still use no raw colour; the raw-colour test also scans `web/index.html` |
+| The palette (D134) | The warm notebook palette: earth browns, lamp light, indigo for SQL, marigold for GA4 and plum for Methodology. It replaces §3's zinc greys and blues. The contrast rules of §3 hold unchanged in both themes |
+| The contrast test | Checks every pair in both themes, including the pairs it did not list before (surface on the three `-text` shades, `--bad` on `--fill`, surface on `--ink-2`, ink on the three `-soft` shades) and the editor popup's tokens |
+| The editor | The autocomplete popup and its selected row take tokens; CodeMirror runs `{ dark: true }` through a Compartment switched with the theme |
+| The wordmark | The calm mole at 32 px beside "Grondig" in Segoe UI Variable Text, weight 650, inside the Today link. "by Zehir Labs" stays quiet (§2) |
+
+The mole (D133, S9-21):
+
+| Topic | As built |
+|---|---|
+| Art | Three PNGs of 64 by 64 px, made with PixelLab, in `web/src/assets/mascot/`: calm, thinking and pleased. No pose has a ground shadow. Drawn with `image-rendering: pixelated` at whole multiples of 64 px, or 32 px in the header |
+| Where it appears | The header wordmark and the tab icon (calm); Today, with one calm line; beside the heading of a graded result (thinking for "Not yet", pleased for a pass, 48 px); empty screens (calm) |
+| Where it never appears | Inside a timed run's question view, so help still waits there. No line names a streak, a missed day or a count of days |
+| Accessibility | Every image has `alt=""`: the text around it is unchanged, so a screen reader hears nothing new. Nothing animates |
+| The rim | In dark, `--mascot-rim` (a soft light edge, `drop-shadow(0 0 1px var(--mascot-rim))`) keeps the dark fur off the dark surfaces |

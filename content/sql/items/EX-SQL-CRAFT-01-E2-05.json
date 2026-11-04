@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "row_count",
+    "join",
+    "ga_session_id",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-session-join",
+  "template_params": {
+    "day": "20251104"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "To add each session's UTM values, Mailvora joins the session_start events to sessions, with an inner join: an event matches the backend session of the same visitor (visitor_id is the event's user_pseudo_id) whose session_start, in seconds since 1970, equals the event's ga_session_id, and an event with no match adds no row. Check that join for the Dublin day 4 November 2025 (by event_date), using the session_start events that carry both a user_pseudo_id and a ga_session_id. Return three columns, in this order: events_before (those session_start events), rows_after (the rows once each event is joined to its sessions row) and difference (rows_after minus events_before). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "events_before",
+        "type_class": "numeric"
+      },
+      {
+        "name": "rows_after",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "events_before",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "rows_after",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the join from each event to its backend session.",
+    "ga_session_id is the start in whole seconds since 1970, and two visitors can start in the same second, so match the visitor too."
+  ],
+  "subgoals": [
+    {
+      "from": 104,
+      "to": 227,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 230,
+      "to": 241,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 244,
+      "to": 345,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 469,
+      "to": 507,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 510,
+      "to": 628,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 631,
+      "to": 810,
+      "subgoal": "metrics"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Matching both the visitor and the start second finds exactly one backend session per event, so the join adds no rows."
+}

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E2-04",
+  "item_version": 1,
+  "reference_sql": "WITH first_visits AS (\n  -- one row per first_visit event of 1 to 15 December 2025 (Dublin days): only the columns the count needs\n  SELECT traffic_source.source AS source, traffic_source.medium AS medium\n  FROM events\n  WHERE event_name = 'first_visit'\n    AND event_date BETWEEN '20251201' AND '20251215'\n)\nSELECT source, medium, COUNT(*) AS first_visits\nFROM first_visits\nGROUP BY source, medium",
+  "alternatives": [
+    "SELECT traffic_source.source AS source, traffic_source.medium AS medium, COUNT(*) AS first_visits\nFROM events\nWHERE event_name = 'first_visit'\n  AND event_date BETWEEN '20251201' AND '20251215'\nGROUP BY traffic_source.source, traffic_source.medium",
+    "WITH first_visits AS (\n  -- one row per first_visit event of 1 to 15 December 2025 (Dublin days): only the columns the count needs\n  SELECT traffic_source.source AS source, traffic_source.medium AS medium\n  FROM events\n  WHERE event_name = 'first_visit'\n    AND CAST(strptime(event_date, '%Y%m%d') AS DATE) BETWEEN DATE '2025-12-01' AND DATE '2025-12-15'\n)\nSELECT source, medium, COUNT(*) AS first_visits\nFROM first_visits\nGROUP BY source, medium"
+  ],
+  "other_way": {
+    "sql": "SELECT traffic_source.source AS source, traffic_source.medium AS medium, COUNT(*) AS first_visits\nFROM events\nWHERE event_name = 'first_visit'\n  AND event_date BETWEEN '20251201' AND '20251215'\nGROUP BY traffic_source.source, traffic_source.medium",
+    "tradeoff": "One query with no CTE is shorter, while the CTE shows the two narrowed columns as their own step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH per_source AS (\n  SELECT traffic_source.source AS source, traffic_source.medium AS medium, COUNT(*) AS first_visits, COUNT(user_pseudo_id) AS known_visitors, MIN(event_date) AS first_day\n  FROM events\n  WHERE event_name = 'first_visit'\n    AND event_date BETWEEN '20251201' AND '20251215'\n  GROUP BY traffic_source.source, traffic_source.medium\n)\nSELECT *\nFROM per_source"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH first_visits AS (\n  -- one row per first_visit event of 1 to 15 December 2025 (Dublin days): only the columns the count needs\n  SELECT traffic_source.source AS source, traffic_source.medium AS medium, user_pseudo_id\n  FROM events\n  WHERE event_name = 'first_visit'\n    AND event_date BETWEEN '20251201' AND '20251215'\n)\nSELECT source, medium, COUNT(DISTINCT user_pseudo_id) AS first_visits\nFROM first_visits\nGROUP BY source, medium"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH first_visits AS (\n  -- one row per first_visit event of 1 to 15 December 2025 (Dublin days): only the columns the count needs\n  SELECT traffic_source.source AS source, traffic_source.medium AS medium\n  FROM events\n  WHERE event_name = 'first_visit'\n    AND event_date BETWEEN '2025-12-01' AND '2025-12-15'\n)\nSELECT source, medium, COUNT(*) AS first_visits\nFROM first_visits\nGROUP BY source, medium"
+    }
+  ],
+  "hint3_partial": "WITH first_visits AS (\n  -- one row per first_visit event of 1 to 15 December 2025 (Dublin days): only the columns the count needs\n  SELECT traffic_source.source AS source, ___ AS medium\n  FROM events\n  WHERE event_name = 'first_visit'\n    AND event_date BETWEEN '20251201' AND '20251215'\n)\nSELECT source, medium, COUNT(*) AS first_visits\nFROM first_visits\nGROUP BY source, medium",
+  "solver": {
+    "prompt_hash": "ddd3e9cb572ed52d",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT traffic_source.source AS source, traffic_source.medium AS medium, COUNT(*) AS first_visits\r\nFROM events\r\nWHERE event_name = 'first_visit' AND event_date BETWEEN '20251201' AND '20251215'\r\nGROUP BY traffic_source.source, traffic_source.medium",
+    "at": "2026-11-03T19:01:32.052Z"
+  }
+}

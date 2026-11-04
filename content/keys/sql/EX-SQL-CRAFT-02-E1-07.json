@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-07",
+  "item_version": 1,
+  "reference_sql": "WITH late_march AS (\n  -- one row per order line sold from 17 to 31 March 2025 (UTC days): only the columns the totals need\n  SELECT store_code, units, net_revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-03-17' AND DATE '2025-03-31'\n)\nSELECT store_code, SUM(units) AS units, SUM(net_revenue_eur) AS revenue\nFROM late_march\nGROUP BY store_code",
+  "alternatives": [
+    "SELECT store_code, SUM(units) AS units, SUM(net_revenue_eur) AS revenue\nFROM sales\nWHERE order_date BETWEEN DATE '2025-03-17' AND DATE '2025-03-31'\nGROUP BY store_code",
+    "WITH late_march AS (\n  -- one row per order line sold from 17 to 31 March 2025 (UTC days): only the columns the totals need\n  SELECT store_code, units, net_revenue_eur\n  FROM sales\n  WHERE order_month = DATE '2025-03-01'\n    AND order_date >= DATE '2025-03-17'\n)\nSELECT store_code, SUM(units) AS units, SUM(net_revenue_eur) AS revenue\nFROM late_march\nGROUP BY store_code"
+  ],
+  "other_way": {
+    "sql": "SELECT store_code, SUM(units) AS units, SUM(net_revenue_eur) AS revenue\nFROM sales\nWHERE order_date BETWEEN DATE '2025-03-17' AND DATE '2025-03-31'\nGROUP BY store_code",
+    "tradeoff": "One query with no CTE is shorter, while the CTE shows the narrowed rows and columns as their own step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH per_store AS (\n  SELECT store_code, country_code, SUM(units) AS units, SUM(net_revenue_eur) AS revenue, COUNT(DISTINCT order_id) AS orders\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-03-17' AND DATE '2025-03-31'\n  GROUP BY store_code, country_code\n)\nSELECT *\nFROM per_store"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH late_march AS (\n  -- one row per order line sold from 17 to 31 March 2025 (UTC days): only the columns the totals need\n  SELECT store_code, units, net_revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-03-17' AND DATE '2025-03-30'\n)\nSELECT store_code, SUM(units) AS units, SUM(net_revenue_eur) AS revenue\nFROM late_march\nGROUP BY store_code"
+    }
+  ],
+  "hint3_partial": "WITH late_march AS (\n  -- one row per order line sold from 17 to 31 March 2025 (UTC days): only the columns the totals need\n  SELECT store_code, units, net_revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-03-17' AND ___\n)\nSELECT store_code, SUM(units) AS units, SUM(net_revenue_eur) AS revenue\nFROM late_march\nGROUP BY store_code",
+  "solver": {
+    "prompt_hash": "393651865b742975",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT store_code, SUM(units) AS units, SUM(net_revenue_eur) AS revenue\r\nFROM sales\r\nWHERE order_date >= DATE '2025-03-17' AND order_date <= DATE '2025-03-31'\r\nGROUP BY store_code",
+    "at": "2026-11-03T19:01:31.790Z"
+  }
+}

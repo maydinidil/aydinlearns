@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "units",
+    "sales"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-parent-units",
+  "template_params": {
+    "from": "2025-04-07",
+    "to": "2025-04-13"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "How many units did each Voltmarkt parent category sell from 7 to 13 April 2025 (sales.order_date, a UTC day)? Return exactly two columns, in this order: parent_category and units. Return one row for each parent category that sold in those days. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep only the lines of those seven days and the two columns the total needs.",
+    "Both end days count; keep the parent category and the units, then add them up."
+  ],
+  "subgoals": [
+    {
+      "from": 125,
+      "to": 154,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 157,
+      "to": 167,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 170,
+      "to": 234,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 237,
+      "to": 280,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 281,
+      "to": 296,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 297,
+      "to": 321,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Filtering the week and keeping two columns first leaves a plain sum per parent category, with exactly the columns asked for."
+}

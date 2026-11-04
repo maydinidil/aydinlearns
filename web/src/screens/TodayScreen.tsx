@@ -23,6 +23,7 @@ import {
   actionName, anotherNewConcept, nextReview, reviewHeading, startReviews, type ReviewPos, blockMemory, correctedQueryView, exerciseOf, newConceptAction, noticeLines, notices, resumeBlock, runChoice, runMixed, runServed, stepViews, wrapUp,
   type Mode, type NoticeEvent, type Running, type ServePurpose, type StepAction, type StepView,
 } from '../lib/today-flow.ts';
+import { EmptyLine, Mascot, TODAY_LINE } from '../components/Mascot.tsx';
 import { ReadingPanel } from './ReadingScreen.tsx';
 
 const isChoice = (s: Section): s is ChoiceSection => s === 'ga4' || s === 'methodology';
@@ -221,7 +222,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
       <div className="today-grid">
         <div className="today-plan">
           <p><button type="button" onClick={() => setMode(mode === 'full' ? 'minimum' : 'full')}>{mode === 'full' ? MINIMUM_DAY : WHOLE_SESSION}</button></p>
-          {steps.length === 0 ? <p>{NOTHING_NOW}</p> : (
+          {steps.length === 0 ? <EmptyLine text={NOTHING_NOW} mascot={false} /> : (
             <ol className="today-steps card">{steps.map((s, i) => (
               <li key={s.key} className="row" data-today-step={s.key}>
                 <span className="marker" aria-hidden="true" />
@@ -263,7 +264,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
 
   return (
     <section className="today" data-section={section}>
-      <h1>Today</h1>
+      <div className="today-head"><Mascot pose="calm" size={64} /><div><h1>Today</h1><p>{TODAY_LINE}</p></div></div>
       <nav className="steps" aria-label="Sections">{SECTIONS.map((s) => (
         <button key={s.id} type="button" aria-pressed={s.id === section} onClick={() => chooseSection(s.id)}>{s.id === section ? <strong>{s.label}</strong> : s.label}</button>
       ))}</nav>

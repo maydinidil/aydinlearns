@@ -173,6 +173,6 @@ function append(folder: string, r: JourneyRecord): void {
   }).catch((e: unknown) => {
     if (warned) return;
     warned = true;
-    console.log(`aydinlearns: journey: an event could not be written to the journey folder (${(e as NodeJS.ErrnoException).code ?? 'error'}). Later events try again; telemetry, when on, still gets them.`);
+    console.log(`grondig: journey: an event could not be written to the journey folder (${(e as NodeJS.ErrnoException).code ?? 'error'}). Later events try again; telemetry, when on, still gets them.`);
   });
 }

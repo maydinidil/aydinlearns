@@ -1,0 +1,15 @@
+{
+  "case_id": "CASE-DAILY-L7-01",
+  "truths": {
+    "CP4": "WITH november_starts AS (\n  -- one row per session_start event on the Dublin days of November 2025, with its session ID and engaged flag\n  SELECT user_pseudo_id,\n         list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id,\n         list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS session_engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251101' AND '20251130'\n),\nsessions_seen AS (\n  -- one row per session, a user_pseudo_id with a ga_session_id; a start with either ID missing is left out\n  SELECT user_pseudo_id, ga_session_id,\n         MAX(CASE WHEN session_engaged = '1' THEN 1 ELSE 0 END) AS engaged\n  FROM november_starts\n  WHERE user_pseudo_id IS NOT NULL\n    AND ga_session_id IS NOT NULL\n  GROUP BY user_pseudo_id, ga_session_id\n)\nSELECT ROUND(100.0 * SUM(engaged) / COUNT(*), 1)\nFROM sessions_seen"
+  },
+  "choices": {},
+  "solver": {
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "fe8b22f2016d5df1",
+      "key_hash": "a88cd40c42e7eed2",
+      "at": "2026-11-03T19:01:38.851Z"
+    }
+  }
+}

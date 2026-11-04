@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH starts AS (\n  -- one row per session_start event with both IDs, 15 to 21 December 2025 (Dublin days): only the columns the rate needs\n  SELECT traffic_source.medium AS medium,\n    list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251215' AND '20251221'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT medium, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') / COUNT(*) AS engagement_rate\nFROM starts\nGROUP BY medium",
+  "alternatives": [
+    "WITH per_medium AS (\n  -- one row per medium: its sessions and engaged sessions, 15 to 21 December 2025 (Dublin days)\n  SELECT traffic_source.medium AS medium, COUNT(*) AS sessions,\n    SUM(CASE WHEN list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value = '1' THEN 1 ELSE 0 END) AS engaged_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251215' AND '20251221'\n    AND user_pseudo_id IS NOT NULL\n  GROUP BY traffic_source.medium\n)\nSELECT medium, sessions, engaged_sessions, engaged_sessions / sessions AS engagement_rate\nFROM per_medium",
+    "WITH starts AS (\n  -- one row per session_start event with both IDs, 15 to 21 December 2025 (Dublin days): only the columns the rate needs\n  SELECT traffic_source.medium AS medium,\n    list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251215' AND '20251221'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT medium, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions,\n  AVG(CASE WHEN engaged = '1' THEN 1.0 ELSE 0.0 END) AS engagement_rate\nFROM starts\nGROUP BY medium"
+  ],
+  "other_way": {
+    "sql": "WITH per_medium AS (\n  -- one row per medium: its sessions and engaged sessions, 15 to 21 December 2025 (Dublin days)\n  SELECT traffic_source.medium AS medium, COUNT(*) AS sessions,\n    SUM(CASE WHEN list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value = '1' THEN 1 ELSE 0 END) AS engaged_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251215' AND '20251221'\n    AND user_pseudo_id IS NOT NULL\n  GROUP BY traffic_source.medium\n)\nSELECT medium, sessions, engaged_sessions, engaged_sessions / sessions AS engagement_rate\nFROM per_medium",
+    "tradeoff": "Counting first and dividing in a last step keeps the formula short, at the cost of a second step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "WITH starts AS (\n  -- one row per session_start event with both IDs, 15 to 21 December 2025 (Dublin days): only the columns the rate needs\n  SELECT traffic_source.medium AS medium,\n    list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251215' AND '20251221'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT medium, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') // COUNT(*) AS engagement_rate\nFROM starts\nGROUP BY medium"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH starts AS (\n  -- one row per session_start event with both IDs, 15 to 21 December 2025 (Dublin days): only the columns the rate needs\n  SELECT traffic_source.medium AS medium,\n    list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251215' AND '20251221'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT medium, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions,\n  100.0 * COUNT(*) FILTER (WHERE engaged = '1') / COUNT(*) AS engagement_rate\nFROM starts\nGROUP BY medium"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH starts AS (\n  -- one row per session_start event with both IDs, 15 to 21 December 2025 (Dublin days): only the columns the rate needs\n  SELECT traffic_source.medium AS medium,\n    list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251215' AND '20251221'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT medium, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') / COUNT(*) AS engagement_rate,\n  COUNT(*) FILTER (WHERE engaged = '0') AS not_engaged,\n  1 - COUNT(*) FILTER (WHERE engaged = '1') / COUNT(*) AS bounce_rate\nFROM starts\nGROUP BY medium"
+    }
+  ],
+  "hint3_partial": "WITH starts AS (\n  -- one row per session_start event with both IDs, 15 to 21 December 2025 (Dublin days): only the columns the rate needs\n  SELECT traffic_source.medium AS medium,\n    list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251215' AND '20251221'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT medium, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions,\n  ___ AS engagement_rate\nFROM starts\nGROUP BY medium",
+  "solver": {
+    "prompt_hash": "9f3d6f2b51123a5c",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT traffic_source.medium AS medium,\r\n  COUNT(DISTINCT user_pseudo_id || '-' || list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value) AS sessions,\r\n  COUNT(DISTINCT user_pseudo_id || '-' || list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value) FILTER (WHERE list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value = '1') AS engaged_sessions,\r\n  COUNT(DISTINCT user_pseudo_id || '-' || list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value) FILTER (WHERE list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value = '1') * 1.0 / COUNT(DISTINCT user_pseudo_id || '-' || list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value) AS engagement_rate\r\nFROM events\r\nWHERE event_name = 'session_start' AND event_date BETWEEN '20251215' AND '20251221'\r\n  AND user_pseudo_id IS NOT NULL AND list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value IS NOT NULL\r\nGROUP BY traffic_source.medium",
+    "at": "2026-11-03T19:01:32.394Z"
+  }
+}

@@ -751,6 +751,56 @@
       ],
       "feedback_template": "An annual plan's price pays for 12 months, so counting it as one month's MRR makes that account's MRR 12 times too big. Divide an annual plan's price by 12, after any annual discount, before you add it to MRR.",
       "concept_id": "SQL-PAT-10"
+    },
+    {
+      "id": "ERR-LOG-52",
+      "category": "LOG",
+      "name": "GA4 sessions counted by ga_session_id alone",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "ga_session_id is the second a session started, so two visitors who start a session in the same second share one, and counting the ID alone counts their two sessions as one. Count each pair of user_pseudo_id and ga_session_id once, as in COUNT(DISTINCT user_pseudo_id || '-' || ga_session_id). The pair count leaves out an event with no user_pseudo_id; when the question counts those events too, count the session_start events themselves.",
+      "concept_id": "SQL-BQ-01"
+    },
+    {
+      "id": "ERR-LOG-53",
+      "category": "LOG",
+      "name": "A GA4 parameter read from one value slot when it arrives in another",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "A GA4 tag can send the same parameter as a whole number in int_value or as a decimal in double_value, so reading one slot misses every event that used another. Read every number slot with COALESCE(value.int_value, value.float_value, value.double_value). A text parameter arrives in string_value, so read it there.",
+      "concept_id": "SQL-BQ-01"
+    },
+    {
+      "id": "ERR-LOG-54",
+      "category": "LOG",
+      "name": "event_timestamp read in the wrong unit",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "event_timestamp counts microseconds since 1970, not seconds or milliseconds, so reading it in another unit puts every event in the wrong place in time. Turn it into the moment in UTC with to_timestamp(event_timestamp / 1000000), and into Dublin's clock with timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000)).",
+      "concept_id": "SQL-BQ-01"
+    },
+    {
+      "id": "ERR-LOG-55",
+      "category": "LOG",
+      "name": "A GA4 date string compared with a date written another way",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "event_date is text such as '20251001', so comparing it with '2025-10-01' compares text character by character, and every 2025 date counts as later. Compare it with text in its own form, event_date >= '20251001', or turn it into a date first with strptime(event_date, '%Y%m%d').",
+      "concept_id": "SQL-BQ-01"
+    },
+    {
+      "id": "ERR-SYN-09",
+      "category": "SYN",
+      "name": "BigQuery's UNNEST form in DuckDB",
+      "detection_checks": [
+        "CHK-ENGINE-ERROR"
+      ],
+      "feedback_template": "DuckDB's UNNEST(event_params) AS p names the table that unnest makes, not each item, so p.key and a bare key are not found as they are in BigQuery. Write unnest(event_params) AS t(p) to name each item p, then read p.key and p.value. Filter on event_name first, so it does not unnest every event.",
+      "concept_id": "SQL-BQ-01"
     }
   ]
 }

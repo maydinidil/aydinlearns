@@ -3,8 +3,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, PERCENT_SCALE_ERROR } from '../../server/choice/grade.ts';
-import { optionId, type ChoiceKey, type TypedSpec } from '../../schemas/choice.ts';
+import { optionId, sqlChoiceShape, type ChoiceKey, type TypedSpec } from '../../schemas/choice.ts';
 import type { Ga4Item } from '../../schemas/ga4.ts';
+import { FIXED_ID, fixedChoiceItem, fixedChoiceKey, IDS, sqlChoiceItem, sqlChoiceKey } from '../helpers/sql-choice-fixture.ts';
 
 const percent: TypedSpec = { precision: 'ratio', scale: 'percent', decimals: 1, unit_label: '%' };
 const plainRatio: TypedSpec = { precision: 'ratio', scale: 'plain', decimals: 3, unit_label: '' };
@@ -181,4 +182,19 @@ test('a multiple-choice answer: right or wrong by option ID; a wrong option name
   assert.deepEqual(gradeChoice(item, key, optionId(id, 2)), { correct: false, error_ids: [] });
   assert.throws(() => gradeChoice(item, key, 'o0000000'), /not one of the options/);
   assert.throws(() => gradeChoice(item, { ...key, correct_oid: undefined, value: 1 }, optionId(id, 0)), /no correct option/);
+});
+
+test('S9-06: a fixed_choice item is graded by its right oid as predict_result is, under choice.3; its code changes nothing', () => {
+  const item = fixedChoiceItem();
+  const key = fixedChoiceKey();
+  const shape = sqlChoiceShape(item);
+  assert.equal(shape.kind, 'mcq');
+  assert.equal(CHOICE_GRADER_VERSION, 'choice.3', 'a new kind graded as predict_result is: no existing outcome moves');
+  assert.deepEqual(gradeChoice(shape, key, optionId(FIXED_ID, 0)), { correct: true, error_ids: [] });
+  assert.deepEqual(gradeChoice(shape, key, optionId(FIXED_ID, 1)), { correct: false, error_ids: ['ERR-SYN-09'] }, 'an option with code');
+  assert.deepEqual(gradeChoice(shape, key, optionId(FIXED_ID, 3)), { correct: false, error_ids: ['MIS-FAKE-3'] }, 'a statement');
+  // The same choices graded on a predict_result item give the same results: the kind does not enter the grade.
+  const pr = sqlChoiceItem('predict_result');
+  const prKey = sqlChoiceKey('predict_result');
+  assert.deepEqual(gradeChoice(sqlChoiceShape(pr), prKey, optionId(IDS.predict_result, 0)), { correct: true, error_ids: [] });
 });

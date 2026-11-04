@@ -1,0 +1,186 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "purchase",
+    "value_slot",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-purchase-value",
+  "template_params": {
+    "month": "2025-12"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Finance asks whether the export's purchase value can be trusted. Check December 2025. On the export side, count the purchase events of the Dublin days 1 to 31 December (by event_date) and add up their value parameter, read from whichever number slot holds it. On the backend side, count the subscriptions whose first payment (their earliest paid_at in payments) falls on those Dublin days, and add up those payments' amount_eur. A first payment that was later refunded still counts on both sides. Return four columns, in this order: export_purchases, backend_first_payments, export_value and backend_value. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "export_purchases",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_first_payments",
+        "type_class": "numeric"
+      },
+      {
+        "name": "export_value",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_value",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "export_purchases",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_first_payments",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "export_value",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "backend_value",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read each purchase's value so that no number slot is missed.",
+    "A tag may send value as a whole number in int_value or as a decimal in double_value: take the first slot that is filled."
+  ],
+  "subgoals": [
+    {
+      "from": 111,
+      "to": 184,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 187,
+      "to": 198,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 201,
+      "to": 283,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 395,
+      "to": 509,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 512,
+      "to": 526,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 627,
+      "to": 680,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 683,
+      "to": 696,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 699,
+      "to": 723,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 840,
+      "to": 917,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 920,
+      "to": 1028,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1031,
+      "to": 1133,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1136,
+      "to": 1220,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1221,
+      "to": 1265,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Reading value from every number slot and matching each purchase to a first payment by its Dublin day makes both counts and both totals agree."
+}

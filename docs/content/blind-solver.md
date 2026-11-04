@@ -11,7 +11,7 @@ ambiguous or the key is wrong, and a generator fixes it before a learner meets i
 - How items are written: [`generator-brief.md`](generator-brief.md).
 - GA4 and Methodology questions have their own solver and check, C26: see
   [Choice items](#choice-items-ga4-and-methodology-task-c3) at the end. SQL choice items use that
-  solver and C14: see [SQL choice items](#sql-choice-items-task-c4).
+  solver and C14: see [SQL choice items](#sql-choice-items-task-c4), which covers level 7's `fixed_choice` items too.
 - A case's checkpoints (sprint 4b) are solved by one solver per batch: see
   [Case checkpoints](#case-checkpoints-sprint-4b-task-b2).
 
@@ -110,6 +110,29 @@ are converted with `fx_rates` at the rate the prompt names, and `opening` events
 month's movements. On `ledgerloop_raw` the tables may hold errors, and the solver applies exactly
 the rule the prompt gives, as on `voltmarkt_raw`.
 
+**Level 7 prompts** (sprint 9, S9-08) read Mailvora's GA4 export, Voltmarkt or LedgerLoop. An item on the export says
+`"schema": "mailvora_ga4"`, and the solver reads the notes with that schema, all from level 7: `events`, one row per event
+in the BigQuery export's shape, and four views onto Mailvora's own `sessions`, `signups`, `subscriptions` and `payments`,
+so one query can join the export to the backend by unqualified names. `event_date` is the event's day in Dublin, as text
+`YYYYMMDD`; `event_timestamp` counts microseconds in UTC; `event_params` is a list of key and value pairs, each value in
+one of four slots. The prompt states which day it means, the session key, which value slot (or any slot), what an event
+with a missing `user_pseudo_id` or `ga_session_id` does, whether events from Mailvora's server (every purchase, which has
+no session) count, and whether a purchase whose first payment was refunded counts. The solver follows it exactly, in
+DuckDB's forms:
+- one parameter per event with `list_filter(event_params, lambda p: p.key = '...')[1]`, or one row per parameter with
+  `unnest(e.event_params) AS t(p)` and `p.key`. BigQuery's `UNNEST(event_params) AS p`, `PARSE_DATE` and
+  `TIMESTAMP_MICROS` do not run in DuckDB;
+- "any slot" as `COALESCE(value.int_value, value.float_value, value.double_value)`;
+- the Dublin time of an event as `timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))`, and the Dublin day
+  of a backend time (a UTC instant) as `timezone('Europe/Dublin', <column>)`;
+- `event_date` compared with text in its own form (`'20251001'`), or parsed with `strptime(event_date, '%Y%m%d')`;
+- sessions as distinct pairs of `user_pseudo_id` and `ga_session_id`;
+- the events filtered by name or day before a lateral unnest: over all 825,950 events one can reach the runner's
+  5 second limit, and a time-out fails the record.
+
+No level 7 prompt says where missing values go in a sort (S8-22). A level 7 Voltmarkt or LedgerLoop item reads as at
+level 6.
+
 **Raw schema notes** (sprint 6, S6-01 and S6-02). A raw-data item's view says `"schema":
 "voltmarkt_raw"`. Its tables have the same names as the clean ones, and `data/schema-notes.json`
 holds a note for each with `"schema": "voltmarkt_raw"` and the line "This table may hold errors."
@@ -192,8 +215,9 @@ Work in <root>. You may read ONLY:
   Use only the tables whose from_level is at or below your level: a learner at that level sees
   no other table. Use only the notes whose schema is the item's own schema (the "schema" field of
   its view): "voltmarkt" for most items, "voltmarkt_raw" for a raw-data item, whose tables may
-  hold errors, "mailvora" for a Mailvora item, and "ledgerloop" or "ledgerloop_raw" for a
-  LedgerLoop item.
+  hold errors, "mailvora" for a Mailvora item, "ledgerloop" or "ledgerloop_raw" for a
+  LedgerLoop item, and "mailvora_ga4" for a level 7 item on Mailvora's GA4 export (its events
+  table and four views of Mailvora's own tables).
 
 Never open anything else: not content/ (items, keys, lessons), pipeline/, knowledge/, server/,
 tests/, docs/, other files under tools/, or another concept's solver-view files. Do not query the
@@ -231,6 +255,19 @@ file:
   session gap per user between instants, as an interval, never a date_diff count. Write a pivot
   with conditional aggregation. A level 6 prompt never says where missing values go in a sort,
   and either place passes.
+- GA4 export (level 7, "mailvora_ga4"): event_date is the day in Dublin as text YYYYMMDD, and
+  event_timestamp counts microseconds in UTC. Follow the prompt's day, session key, value slot,
+  missing IDs, server-side events and refunds exactly. Read one parameter per event with
+  list_filter(event_params, lambda p: p.key = '...')[1], or one row per parameter with
+  unnest(e.event_params) AS t(p) and p.key; BigQuery's UNNEST(event_params) AS p, PARSE_DATE and
+  TIMESTAMP_MICROS do not run here. "Any slot" is
+  COALESCE(value.int_value, value.float_value, value.double_value). An event's Dublin time is
+  timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000)), and a backend time's Dublin
+  day is timezone('Europe/Dublin', column). Compare event_date with text in its own form
+  ('20251001'), or parse it with strptime(event_date, '%Y%m%d'). Count sessions as distinct
+  user_pseudo_id and ga_session_id pairs. Filter the events by name or day before a lateral
+  unnest: over every event it can pass the 5 second limit. A level 7 prompt never says where
+  missing values go in a sort.
 
 When a view holds starter_sql, the prompt asks you to fix that query. Write the whole corrected
 query to the .sql file, not a description of the change.
@@ -432,8 +469,17 @@ key matches the data is C31 to C35's job (`npm run check:content`), not the solv
 
 | Seen | Never seen |
 |---|---|
-| `tools/.solver-view/choice/sql/<concept>/<id>.json`: `id`, `kind`, `prompt`, `schema`, and the kind's own fields: `shown_sql` (the query a predict item shows), `options` (each an `oid` and a `text`, and a `predict_result` option's `table`, in a seeded shuffled order), `typed` (`predict_rows`: a count) and `unique_check` (`is_unique`: the table and column) | The key, the explanation, misconception IDs, the edge schema, hints, difficulty, template, every other item, `content/`, `knowledge/` |
+| `tools/.solver-view/choice/sql/<concept>/<id>.json`: `id`, `kind`, `prompt`, `schema`, and the kind's own fields: `shown_sql` (the query a predict item shows), `options` (each an `oid` and a `text`, a `predict_result` option's `table`, and a `fixed_choice` option's `code`, in a seeded shuffled order), `typed` (`predict_rows`: a count) and `unique_check` (`is_unique`: the table and column) | The key, the explanation, misconception IDs, the edge schema, hints, difficulty, template, every other item, `content/`, `knowledge/` |
 | `data/schema-notes.json`: each table's grain, keys, row count, five sample rows and allowed values | `data/course.duckdb`: no query of any kind |
+
+**`fixed_choice` items** (sprint 9, S9-06, level 7) ask a question whose options the app does not run: BigQuery SQL, or a
+statement about cost or a plan. Each of the 3 or 4 options is a text, and may carry a `code` block: `{ "lang": "bigquery" or
+"duckdb", "sql": ... }`. The learner sees the language as a caption over the code, so the solver sees it too; a question
+is never answered by the caption alone. The solver picks the one right option from the prompt, the options and the schema
+notes, from what it knows of DuckDB and BigQuery; it runs nothing. `export:solver-view` leaves these items out, as every
+SQL choice kind; `npm run export:choice-view` writes their views, with each option's `code`. `record:choice-solver` grades them as `predict_result`'s, by the key's `correct_oid`.
+
+A level 7 query should filter events before it unnests: keep one `event_name` (or a period) first, then unnest.
 
 ### Steps
 
@@ -466,8 +512,9 @@ and data/schema-notes.json (each table's grain, keys, row count and sample rows,
 schema panel shows them; the panel shows only the tables whose from_level is at or below your
 level). Each view holds one question: its id, its kind, its prompt, the
 schema it asks about, and what that kind shows: shown_sql (a query to predict), options (each an
-oid and a text; for predict_result also the result table it stands for), typed (a row count to
-type), or unique_check (a table and a column).
+oid and a text; for predict_result also the result table it stands for; for fixed_choice maybe
+a code block, its language, bigquery or duckdb, and its query), typed (a row count to type), or
+unique_check (a table and a column).
 
 Never open anything else: not content/, knowledge/, server/, schemas/, tests/, docs/, other
 files under tools/ or data/, or another concept's view files. Run no query and no command except
@@ -477,6 +524,11 @@ For each question, write your answer to tools/.solver-out/choice/sql/<item id>.t
 text, with nothing else in the file:
 - predict_rows: the number of rows only, a whole number;
 - every other kind: the oid of the one option you pick, exactly as the view gives it.
+
+A fixed_choice question (level 7) is about code the app does not run: BigQuery SQL, DuckDB SQL,
+or a statement about cost or a plan. Pick the one option that is right as written, from what you
+know of both dialects. The language shown with a code block is only a caption: it never answers
+the question by itself.
 
 Answer as a careful learner would, from the question, the query and the schema notes. If a
 question is ambiguous, or more than one option looks right, pick the most defensible answer and
@@ -492,13 +544,14 @@ For each active SQL choice item, in this order:
 
 1. The key (`content/keys/sql-choice/<id>.json`) has a solver record.
 2. The record's prompt hash matches the item now. The hash covers the kind, the prompt, the
-   schema, `shown_sql`, the options as a set (each its text and table; not their order), the
-   typed spec and `unique_check`.
+   schema, `shown_sql`, the options as a set (each its text, table and, for `fixed_choice`, its
+   code with its language; not their order), the typed spec and `unique_check`. An option with no
+   code hashes as it did before sprint 9, so older records stay fresh.
 3. The recorded answer, replayed through the choice grader on the item's shape, is still the key.
 
 | Change | C14 |
 |---|---|
-| The prompt, `shown_sql`, `schema`, an option's text or table, an option added or removed, the typed spec, `unique_check` | Stale: needs a new blind solve |
+| The prompt, `shown_sql`, `schema`, an option's text, table or code (its language or query), an option added or removed, the typed spec, `unique_check` | Stale: needs a new blind solve |
 | The explanation, misconception IDs, the edge schema, difficulty, `version`, the data | No effect on C14. A data change is caught by C31 to C35 |
 | The key's correct option or value | Fails only if the recorded answer is no longer right |
 
@@ -568,8 +621,9 @@ Work in <root>. You may read ONLY:
   scale and the number of decimals to give);
 - data/schema-notes.json (the visible tables and views, their grain, keys and sample rows). Use
   only the notes whose schema is your CP3 view's schema (the "schema" field of the CP3 item's view:
-  at level 6 Mailvora and LedgerLoop both have a subscriptions and a payments table), and only the
-  tables whose from_level is at or below your level.
+  at level 6 Mailvora and LedgerLoop both have a subscriptions and a payments table, and at level 7
+  "mailvora_ga4" has its own views of Mailvora's), and only the tables whose from_level is at or
+  below your level.
 
 Never open anything else: not content/, knowledge/, pipeline/, server/, schemas/, tests/, docs/,
 data/truth/, other files under tools/, or another case's files. Do not query the database, do not
@@ -580,7 +634,10 @@ Write each answer as plain text, with nothing else in the file:
   (table names without a schema prefix; the output columns, order, tie-breaks and rounding exactly
   as the prompt states; no ORDER BY unless the prompt asks for an order; times in *_ts columns are
   UTC; on a LedgerLoop case every time is Brussels local time except app_events.event_ts, a UTC
-  instant);
+  instant; on a "mailvora_ga4" case, event_date is the day in Dublin as text YYYYMMDD,
+  event_timestamp counts microseconds in UTC, an event's Dublin time is
+  timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000)), and a backend time's Dublin
+  day is timezone('Europe/Dublin', column));
 - a checkpoint with options: tools/.solver-out/case/<case ID>-<CP>.txt, the oid of the one option
   you pick, exactly as the view gives it;
 - a checkpoint with typed: tools/.solver-out/case/<case ID>-<CP>.sql, one DuckDB SELECT that

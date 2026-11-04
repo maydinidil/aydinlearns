@@ -1,0 +1,163 @@
+{
+  "id": "EX-SQL-CRAFT-03-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "logo_churn",
+    "rate",
+    "base"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-logo-churn-rate-month",
+  "template_params": {
+    "table": "mrr_monthly",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Is churn getting worse? For each month of 2025, give LedgerLoop's logo churn rate: the accounts that churned in the month divided by the accounts with MRR at the end of the month before. The base of a month is the accounts with MRR at the end of the month before: those with a row in mrr_monthly for the month before (mrr_monthly.month is the first day of a month). An account churned in a month when it has a churn event (event_type churn in subscription_events) dated in that month; count each account once. An account that starts or comes back during the month is not in that month's base. Return two columns, in this order: month_start (the first day of the month) and churn_rate, as a share (0.02 for 2%), not rounded. Return one row for each month of 2025; a month with no churn shows 0. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the rate: the churned accounts of each month over that month's base.",
+    "The LEFT JOIN keeps every base account, so a count of all rows is the base and a count of the joined churn rows is the churned accounts."
+  ],
+  "subgoals": [
+    {
+      "from": 100,
+      "to": 176,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 179,
+      "to": 197,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 200,
+      "to": 261,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 334,
+      "to": 422,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 425,
+      "to": 449,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 452,
+      "to": 541,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 544,
+      "to": 565,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 568,
+      "to": 618,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 619,
+      "to": 630,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 631,
+      "to": 715,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 716,
+      "to": 738,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 566,
+    "stage2": 566
+  },
+  "faded_shape": "WITH base AS (\n  -- one row per month of 2025 and account with MRR at the end of the month before\n  SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, m.account_id\n  FROM mrr_monthly m\n  WHERE m.month BETWEEN DATE '2024-12-01' AND DATE '2025-11-01'\n), churned AS (\n  -- one row per account and month with a churn event\n  SELECT DISTINCT account_id, CAST(date_trunc('month', event_date) AS DATE) AS month_start\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n)\nSELECT b.month_start,\n",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Dividing by the accounts at the start of the month keeps one base per month, whatever joins or leaves during it.",
+  "faded_suffix": "\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id AND c.month_start = b.month_start\nGROUP BY b.month_start"
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-32",
+  "item_version": 2,
+  "reference_sql": "SELECT event_date,\n  MIN(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))) AS first_session_at\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251026' AND '20251104'\nGROUP BY event_date",
+  "alternatives": [
+    "WITH first_starts AS (\n  -- one row per day: its earliest session_start, in microseconds\n  SELECT event_date, MIN(event_timestamp) AS first_us\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251026' AND '20251104'\n  GROUP BY event_date\n)\nSELECT event_date, timezone('Europe/Dublin', to_timestamp(first_us / 1000000)) AS first_session_at\nFROM first_starts",
+    "SELECT event_date,\n  MIN(to_timestamp(event_timestamp / 1000000) AT TIME ZONE 'Europe/Dublin') AS first_session_at\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251026' AND '20251104'\nGROUP BY event_date"
+  ],
+  "other_way": {
+    "sql": "WITH first_starts AS (\n  -- one row per day: its earliest session_start, in microseconds\n  SELECT event_date, MIN(event_timestamp) AS first_us\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251026' AND '20251104'\n  GROUP BY event_date\n)\nSELECT event_date, timezone('Europe/Dublin', to_timestamp(first_us / 1000000)) AS first_session_at\nFROM first_starts",
+    "tradeoff": "Finding each day's earliest event_timestamp first, then converting it, does the time zone work once per day."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-54",
+      "sql": "SELECT event_date,\n  MIN(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000))) AS first_session_at\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251026' AND '20251104'\nGROUP BY event_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-55",
+      "sql": "SELECT event_date, MIN(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))) AS first_session_at FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '2025-10-26' AND '2025-11-04' GROUP BY event_date"
+    }
+  ],
+  "hint3_partial": "SELECT event_date,\n  MIN(timezone('Europe/Dublin', to_timestamp(event_timestamp / ___))) AS first_session_at\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251026' AND '20251104'\nGROUP BY event_date",
+  "solver": {
+    "prompt_hash": "2bb72c5d594e1b36",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "629fe78dc6bbdb7a",
+    "grader_version": "9a.1",
+    "query": "SELECT event_date,\n  MIN(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))) AS first_session_at\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251026' AND '20251104'\nGROUP BY event_date\n",
+    "at": "2026-11-04T01:02:11.411Z"
+  }
+}

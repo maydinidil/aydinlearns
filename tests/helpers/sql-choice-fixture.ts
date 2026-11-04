@@ -26,7 +26,9 @@ export const DRIFTED_DATA = [
   `CREATE TABLE ${EDGE}.stores AS SELECT * FROM (VALUES (1,'Basel'),(2,'Gent'),(3,NULL)) v(store_id, city)`,
 ];
 
-export const IDS: Record<SqlChoiceKind, string> = {
+/** The five kinds sprint 3 made, one fixture item each. Sprint 9's fixed_choice has its own builder below (fixedChoiceItem). */
+export type FixtureKind = Exclude<SqlChoiceKind, 'fixed_choice'>;
+export const IDS: Record<FixtureKind, string> = {
   predict_rows: `EX-${FIXTURE_CONCEPT}-E1-21`,
   predict_result: `EX-${FIXTURE_CONCEPT}-E1-22`,
   choose_query: `EX-${FIXTURE_CONCEPT}-E1-23`,
@@ -46,7 +48,7 @@ const envelope = {
 export const sqlOptions = (id: string, texts: string[], tables?: OptionTable[]): ChoiceOption[] =>
   texts.map((text, i) => ({ oid: optionId(id, i), text, misconception_id: i === 0 ? null : 'MIS-FAKE-1', ...(tables ? { table: tables[i]! } : {}) }));
 
-export function sqlChoiceItem(kind: SqlChoiceKind, over: Partial<SqlItem> = {}): SqlItem {
+export function sqlChoiceItem(kind: FixtureKind, over: Partial<SqlItem> = {}): SqlItem {
   const id = IDS[kind];
   const base = { ...envelope, id, kind, use: 'pool' as const, template_id: `T-FIXTURE-${kind}` };
   switch (kind) {
@@ -72,13 +74,41 @@ export function sqlChoiceItem(kind: SqlChoiceKind, over: Partial<SqlItem> = {}):
 }
 
 /** The key: option 0 is right, and predict_rows' value is 2 rows (stores 2 and 3). */
-export function sqlChoiceKey(kind: SqlChoiceKind, over: Partial<ChoiceKey> = {}): ChoiceKey {
+export function sqlChoiceKey(kind: FixtureKind, over: Partial<ChoiceKey> = {}): ChoiceKey {
   const id = IDS[kind];
   const answer = kind === 'predict_rows' ? { value: 2 } : { correct_oid: optionId(id, 0) };
   return { item_id: id, item_version: 1, ...answer, explanation: `An invented explanation for ${kind}: the made-up data says so.`, solver: null, ...over };
 }
 
-export const ALL_KINDS: readonly SqlChoiceKind[] = ['predict_rows', 'predict_result', 'choose_query', 'which_table', 'is_unique'];
+export const ALL_KINDS: readonly FixtureKind[] = ['predict_rows', 'predict_result', 'choose_query', 'which_table', 'is_unique'];
+
+// ---- Sprint 9 (Task A1, S9-06): a fixed_choice item, whose options the app does not run --------------------------------------
+
+export const FIXED_ID = `EX-${FIXTURE_CONCEPT}-E1-27`;
+/**
+ * Four invented options: a statement with no code, a BigQuery query, a DuckDB query on the fixture's stores table, and a statement.
+ * Option 0 is right (no misconception); every other names its mistake. The texts are about as long as each other, so no option is the
+ * only longest one.
+ */
+export const fixedOptions = (id: string = FIXED_ID): ChoiceOption[] => [
+  { oid: optionId(id, 0), text: 'Read the key and its value in one row each.', misconception_id: null },
+  { oid: optionId(id, 1), text: 'Name the list itself as each of its rows.', misconception_id: 'ERR-SYN-09',
+    code: { lang: 'bigquery', sql: 'SELECT p.key FROM events, UNNEST(event_params) AS p' } },
+  { oid: optionId(id, 2), text: 'Keep every store as it is, one row each.', misconception_id: 'MIS-FAKE-2',
+    code: { lang: 'duckdb', sql: 'SELECT store_id, city FROM stores' } },
+  { oid: optionId(id, 3), text: 'Count the rows first and read them after.', misconception_id: 'MIS-FAKE-3' },
+];
+
+export function fixedChoiceItem(over: Partial<SqlItem> = {}): SqlItem {
+  return { ...envelope, id: FIXED_ID, kind: 'fixed_choice', use: 'pool', template_id: 'T-FIXTURE-fixed_choice',
+    prompt: 'In this invented question, which way reads one parameter of each event?', options: fixedOptions(), ...over };
+}
+
+/** The key: option 0 is right, with a letter-free explanation. */
+export function fixedChoiceKey(over: Partial<ChoiceKey> = {}): ChoiceKey {
+  return { item_id: FIXED_ID, item_version: 1, correct_oid: optionId(FIXED_ID, 0), explanation: 'An invented explanation for fixed_choice: one row for each parameter.',
+    solver: null, ...over };
+}
 
 /** Writes every kind's item and key into a content root made by makeContentFixture. */
 export async function writeSqlChoice(root: string, items: SqlItem[] = ALL_KINDS.map((k) => sqlChoiceItem(k)),

@@ -1,5 +1,6 @@
 // web/src/screens/LabsScreen.tsx: the GA4 labs list (sprint 5b, Task B3; design §8), at #/ga4/labs. Every lab is open at any time;
 // a state chip is a signal, never a gate. The guide opens while no lab has an answer yet.
+import { EmptyLine } from '../components/Mascot.tsx';
 import { useEffect, useState } from 'react';
 import { api } from '../api.ts';
 import { Markdown } from '../components/Markdown.tsx';
@@ -22,7 +23,7 @@ export function LabsScreen() {
     <section>
       <PageHead section="ga4" crumb={crumbParts({ section: 'ga4', place: 'Labs', hideLabels: true })} title={LABS_TITLE} />
       <p className="muted">{LABS_INTRO}</p>
-      {view.labs.length === 0 ? <p>No labs yet.</p> : (
+      {view.labs.length === 0 ? <EmptyLine text="No labs yet." /> : (
         <div className="card map-card">
           <ol className="map-list lab-list">
             {view.labs.map((l) => {

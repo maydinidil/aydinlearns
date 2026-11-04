@@ -97,7 +97,7 @@ export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
         .find((x) => x.block_id === run.block_id && x.ended_at !== null);
       if (r) runFinishedOnce(runs, r.block_id, { section: 'ga4', run_kind: r.kind, block_id: r.block_id, score_pct: r.score.pct, run_passed: r.score.pass });
     } catch (e) {
-      console.error(`aydinlearns: the run_finished of ${run.block_id} could not be sent (${e instanceof Error ? e.message : String(e)}).`);
+      console.error(`grondig: the run_finished of ${run.block_id} could not be sent (${e instanceof Error ? e.message : String(e)}).`);
     }
   }
   /** A level's drill pool: the `use: 'drill'` items its spec lists that exist (history tells a level run by them, S2-46). */

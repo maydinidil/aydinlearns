@@ -717,7 +717,7 @@ export class DrillRuns implements DrillGate {
     this.#active.set(run.block_id, run);
     for (const s of run.servings) this.#runOf.set(s.item_instance_id, run);
     this.#cancel.set(run.block_id, this.#schedule(() => {
-      this.finish(run, run.ends_at).catch((e: unknown) => console.error(`aydinlearns: the drill run ${run.block_id} could not be ended at its time limit (${message(e)}).`));
+      this.finish(run, run.ends_at).catch((e: unknown) => console.error(`grondig: the drill run ${run.block_id} could not be ended at its time limit (${message(e)}).`));
     }, run.ends_at - this.#now()));
     return run;
   }

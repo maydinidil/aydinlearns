@@ -1,0 +1,83 @@
+{
+  "id": "EX-SQL-CRAFT-03-E3-41",
+  "version": 2,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "fixed_choice",
+    "plan",
+    "edge_cases"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-plan-edge-cases",
+  "template_params": {
+    "part": "edge_cases"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "The plan for \"Did February's price rises hurt volume?\" reads: units per price rise, the 8 weeks before against the 8 weeks after, from weekly_units. Which Edge cases line should it hold?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "od4304a9",
+      "text": "None: weekly_units counts units the same way in every week, so every price rise can be compared just as it stands.",
+      "misconception_id": "MIS-SQL-CRAFT-03-09"
+    },
+    {
+      "oid": "of0b52df",
+      "text": "Leave out the rises with no units after them, so a product that stopped selling does not pull the average down.",
+      "misconception_id": "MIS-SQL-CRAFT-03-08"
+    },
+    {
+      "oid": "obd9f8e4",
+      "text": "A product launched inside its before window, weeks the product was on promotion, and a rise with no units before.",
+      "misconception_id": null
+    },
+    {
+      "oid": "of3a494f",
+      "text": "Orders placed on the day of the change, orders refunded after the window, and guest orders with no customer ID.",
+      "misconception_id": "MIS-SQL-CRAFT-03-06"
+    }
+  ]
+}

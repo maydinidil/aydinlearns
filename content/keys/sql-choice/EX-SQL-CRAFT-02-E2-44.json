@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E2-44",
+  "item_version": 2,
+  "correct_oid": "oa6f8aa6",
+  "explanation": "BigQuery charges for the data a query reads, not for the rows it sends back. The suffix filter keeps the narrow query to the October daily tables. The wide one has no suffix filter, so events_* reads every daily table, and its WHERE on event_date only drops rows after they are read: a filter on event_date does not choose which daily tables are read. A LIMIT would not change the data read either, on tables that are not clustered.",
+  "solver": {
+    "prompt_hash": "8b1b4ca9ab33d053",
+    "grader_version": "choice.3",
+    "chosen": "oa6f8aa6",
+    "typed": null,
+    "at": "2026-11-03T21:23:49.216Z"
+  }
+}

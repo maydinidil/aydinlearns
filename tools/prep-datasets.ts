@@ -35,7 +35,7 @@ export function runPrep(args: readonly string[], spawner: typeof spawnSync = spa
     const r = spawner(step.cmd, step.args, { cwd: ROOT, stdio: 'inherit' });
     if (r.error) {
       console.error((r.error as NodeJS.ErrnoException).code === 'ENOENT'
-        ? 'pipeline/.venv is not set up: start the app once with Start aydinlearns.bat, then run this again.'
+        ? 'pipeline/.venv is not set up: start the app once with Start Grondig.bat, then run this again.'
         : `The prep could not start (${r.error.name}).`);
       return 1;
     }

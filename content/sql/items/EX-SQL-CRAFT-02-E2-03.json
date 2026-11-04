@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "page_view",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-page-paths",
+  "template_params": {
+    "from": "20251207",
+    "to": "20251213"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's content team wants page views per page for the Dublin days 7 to 13 December 2025 (by event_date). A page is the path of page_location: the part after the host www.mailvora.example and before any question mark, so a query string does not make a page of its own. Count every page_view event, those of visitors who denied consent included. Return exactly two columns, in this order: page and views. Return one row for each page. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "page",
+        "type_class": "text"
+      },
+      {
+        "name": "views",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "page",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "views",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "page"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, turn each page_location into its path.",
+    "Cut the address at the question mark first, then keep what follows the host, so a page with a query string joins the same page without one."
+  ],
+  "subgoals": [
+    {
+      "from": 119,
+      "to": 225,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 228,
+      "to": 239,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 242,
+      "to": 325,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 426,
+      "to": 513,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 516,
+      "to": 531,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 534,
+      "to": 564,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 565,
+      "to": 575,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 576,
+      "to": 589,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Cutting off the query string and the host leaves the path, so a page reached with UTM values counts with the same page reached without them."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "ob07560f",
+  "explanation": "The unnest makes one row per parameter and nothing filters on p.key, so COUNT(*) counts parameter rows: 4 for the session_start and 5 for each of the two page_views, 10 in all. Expecting 1 and 2 is the fan-out slip: the column is named events, but after the unnest each event counts once per parameter.",
+  "solver": {
+    "prompt_hash": "3f054b9af23fd62d",
+    "grader_version": "choice.3",
+    "chosen": "ob07560f",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.569Z"
+  }
+}

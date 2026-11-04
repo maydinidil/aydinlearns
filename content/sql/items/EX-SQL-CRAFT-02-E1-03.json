@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "purchase",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-purchase-days",
+  "template_params": {
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's finance team wants purchases and revenue per day for the Dublin days 1 to 7 December 2025 (by event_date). Every purchase counts, one whose first payment was later refunded included. Revenue is the value parameter, read from whichever number slot holds it. Return exactly three columns, in this order: day (the Dublin day as text, in the same form as event_date), purchases and revenue. Return one row for each day with purchases. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "text"
+      },
+      {
+        "name": "purchases",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per Dublin day with purchases, 1 to 7 December 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "purchases",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column list of the first step: only what the totals need.",
+    "Keep the day and the value parameter of each purchase, read with list_filter, and leave every other column out."
+  ],
+  "subgoals": [
+    {
+      "from": 131,
+      "to": 216,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 219,
+      "to": 230,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 233,
+      "to": 315,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 318,
+      "to": 437,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 438,
+      "to": 457,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 458,
+      "to": 477,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 131,
+    "stage2": 131
+  },
+  "faded_shape": "WITH week_purchases AS (\n  -- one row per purchase event of 1 to 7 December 2025 (Dublin days): only the columns the totals need\n  ",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The first step keeps two columns of one week's purchases, and reading value from every number slot makes the revenue whole.",
+  "faded_suffix": "\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT event_date AS day, COUNT(*) AS purchases,\n  SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS revenue\nFROM week_purchases\nGROUP BY event_date"
+}

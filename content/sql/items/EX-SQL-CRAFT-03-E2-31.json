@@ -1,0 +1,163 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "logo_churn",
+    "base",
+    "fix"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-fix-base-month-end",
+  "template_params": {
+    "table": "mrr_monthly",
+    "from": "2024-07",
+    "to": "2025-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what was LedgerLoop's monthly logo churn rate in each month from July 2024 to June 2025, as a percentage rounded to 2 decimals with ROUND (1.45 for 1.45%)? The rate is 100 times the accounts that churned in the month divided by the accounts with MRR at the end of the month before. The base of a month is the accounts with MRR at the end of the month before: those with a row in mrr_monthly for the month before (mrr_monthly.month is the first day of a month). An account churned in a month when it has a churn event (event_type churn in subscription_events) dated in that month; count each account once. An account that starts or comes back during the month is not in that month's base. Return two columns, in this order: month_start (the first day of the month) and churn_pct. Return one row for each of the 12 months; a month with no churn shows 0. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "churn_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "churn_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check which month's accounts the base counts: the month's own end, or the end of the month before?",
+    "An account that churns in a month has no MRR at that month's end, so a base taken there has already lost the accounts being counted."
+  ],
+  "subgoals": [
+    {
+      "from": 96,
+      "to": 189,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 192,
+      "to": 210,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 213,
+      "to": 274,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 277,
+      "to": 326,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 386,
+      "to": 501,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 504,
+      "to": 528,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 531,
+      "to": 620,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 623,
+      "to": 677,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 680,
+      "to": 786,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 787,
+      "to": 800,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 801,
+      "to": 852,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH starts AS (\n  -- one row per month: the accounts with MRR at the end of the month\n  SELECT m.month AS month_start, COUNT(*) AS accounts_at_start\n  FROM mrr_monthly m\n  WHERE m.month BETWEEN DATE '2024-07-01' AND DATE '2025-06-01'\n  GROUP BY m.month\n), churns AS (\n  -- one row per month with a churn event\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month_start, COUNT(DISTINCT account_id) AS churned_accounts\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2024-07-01' AND DATE '2025-06-30'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n)\nSELECT s.month_start, ROUND(100.0 * COALESCE(c.churned_accounts, 0) / s.accounts_at_start, 2) AS churn_pct\nFROM starts s\nLEFT JOIN churns c ON c.month_start = s.month_start",
+  "time_target_ms": 180000,
+  "why_this_works": "Taking the base from the month before counts the accounts at risk when the month starts, so churners and newcomers do not move it.",
+  "starter_error_id": "ERR-LOG-00"
+}

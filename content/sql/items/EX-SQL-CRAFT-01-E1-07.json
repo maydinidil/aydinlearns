@@ -1,0 +1,148 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "weekly_units",
+    "sales"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-weekly-table",
+  "template_params": {
+    "iso_year": 2025,
+    "iso_week": 11
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Voltmarkt's weekly_units table should hold the same units as sales. Check ISO week 11 of 2025, Monday 10 to Sunday 16 March 2025 (by sales.order_date, a UTC day). Return three columns, in this order: weekly_units_total (the units weekly_units holds for that week), sales_units (the units in sales on those days, 0 when there are none) and difference (weekly_units_total minus sales_units). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "weekly_units_total",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sales_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "weekly_units_total",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "sales_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the units in sales over the same seven days.",
+    "Keep the Sunday too, and remember that a SUM over no rows gives a missing value, not 0."
+  ],
+  "subgoals": [
+    {
+      "from": 90,
+      "to": 129,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 132,
+      "to": 149,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 152,
+      "to": 195,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 323,
+      "to": 368,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 371,
+      "to": 381,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 384,
+      "to": 448,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 451,
+      "to": 547,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 548,
+      "to": 589,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Both sides cover Monday to Sunday of the same ISO week, and COALESCE turns a week with no sales into 0, so the difference can be compared."
+}

@@ -278,3 +278,30 @@ test('a Mailvora daily case asked by Aoife in her role validates (S7-C11)', () =
   const rec = patched(dailyCase, (r) => { r.schema = 'mailvora'; r.persona = { name: 'Aoife', role: 'Performance marketing manager' }; });
   assert.deepEqual(validateCaseRecord(rec), []);
 });
+
+// Ruling S9-10 (sprint 9, Task A2): a daily case on Mailvora's GA4 export (`mailvora_ga4`, which also holds views onto Mailvora's
+// tables) is a Mailvora case, asked by one of Mailvora's four managers in their own role.
+const MAILVORA_MSG = 'a daily case on Mailvora is asked by one of its four managers in their own role: Aoife, Ciarán, Siobhán or Declan';
+const MAILVORA_CAST: [string, string][] = [['Aoife', 'Performance marketing manager'], ['Ciarán', 'Marketing director'], ['Siobhán', 'Lifecycle marketing manager'], ['Declan', 'Head of growth']];
+const ga4Daily = (persona: { name: string; role: string }) => patched(dailyCase, (r) => {
+  r.case_id = 'CASE-DAILY-L7-01'; r.level = 7; r.world = 'MKT'; r.company_id = 'mailvora'; r.schema = 'mailvora_ga4'; r.persona = persona;
+  r.data_source = { label: 'Fictional, generated data: Mailvora', real: false, licence: null };
+  r.checkpoints = [
+    { id: 'CP3', kind: 'CP3', prompt: 'Write the query.', credits_concepts: ['SQL-BQ-01'], item_id: 'EX-CASE-DAILY-L7-01' },
+    { id: 'CP4', kind: 'CP4', prompt: 'Type the total, rounded to 2 decimals.', credits_concepts: [], item_id: 'CASE-DAILY-L7-01:CP4', typed: money, truth_key: 'CASE-DAILY-L7-01:CP4' },
+  ];
+  r.concept_ids = ['SQL-BQ-01'];
+});
+test('S9-10: a daily case on mailvora_ga4 asked by each of Mailvora\'s managers in their own role validates', () => {
+  for (const [name, role] of MAILVORA_CAST) assert.deepEqual(validateCaseRecord(ga4Daily({ name, role })), [], name);
+});
+test('S9-10: a daily case on mailvora_ga4 asked by a Voltmarkt or LedgerLoop manager, or a Mailvora manager in another role, fails with the Mailvora message', () => {
+  for (const persona of [{ name: 'Sanne', role: 'Category manager' }, { name: 'Marieke', role: 'CFO' }, { name: 'Nele', role: 'Growth marketing manager' }, { name: 'Aoife', role: 'Head of growth' }]) {
+    assert.deepEqual(validateCaseRecord(ga4Daily(persona)), [MAILVORA_MSG], `${persona.name}, ${persona.role}`);
+  }
+});
+test('S9-10: the cast rule for the other schemas is unchanged: mailvora and voltmarkt as before', () => {
+  assert.deepEqual(validateCaseRecord(patched(dailyCase, (r) => { r.schema = 'mailvora'; r.persona = { name: 'Declan', role: 'Head of growth' }; })), []);
+  assert.deepEqual(validateCaseRecord(patched(dailyCase, (r) => { r.persona = { name: 'Declan', role: 'Head of growth' }; })),
+    ['a daily case is asked by one of the five managers in their own role: Sanne, Joost, Fleur, Marieke or Yara']);
+});

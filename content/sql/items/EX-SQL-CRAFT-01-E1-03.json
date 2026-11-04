@@ -1,0 +1,182 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "sessions",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SET-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-session-days",
+  "template_params": {
+    "from": "20251026",
+    "to": "20251101"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Before Mailvora's weekly report goes out, check the export against the backend day by day. For each Dublin day from 26 October to 1 November 2025, count the session_start events by event_date (the day in Dublin), the events of visitors who denied consent (no user_pseudo_id) included, and count the backend sessions whose session_start falls on that Dublin day. Return four columns, in this order: day (the Dublin day as text, in the same form as event_date), export_sessions, backend_sessions and difference (export_sessions minus backend_sessions). Return one row for each of those days that has sessions; a day with none has no row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "text"
+      },
+      {
+        "name": "export_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per Dublin day from 26 October to 1 November 2025 that has sessions"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "export_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the comparison of the two counts on each day's row.",
+    "Take the backend count away from the export count, so 0 means that day reconciles."
+  ],
+  "subgoals": [
+    {
+      "from": 104,
+      "to": 157,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 160,
+      "to": 171,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 174,
+      "to": 261,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 264,
+      "to": 283,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 388,
+      "to": 492,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 495,
+      "to": 508,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 511,
+      "to": 611,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 614,
+      "to": 626,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 629,
+      "to": 681,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 684,
+      "to": 736,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 737,
+      "to": 792,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 684,
+    "stage2": 684
+  },
+  "faded_shape": "WITH export_days AS (\n  -- one row per Dublin day: session_start events, consent-denied ones included\n  SELECT event_date AS day, COUNT(*) AS export_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251026' AND '20251101'\n  GROUP BY event_date\n), backend_days AS (\n  -- one row per Dublin day: backend sessions by the Dublin day of session_start\n  SELECT strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') AS day, COUNT(*) AS backend_sessions\n  FROM sessions\n  WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251026' AND '20251101'\n  GROUP BY day\n)\nSELECT e.day, e.export_sessions, b.backend_sessions,\n  ",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Both sides count each session once on the same Dublin day, so the difference is 0 wherever the export is complete.",
+  "faded_suffix": "\nFROM export_days e\nJOIN backend_days b ON b.day = e.day"
+}

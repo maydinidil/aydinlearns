@@ -36,7 +36,22 @@ const get = (app: Hono, path: string) => app.request(`http://127.0.0.1:5174${pat
 const post = (app: Hono, path: string, body: unknown) => app.request(`http://127.0.0.1:5174${path}`, { method: 'POST', headers: P, body: JSON.stringify(body) });
 const json = async (r: Response | Promise<Response>): Promise<any> => (await r).json();
 
-const db = await makeFixtureDb(EXPLORE_DB);
+/**
+ * Sprint 9 (Task L1, S9-C05): Mailvora's GA4 export sample in the BigQuery shape, one nested events table, and its edge schema. Two
+ * events of one session, each with a list of key and value parameters. Every value is invented.
+ */
+const param = (key: string, int: string): string =>
+  `{'key': '${key}', 'value': {'string_value': NULL::VARCHAR, 'int_value': ${int}::BIGINT, 'float_value': NULL::DOUBLE, 'double_value': NULL::DOUBLE}}`;
+const GA4_DB = [
+  'CREATE SCHEMA mailvora_ga4',
+  `CREATE TABLE mailvora_ga4.events AS SELECT * FROM (VALUES
+     ('20251001', 1759273228000001, 'session_start', [${param('ga_session_id', '1759273228')}, ${param('ga_session_number', '1')}], 'V0000001'),
+     ('20251001', 1759273228000001, 'page_view', [${param('ga_session_id', '1759273228')}, ${param('engagement_time_msec', '12000')}], 'V0000001')
+   ) v(event_date, event_timestamp, event_name, event_params, user_pseudo_id)`,
+  'CREATE SCHEMA mailvora_edge_ga4',
+  "CREATE TABLE mailvora_edge_ga4.events AS SELECT * FROM (VALUES ('20251026', 'page_view')) v(event_date, event_name)",
+];
+const db = await makeFixtureDb([...EXPLORE_DB, ...GA4_DB]);
 const runner = await startRunner(db);
 const made: string[] = [root, dirname(db), ...withData.dirs, ...olderBuild.dirs, ...withMailvoraRaw.dirs];
 after(async () => {
@@ -232,6 +247,44 @@ test('S8-23: a build that holds LedgerLoop lists it after Mailvora under the fic
   assert.ok(!without.datasets.some((d) => d.id === 'ledgerloop'));
 });
 
+test('S9-C05: a build that holds mailvora_ga4 lists it under Mailvora as "GA4 export (BigQuery shape)", runnable, with its notes; its edge schema is never offered', async () => {
+  const built = [...BUILT_WITH_MAILVORA_RAW, 'mailvora_ga4', 'mailvora_edge_ga4'].sort();
+  const store = await exploreContent(built);
+  made.push(...store.dirs);
+  const ga4Notes = [note('events', 'mailvora_ga4', 7), note('events', 'mailvora_edge_ga4')];
+  const { app, dir, d } = await setup(store.content, [...exploreNotes(), ...ga4Notes]);
+  const before = await snapshot(dir);
+  const r = await json(get(app, '/api/explore')) as ExploreView;
+  const mailvora = r.datasets.find((x) => x.id === 'mailvora')!;
+  assert.deepEqual(mailvora.schemas.map((s) => [s.name, s.title, s.prepared, s.also]), [
+    ['mailvora', 'Mailvora', true, 'mailvora_raw'], ['mailvora_raw', 'Mailvora raw data', true, null],
+    ['mailvora_ga4', 'GA4 export (BigQuery shape)', true, null]]);
+  assert.deepEqual(r.datasets.flatMap((x) => x.schemas.map((s) => s.name)).filter((n) => /_edge/.test(n)), [], 'no edge schema is offered');
+  const schemas = new Set(r.notes.map((n) => n.schema));
+  assert.ok(schemas.has('mailvora_ga4'), 'its notes are served, whatever their level');
+  assert.ok(!schemas.has('mailvora_edge_ga4'));
+  // It runs through the gate on the chosen schema: an unnest gives one row per parameter, and a nested column comes back as JSON.
+  const unnested = await run(app, 'mailvora_ga4', "SELECT e.event_name, p.value.int_value AS id FROM events AS e, unnest(e.event_params) AS t(p) WHERE p.key = 'ga_session_id'");
+  assert.equal(unnested.rowCount, 2);
+  const nested = await run(app, 'mailvora_ga4', "SELECT event_params FROM events WHERE event_name = 'session_start'");
+  assert.equal(nested.rowCount, 1);
+  const params = nested.rows[0][0] as { key: string; value: Record<string, unknown> }[];
+  assert.deepEqual(params.map((p) => [p.key, Object.keys(p.value).sort()]), [
+    ['ga_session_id', ['double_value', 'float_value', 'int_value', 'string_value']], ['ga_session_number', ['double_value', 'float_value', 'int_value', 'string_value']]]);
+  // Its edge schema is refused before the runner, and from mailvora_ga4 no other schema may be named.
+  const edge = await post(app, '/api/explore/run', { schema: 'mailvora_edge_ga4', sql: 'SELECT 1 AS one' });
+  assert.equal(edge.status, 400);
+  assert.equal((await edge.json()).error, 'Choose a dataset from the list.');
+  for (const sql of ['SELECT session_id FROM mailvora.sessions', 'SELECT event_name FROM mailvora_edge_ga4.events']) {
+    assert.equal((await run(app, 'mailvora_ga4', sql)).error?.kind, 'gate', sql);
+  }
+  assert.deepEqual(await snapshot(dir), before, 'nothing is logged');
+  assert.equal(d.session.currentId, null, 'no study session started');
+  // A build without it lists Mailvora as before.
+  const without = await json(get((await setup(withMailvoraRaw.content, exploreNotes())).app, '/api/explore')) as ExploreView;
+  assert.deepEqual(without.datasets.find((x) => x.id === 'mailvora')!.schemas.map((s) => s.name), ['mailvora', 'mailvora_raw']);
+});
+
 test('S6-24: a schema not in the list is refused with 400 before the runner: unknown, an edge schema, not built, not prepared', async () => {
   const { app, dir } = await setup(withData.content, exploreNotes());
   const before = await snapshot(dir);
@@ -253,4 +306,19 @@ test('S6-24: an older build refuses voltmarkt_raw, and with voltmarkt active it 
   const { app } = await setup(olderBuild.content, exploreNotes());
   assert.equal((await post(app, '/api/explore/run', { schema: 'voltmarkt_raw', sql: 'SELECT 1 AS one' })).status, 400);
   assert.equal((await run(app, 'voltmarkt', 'SELECT order_id FROM voltmarkt_raw.orders')).error?.kind, 'gate');
+});
+
+test('F2-3-1: a run on mailvora_ga4 sends a 10000 ms deadline to the runner (its unnest queries take about 4.4 s), and a run on voltmarkt still sends 5000', async () => {
+  const built = [...BUILT_WITH_MAILVORA_RAW, 'mailvora_ga4'].sort();
+  const store = await exploreContent(built);
+  made.push(...store.dirs);
+  const { d } = await setup(store.content, exploreNotes());
+  const sent: Record<string, unknown>[] = [];
+  const real = d.runner!;
+  const spy = { ...real, request: (req: never) => { sent.push(req); return real.request(req); } } as typeof real;
+  const app = createApp({ ...d, runner: spy });
+  assert.equal((await run(app, 'mailvora_ga4', 'SELECT event_name FROM events')).rowCount, 2);
+  assert.equal((await run(app, 'voltmarkt', 'SELECT city FROM stores')).rowCount, 2);
+  assert.equal((await run(app, 'mailvora', 'SELECT session_id FROM sessions')).rowCount, 4);
+  assert.deepEqual(sent.map((r) => [r.schema, r.deadlineMs]), [['mailvora_ga4', 10000], ['voltmarkt', 5000], ['mailvora', 5000]]);
 });

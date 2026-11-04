@@ -1,0 +1,145 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "predict_result",
+    "aggregate_first"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-predict-fanout",
+  "template_params": {
+    "order_id": 346453
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Order 346453 has three order lines, with 2, 1 and 1 units. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT o.order_id, COUNT(*) AS orders, SUM(l.quantity) AS units\nFROM orders o\nJOIN order_lines l ON l.order_id = o.order_id\nWHERE o.order_id = 346453\nGROUP BY o.order_id",
+  "options": [
+    {
+      "oid": "o0701d4b",
+      "text": "orders 1, units 4",
+      "misconception_id": "ERR-LOG-01",
+      "table": {
+        "columns": [
+          "order_id",
+          "orders",
+          "units"
+        ],
+        "rows": [
+          [
+            346453,
+            1,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "od7ab690",
+      "text": "orders 3, units 4",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "order_id",
+          "orders",
+          "units"
+        ],
+        "rows": [
+          [
+            346453,
+            3,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o2d554f3",
+      "text": "orders 1, units 2",
+      "misconception_id": "ERR-LOG-01",
+      "table": {
+        "columns": [
+          "order_id",
+          "orders",
+          "units"
+        ],
+        "rows": [
+          [
+            346453,
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o7b4e300",
+      "text": "orders 3, units 12",
+      "misconception_id": "ERR-LOG-01",
+      "table": {
+        "columns": [
+          "order_id",
+          "orders",
+          "units"
+        ],
+        "rows": [
+          [
+            346453,
+            3,
+            12
+          ]
+        ]
+      }
+    }
+  ]
+}

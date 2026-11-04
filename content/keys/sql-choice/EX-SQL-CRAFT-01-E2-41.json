@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-01-E2-41",
+  "item_version": 3,
+  "correct_oid": "oabbb88d",
+  "explanation": "Each ga_session_id is the second its session started, so sessions that started in the same second share one. The 2,988 sessions with a second of their own give 2,988 ID values, and the 173 that shared 84 seconds give 84 more: 3,072 distinct ID values. The visitors who share a second are different visitors, so each pair of visitor and ID is still one session, and the distinct pairs number 3,161. Taking ga_session_id as unique to each session gives 3,161 for both. Reading the ID as a key on its own counts only 3,072 sessions. COUNT(DISTINCT) counts each value once, however often it repeats: it does not leave out an ID that two visitors share, so counting only the IDs seen once, 2,988, gives too few.",
+  "solver": {
+    "prompt_hash": "068506ae55167215",
+    "grader_version": "choice.3",
+    "chosen": "oabbb88d",
+    "typed": null,
+    "at": "2026-11-03T22:13:53.881Z"
+  }
+}

@@ -3,17 +3,25 @@
 // locked: every question stays open, and the "why this clause?" question is never graded, sent or logged.
 import type { Phase } from '../../../core/envelope.ts';
 import { isSqlChoiceKind, type SqlChoiceKind, type UniqueCheck } from '../../../schemas/item.ts';
-import type { OptionTable, TypedSpec } from '../../../schemas/choice-types.ts';
+import type { CodeLang, OptionTable, TypedSpec } from '../../../schemas/choice-types.ts';
 import type { WhyClause } from '../../../schemas/lesson.ts';
 
-/** True for the kinds the choice panel shows (predict_rows, predict_result, choose_query, which_table, is_unique). */
+/** True for the kinds the choice panel shows (predict_rows, predict_result, choose_query, which_table, is_unique, fixed_choice). */
 export const usesChoicePanel = (kind: unknown): kind is SqlChoiceKind => isSqlChoiceKind(kind);
 
-/** How the options are drawn: none (a typed count), small tables, code, table names, or plain text (Yes and No). */
-export type OptionStyle = 'none' | 'table' | 'code' | 'name' | 'plain';
+/**
+ * How the options are drawn: none (a typed count), small tables, code, table names, plain text (Yes and No), or (S9-06, fixed_choice) a
+ * statement: the option's text, and under it its code block, when it has one, captioned by its dialect.
+ */
+export type OptionStyle = 'none' | 'table' | 'code' | 'name' | 'plain' | 'statement';
 export interface SqlChoiceLayout { shownSql: string | null; optionStyle: OptionStyle; note: string | null }
 
-const STYLE: Record<SqlChoiceKind, OptionStyle> = { predict_rows: 'none', predict_result: 'table', choose_query: 'code', which_table: 'name', is_unique: 'plain' };
+const STYLE: Record<SqlChoiceKind, OptionStyle> = {
+  predict_rows: 'none', predict_result: 'table', choose_query: 'code', which_table: 'name', is_unique: 'plain', fixed_choice: 'statement',
+};
+
+/** S9-06: the caption over a fixed_choice option's code block. The tutor's snapshot names it the same way; the blind solver's view holds its lang. */
+export const codeLangLabel = (lang: CodeLang): string => (lang === 'bigquery' ? 'BigQuery' : 'DuckDB');
 
 /** What a served SQL choice item shows besides its question: the query to read, how its options look, and a line for is_unique. */
 export function sqlChoiceLayout(item: { sql_kind: SqlChoiceKind; shown_sql: string | null; unique_check: UniqueCheck | null; typed: TypedSpec | null }): SqlChoiceLayout {

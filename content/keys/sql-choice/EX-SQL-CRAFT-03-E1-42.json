@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E1-42",
+  "item_version": 1,
+  "value": 17,
+  "explanation": "BETWEEN keeps both ends, and every week has a row, so the query reads the 8 weeks before, the change week itself and the 8 weeks after: 17 rows. A plan that compares 8 weeks with 8 weeks must then leave the change week out of both sides, as it holds days at the old price and days at the new one.",
+  "solver": {
+    "prompt_hash": "64f45f1db9dee973",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "17",
+    "at": "2026-11-03T19:01:37.601Z"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E1-04",
+  "item_version": 1,
+  "reference_sql": "WITH base AS (\n  -- one row per month of 2025 and account with MRR at the end of the month before\n  SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, m.account_id\n  FROM mrr_monthly m\n  WHERE m.month BETWEEN DATE '2024-12-01' AND DATE '2025-11-01'\n), churned AS (\n  -- one row per account and month with a churn event\n  SELECT DISTINCT account_id, CAST(date_trunc('month', event_date) AS DATE) AS month_start\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n)\nSELECT b.month_start,\n  COUNT(c.account_id) * 1.0 / COUNT(*) AS churn_rate\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id AND c.month_start = b.month_start\nGROUP BY b.month_start",
+  "alternatives": [
+    "WITH starts AS (\n  -- one row per month of 2025: the accounts with MRR at the end of the month before\n  SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, COUNT(*) AS accounts_at_start\n  FROM mrr_monthly m\n  WHERE m.month BETWEEN DATE '2024-12-01' AND DATE '2025-11-01'\n  GROUP BY CAST(m.month + INTERVAL 1 MONTH AS DATE)\n), churns AS (\n  -- one row per month of 2025 with a churn event\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month_start, COUNT(DISTINCT account_id) AS churned_accounts\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n)\nSELECT s.month_start, COALESCE(c.churned_accounts, 0) * 1.0 / s.accounts_at_start AS churn_rate\nFROM starts s\nLEFT JOIN churns c ON c.month_start = s.month_start",
+    "WITH flagged AS (\n  -- one row per month of 2025 and account in its base, with a churn flag\n  SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start,\n    CASE WHEN EXISTS (SELECT 1 FROM subscription_events e WHERE e.account_id = m.account_id AND e.event_type = 'churn'\n      AND e.event_date >= m.month + INTERVAL 1 MONTH AND e.event_date < m.month + INTERVAL 2 MONTH) THEN 1 ELSE 0 END AS churned\n  FROM mrr_monthly m\n  WHERE m.month BETWEEN DATE '2024-12-01' AND DATE '2025-11-01'\n)\nSELECT month_start, AVG(churned) AS churn_rate\nFROM flagged\nGROUP BY month_start"
+  ],
+  "other_way": {
+    "sql": "WITH flagged AS (\n  -- one row per month of 2025 and account in its base, with a churn flag\n  SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start,\n    CASE WHEN EXISTS (SELECT 1 FROM subscription_events e WHERE e.account_id = m.account_id AND e.event_type = 'churn'\n      AND e.event_date >= m.month + INTERVAL 1 MONTH AND e.event_date < m.month + INTERVAL 2 MONTH) THEN 1 ELSE 0 END AS churned\n  FROM mrr_monthly m\n  WHERE m.month BETWEEN DATE '2024-12-01' AND DATE '2025-11-01'\n)\nSELECT month_start, AVG(churned) AS churn_rate\nFROM flagged\nGROUP BY month_start",
+    "tradeoff": "A 0 or 1 churn flag per base account turns the rate into a plain AVG, but the flag needs a subquery per row."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH starts AS (SELECT m.month AS month_start, COUNT(*) AS accounts_at_start FROM mrr_monthly m WHERE m.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01' GROUP BY m.month), churns AS (SELECT CAST(date_trunc('month', event_date) AS DATE) AS month_start, COUNT(DISTINCT account_id) AS churned_accounts FROM subscription_events WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY CAST(date_trunc('month', event_date) AS DATE)) SELECT s.month_start, COALESCE(c.churned_accounts, 0) * 1.0 / s.accounts_at_start AS churn_rate FROM starts s LEFT JOIN churns c ON c.month_start = s.month_start"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH opening AS (SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, SUM(m.mrr_eur) AS opening_mrr FROM mrr_monthly m WHERE m.month BETWEEN DATE '2024-12-01' AND DATE '2025-11-01' GROUP BY CAST(m.month + INTERVAL 1 MONTH AS DATE)), lost AS (SELECT CAST(date_trunc('month', e.event_date) AS DATE) AS month_start, SUM(-e.mrr_delta_local * f.eur_per_unit) AS lost_mrr FROM subscription_events e JOIN subscriptions s ON s.subscription_id = e.subscription_id JOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31' WHERE e.event_type = 'churn' AND e.event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY CAST(date_trunc('month', e.event_date) AS DATE)) SELECT o.month_start, COALESCE(l.lost_mrr, 0) / o.opening_mrr AS churn_rate FROM opening o LEFT JOIN lost l ON l.month_start = o.month_start"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-05",
+      "sql": "WITH base AS (SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, m.account_id FROM mrr_monthly m WHERE m.month BETWEEN DATE '2024-12-01' AND DATE '2025-11-01'), churned AS (SELECT DISTINCT account_id, CAST(date_trunc('month', event_date) AS DATE) AS month_start FROM subscription_events WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31') SELECT b.month_start, COUNT(c.account_id) // COUNT(*) AS churn_rate FROM base b LEFT JOIN churned c ON c.account_id = b.account_id AND c.month_start = b.month_start GROUP BY b.month_start"
+    }
+  ],
+  "hint3_partial": "WITH base AS (\n  -- one row per month of 2025 and account with MRR at the end of the month before\n  SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, m.account_id\n  FROM mrr_monthly m\n  WHERE m.month BETWEEN DATE '2024-12-01' AND DATE '2025-11-01'\n), churned AS (\n  -- one row per account and month with a churn event\n  SELECT DISTINCT account_id, CAST(date_trunc('month', event_date) AS DATE) AS month_start\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n)\nSELECT b.month_start,\n  COUNT(___) * 1.0 / COUNT(___) AS churn_rate\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id AND c.month_start = b.month_start\nGROUP BY b.month_start",
+  "solver": {
+    "prompt_hash": "049689ecf3d60194",
+    "schema_version": "1a30c74af505",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH months AS (\n  SELECT CAST(m AS DATE) AS month_start FROM generate_series(DATE '2025-01-01', DATE '2025-12-01', INTERVAL 1 MONTH) AS t(m)\n), base AS (\n  SELECT m.month_start, COUNT(*) AS n\n  FROM months m JOIN mrr_monthly r ON r.month = CAST(m.month_start - INTERVAL 1 MONTH AS DATE)\n  GROUP BY m.month_start\n), ch AS (\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month_start, COUNT(DISTINCT account_id) AS c\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY 1\n)\nSELECT m.month_start, COALESCE(c.c, 0) * 1.0 / b.n AS churn_rate\nFROM months m JOIN base b ON b.month_start = m.month_start LEFT JOIN ch c ON c.month_start = m.month_start\n",
+    "at": "2026-11-03T19:01:33.128Z"
+  }
+}

@@ -18,6 +18,8 @@ from datasets import notes as real_notes  # noqa: E402
 from ledgerloop import generate as ll  # noqa: E402
 from ledgerloop import notes as ll_notes  # noqa: E402
 from ledgerloop import raw as ll_raw  # noqa: E402
+from mailvora import ga4 as mv_ga4  # noqa: E402
+from mailvora import ga4_notes as mv_ga4_notes  # noqa: E402
 from mailvora import generate as mv  # noqa: E402
 from mailvora import notes as mv_notes  # noqa: E402
 from mailvora import raw as mv_raw  # noqa: E402
@@ -40,11 +42,15 @@ RAW_SCHEMA = "voltmarkt_raw"                             # sprint 6 (S6-02): ddl
 MAILVORA_DDL = ROOT / "pipeline" / "mailvora" / "ddl.sql"
 MAILVORA_SCHEMA = "mailvora"
 MAILVORA_RAW_SCHEMA = "mailvora_raw"
+# Sprint 9 (Task L1, S9-02): Mailvora's GA4 export sample, one events table in the BigQuery export's shape, from mailvora's own rows.
+MAILVORA_GA4_DDL = ROOT / "pipeline" / "mailvora" / "ga4_ddl.sql"
+MAILVORA_GA4_SCHEMA = mv_ga4.SCHEMA
 # Sprint 8 (S8-01): LedgerLoop's clean schema and its raw schema (pipeline/ledgerloop/ddl.sql's {schema}_raw).
 LEDGERLOOP_DDL = ROOT / "pipeline" / "ledgerloop" / "ddl.sql"
 LEDGERLOOP_SCHEMA = "ledgerloop"
 LEDGERLOOP_RAW_SCHEMA = "ledgerloop_raw"
-# The schemas the manifest covers, in this order: Voltmarkt's (its edge schemas included), then Mailvora's, then LedgerLoop's, then
+# The schemas the manifest covers, in this order: Voltmarkt's (its edge schemas included), then Mailvora's (sprint 9's mailvora_ga4 and
+# mailvora_edge_ga4 included, by their prefix), then LedgerLoop's, then
 # every other schema the build makes from its own rows (P38: the registry datasets' edge schemas, S8-16's olist_edge and
 # maven_toy_store_edge included). A prepared dataset goes in the manifest's `real` section instead, outside dataset_version (S6-23).
 MANIFEST_PREFIXES = ("voltmarkt", "mailvora", "ledgerloop")
@@ -384,6 +390,10 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
     # S8-06's rules) fails the build (GEN-01).
     ll_tables, ll_truth = ll.generate()
     ll_truth["findings"] = ll.validate(ll_tables, ll_truth)
+    # Sprint 9 (Task L1, S9-02): the GA4 export sample, from mailvora's clean rows (only read) and its own seed; a broken rule fails the
+    # build (as GEN-01).
+    ga4_tables = mv_ga4.generate(mv_tables["clean"])
+    mv_ga4.validate(ga4_tables, mv_tables["clean"])
 
     con = duckdb.connect(str(tmp), config=NO_NETWORK)
     con.execute("SET TimeZone = 'UTC'")
@@ -426,6 +436,12 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
             con.register("src", source[name])
             con.execute(f"INSERT INTO {schema}.{name} SELECT * FROM src")
             con.unregister("src")
+    # Sprint 9 (Task L1, S9-02): mailvora_ga4 after every existing schema, before the edge files, as mailvora_edge_ga4 copies its columns.
+    con.execute(MAILVORA_GA4_DDL.read_text(encoding="utf-8").replace("{schema}", MAILVORA_GA4_SCHEMA))
+    for name in mv_ga4.TABLES:
+        con.register("src", ga4_tables[name])
+        con.execute(f"INSERT INTO {MAILVORA_GA4_SCHEMA}.{name} SELECT * FROM src")
+        con.unregister("src")
     for sql_file in sorted((ROOT / "pipeline" / "edge").glob("*.sql")):
         con.execute(sql_file.read_text(encoding="utf-8"))
     # Every edge schema that mirrors voltmarkt gets voltmarkt's views over its own tables (S6-36: since M5 the level 1 ones too,
@@ -479,6 +495,7 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
               for s in WEEKLY_UNITS_SCHEMAS if s != "voltmarkt"]
     notes += vm_notes.raw_notes(con, RAW_SCHEMA, vm_raw.RAW_TABLES)
     notes += mv_notes.schema_notes(con, MAILVORA_SCHEMA) + mv_notes.raw_notes(con, MAILVORA_RAW_SCHEMA, mv_raw.RAW_TABLES)
+    notes += mv_ga4_notes.schema_notes(con, MAILVORA_GA4_SCHEMA)                                      # sprint 9 (S9-02): from level 7
     notes += (ll_notes.schema_notes(con, LEDGERLOOP_SCHEMA) + ll_notes.view_notes(con, LEDGERLOOP_SCHEMA)          # S8-01, S8-C28
               + ll_notes.raw_notes(con, LEDGERLOOP_RAW_SCHEMA, ll_raw.RAW_TABLES))
     # S6-23: the registry datasets' edge schemas (always built, S8-16), then each prepared dataset with its registry label.

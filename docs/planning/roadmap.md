@@ -56,8 +56,9 @@ learner's effort is never the lever. Every slice goes live before the goal it se
 | 7 (done) | 6 | 2026-11-20 | G-STAGE-2 to 5 and G-RECRUITMENT-READY (2026-12-11): the recruiter mocks; applications go out | Done: every recruiter mock runs end to end, and the readiness board shows all six stages. Part 1 as 0.7.0 (2026-10-21): level 5 and the screen mock; Part 2 as 0.7.1 (2026-10-22): the knowledge, case-round and take-home mocks. Released as the public `v0.7.1` (2026-10-22). See [the sprint 7 record](2026-10-21-sprint-7-record.md) |
 | 7c (done) | 6 (fix and polish) | 2026-10-22 | None of its own: it clears the findings and backlog rows the sprint 7 mocks left | Done as 0.7.2 (2026-10-22): Codex F37 and F38 fixed, the tutor closed while any mock runs (D117), two log fields on `mock_open` (D116), the grader's window-function diagnosis, wider C53, clearer prompts, and 33 backlog rows closed. Released as the public `v0.7.2` (2026-10-23). See [the sprint 7 record](2026-10-21-sprint-7-record.md), its "Sprint 7c (0.7.2)" part |
 | 7d (done) | 6 (fix and polish) | 2026-10-23 | None of its own: it clears the backlog rows the 7c reviews left | Done as 0.7.3 (2026-10-23): log format version 8, the grader's `ERR-SYN-08` for a window in a window definition (`GRADER_VERSION` `7d.1`), the tutor's mock line kept current, edge data plants, the release check script and skill, and 20 backlog rows closed. Codex F40 and F41 fixed before the merge. Released as the public `v0.7.3` (2026-10-24). See [the sprint 7d record](2026-10-23-sprint-7d-record.md) |
-| 8 (done) | 7 | 2026-12-07 | G-SQL-LEVEL-6 (2026-12-23): business patterns and SaaS cases | Done as 0.8.0 (2026-10-28; PR #57 merged 2026-10-29) and 0.8.1 (2026-10-30): level 6 is completable, with LedgerLoop, its opener and two daily cases; then the five SaaS cases and `CASE-MKT-05`, `CASE-RETAIL-01` and `-04`, Olist and Maven Toy Store with a case each, and four backlog rows. The public `v0.8.1` follows the merge. See [the sprint 8 record](2026-10-27-sprint-8-record.md) |
-| 9+ | rest of v1 | January onward | G-SQL-LEVEL-7 (2027-01-29) | Not set in the design yet; set it when planning |
+| 8 (done) | 7 | 2026-12-07 | G-SQL-LEVEL-6 (2026-12-23): business patterns and SaaS cases | Done as 0.8.0 (2026-10-28; PR #57 merged 2026-10-29) and 0.8.1 (2026-10-30): level 6 is completable, with LedgerLoop, its opener and two daily cases; then the five SaaS cases and `CASE-MKT-05`, `CASE-RETAIL-01` and `-04`, Olist and Maven Toy Store with a case each, and four backlog rows. PR #58 merged 2026-10-30; released as the public `v0.8.1` on 2026-10-30. See [the sprint 8 record](2026-10-27-sprint-8-record.md) |
+| 9 (done) | level 7, a new name, a dark UI | November 2026 | G-SQL-LEVEL-7 (2027-01-29): level 7 and the job-ready benchmark | Done as 0.9.0 (2026-11-04, private; PR #60 merged 2026-11-04, Codex found nothing) and 0.9.1 (2026-11-04; the public `v0.9.1` and the repo's rename to `maydinidil/grondig` follow the merge). Level 7 is completable: `SQL-BQ-01` and `SQL-CRAFT-01` to `-03` on a GA4-export-shaped sample of Mailvora's website, with its opener, two daily cases and drill, and three backlog rows closed. The app is Grondig, opens dark, and offers Light and Follow Windows, with a mole as a quiet companion. v1 ends here (D128). See [the sprint 9 record](2026-10-31-sprint-9-record.md) |
+| Later | moved from v1 (D128) | no date | | See "Later" below |
 | Future | post-v1 (2.0 or later) | no date | | |
 
 ---
@@ -457,7 +458,7 @@ Live by 2026-12-07. Plan
 [`docs/superpowers/plans/2026-10-27-aydinlearns-sprint-8.md`](../superpowers/plans/2026-10-27-aydinlearns-sprint-8.md),
 decisions D124 to D127, rulings S8-01 to S8-23.
 
-**Status: done. Part 1 as 0.8.0 (2026-10-28, private; PR #57 merged 2026-10-29, Codex found nothing); Part 2 as 0.8.1 (2026-10-30; the public `v0.8.1` follows the merge).** Part 1 built SQL level 6
+**Status: done. Part 1 as 0.8.0 (2026-10-28, private; PR #57 merged 2026-10-29, Codex found nothing); Part 2 as 0.8.1 (2026-10-30; PR #58 merged 2026-10-30, Codex found nothing; released as the public `v0.8.1` on 2026-10-30).** Part 1 built SQL level 6
 (10 lessons, 264 exercises, a drill of 50), LedgerLoop with its four edge schemas, the opener `CASE-LEDGER-L6` and two
 daily cases, `ERR-LOG-44` to `ERR-LOG-51` and `GRADER_VERSION` `8a.1`. Part 2 built the five SaaS cases, `CASE-MKT-05`,
 Olist and Maven Toy Store (with `CASE-REAL-03` and `CASE-MAVEN-01`), `CASE-RETAIL-01` and `-04` on a new chain-wide stock
@@ -474,21 +475,43 @@ table, and four backlog rows (D126, D127). Maven Toy Store's page states "Licens
 ERRATA with Slice = 7: E-015, E-017, E-080, E-084, E-087, E-089, E-104. **Done when:** level 6 is
 completable, and SaaS cases pass on LedgerLoop.
 
-## Sprint 9 and after: the rest of v1 (January onward)
+## Sprint 9: SQL level 7, backlog rows, a new name and a dark UI
 
-After the first applications have gone out.
+Live in November 2026, ahead of G-SQL-LEVEL-7 (2027-01-29). Plan
+[`docs/superpowers/plans/2026-10-31-aydinlearns-sprint-9.md`](../superpowers/plans/2026-10-31-aydinlearns-sprint-9.md),
+decisions D128 to D134, rulings S9-01 to S9-21.
 
-1. Level 7: SQL-BQ-01 (BigQuery dialect and GA4 export data), SQL-CRAFT-01 to -03.
-2. Noordkant (the Amsterdam retail company) and the retail cases.
-3. KKBox as the SaaS capstone, if the owner's Kaggle check of the competition rules passes (Olist
-   is the fallback).
-4. "Compare with others" in three tiers (exact, ratio, method).
-5. The other GA4 labs (about 15 of the 25), and GA4 bank growth to about 200 items.
-6. The FSRS optimiser path: fitted weights only if they beat the defaults on the most recent month
-   held out; default weights stay through January.
+**Status: done. Part 1 as 0.9.0 (2026-11-04, no public release; PR #60 merged 2026-11-04, Codex found nothing); Part 2 as 0.9.1 (2026-11-04; the public `v0.9.1` and the repo's rename to `maydinidil/grondig` follow the merge).** Part 1 built SQL level 7 (4 lessons, 130
+exercises, a drill of 10 from a pool of 24), the GA4 export sample `mailvora_ga4` and its edge, `ERR-LOG-52` to `-55` and
+`ERR-SYN-09` (`GRADER_VERSION` `9a.1`), the `fixed_choice` kind, the opener `CASE-MAIL-L7` and two daily cases, and the
+backlog rows S8-B1 to S8-B3. Part 2 renamed the app Grondig (D130, D132), drew the mole in three poses as a quiet companion
+(D133), and made the UI dark by default with Light and Follow Windows under Settings (D131, D134). See [the sprint 9 record](2026-10-31-sprint-9-record.md). v1 ends with this sprint (D128, 2026-10-31): the rest of the old
+"Sprint 9 and after" list moved to "Later" below, and nothing was deleted.
 
-ERRATA with Slice = after-apps: E-008, E-065 to E-067, E-083, E-085, E-095, E-096, E-131. Set a
-"done when" when planning.
+**Contents and jobs:**
+1. Part 1 (0.9.0): level 7 (SQL-BQ-01, BigQuery dialect and GA4 export data; SQL-CRAFT-01 to -03) on a GA4-export-shaped
+   sample of Mailvora's website that the learner unnests (E-131, E-218), with BigQuery-only syntax as fixed-answer choice
+   items; its drill, opener and two daily cases. Three backlog rows (D129): S8-B1 (the drill mix), S8-B2 (the real world
+   in new attempts) and S8-B3 (the SQL-PAT-09 wording).
+2. Part 2 (0.9.1, the public `v0.9.1`): the app becomes **Grondig**, with a pixel-art mole as a quiet companion (D132 to
+   D134); a dark UI, dark by default with light kept and a Follow Windows choice (D131); the GitHub repo renamed.
+
+ERRATA from E-218. **Done when:** level 7 is completable (Part 1's smoke rows); a fresh profile opens in dark as Grondig,
+with the mole in the header, and Light and Follow Windows work (Part 2's smoke rows, 9b-1 to 9b-6; met in 0.9.1); the
+public `v0.9.1` is released as Grondig (follows the merge, Task R1).
+
+## Later (moved 2026-10-31, D128)
+
+Updates after v1, with no date. Each keeps its ERRATA rows (Slice = after-apps; E-131, the tenth, is decided by
+sprint 9's E-218).
+
+| Item | ERRATA |
+|---|---|
+| Noordkant (the Amsterdam retail company) and CASE-RETAIL-02 | E-008, E-083, E-085, E-095, E-096 |
+| KKBox as the SaaS capstone, if the owner's Kaggle check of the competition rules passes (Olist is the fallback) | E-065 to E-067 |
+| "Compare with others" in three tiers (exact, ratio, method) | none |
+| The other GA4 labs (about 15 of the 25), and GA4 bank growth to about 200 items | none |
+| The FSRS optimiser path: fitted weights only if they beat the defaults on the most recent month held out; default weights stay through January | none |
 
 ## Future updates (post-v1)
 
@@ -509,7 +532,7 @@ more than one user, audio, Dutch.
 | Time-target recalibration through a versioned target table | After about 2 weeks of use |
 | The monthly outside benchmark (LeetCode SQL 50 in PostgreSQL mode, or HackerRank), logged as outside practice | Monthly, by the owner |
 | DuckDB 2.0: 1.5 reaches end of life on 2026-11-01; both clients move together only after `@duckdb/node-api` ships 2.x and the design §17 upgrade gate passes | Needs the owner's approval; running 1.5.6 past end of life is acceptable |
-| Goal criteria gaps in `content/goals.json`: G-SQL-LEVEL-6 checks no SaaS cases; G-GA4-CERT checks only Methodology level 1; GA4 and Methodology "levels" are not defined in the design | When the goal evaluator (sprint 2) and the readiness board (sprint 4) are built |
+| Goal criteria gaps in `content/goals.json`: G-GA4-CERT checks only Methodology level 1; GA4 and Methodology "levels" are not defined in the design | When the goal evaluator (sprint 2) and the readiness board (sprint 4) are built |
 | Tooling and test minors no slice needs (import-check regexes, dev dependencies, validator edge cases, runner-client hardening) | Pick up opportunistically; listed in the build record and in `2026-10-05-sprint-2-record.md` |
 
 ## Owner tasks by timing
@@ -523,7 +546,7 @@ The open ones, with their exact steps, are in [`owner-tasks.md`](owner-tasks.md)
 | Before 2a's GA4 work | Review the slice 0 paper: E-115, E-022, E-010, E-009, Appendix B |
 | Before sprint 5b | Check Skillshop (question count, time limit, languages, 2026 features), set the exam date, and confirm the GA4 demo account opens |
 | From sprint 6 | Trigger each dataset download, then run `npm run prep:datasets -- --from <your downloads folder>` (again after each update); write the flagship pieces in late November |
-| Before sprint 9 | Check the Kaggle rules for KKBox |
+| Later, with KKBox (D128) | Check the Kaggle rules for KKBox |
 | From week 3 of use | Approve the weekly tune-up's fixes |
 | Any time | Confirm the screen mock target date |
 

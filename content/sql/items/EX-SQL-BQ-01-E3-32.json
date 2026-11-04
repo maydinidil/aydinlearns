@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-BQ-01-E3-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "unnest",
+    "inner_unnest",
+    "fix"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-fix-inner-unnest",
+  "template_params": {
+    "event_name": "page_view",
+    "from": "20251116",
+    "to": "20251122"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many page_view events did each page have from 16 to 22 November 2025, by event_date? A page is the whole page_location parameter, as text. A page_view that carries no page_location still counts, under a missing page_location. Count every page_view, the ones with a missing user_pseudo_id included. Return page_location and page_views. Return one row for each page, and one for the missing page if there is one. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text"
+      },
+      {
+        "name": "page_views",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "page_views",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "page_location"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check which page_view events survive the unnest and its key filter.",
+    "The comma before unnest works as an inner join, so an event with no page_location parameter has no row to keep."
+  ],
+  "subgoals": [
+    {
+      "from": 73,
+      "to": 179,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 182,
+      "to": 193,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 196,
+      "to": 279,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 282,
+      "to": 326,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 327,
+      "to": 337,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 338,
+      "to": 360,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT p.value.string_value AS page_location, COUNT(*) AS page_views\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date BETWEEN '20251116' AND '20251122'\n  AND p.key = 'page_location'\nGROUP BY p.value.string_value",
+  "time_target_ms": 210000,
+  "why_this_works": "list_filter gives a missing page_location for a page_view without one, so every page_view stays in the count.",
+  "starter_error_id": "ERR-LOG-11"
+}

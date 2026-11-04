@@ -137,8 +137,8 @@ export async function bootState(logger: AttemptLogger, session: Pick<SessionTrac
   await recoverLogs(logger, session, logs.records, logs.events, state).catch((e: unknown) => {
     // A failed write marks the logger unwritable before it throws; anything else is a replay fault.
     console.error(logger.writable
-      ? `aydinlearns: the study history could not be replayed (${message(e)}). The logs are safe and untouched; the app starts in setup mode.`
-      : `aydinlearns: the log could not be written (${message(e)}). Grading stays paused until this is fixed.`);
+      ? `grondig: the study history could not be replayed (${message(e)}). The logs are safe and untouched; the app starts in setup mode.`
+      : `grondig: the log could not be written (${message(e)}). Grading stays paused until this is fixed.`);
   });
   return state;
 }
@@ -150,7 +150,7 @@ export async function bootState(logger: AttemptLogger, session: Pick<SessionTrac
  */
 export function stateCheck(state: LearnerState): Check | null {
   try {
-    for (const w of state.current().warnings) console.warn(`aydinlearns: replay: ${w}`);
+    for (const w of state.current().warnings) console.warn(`grondig: replay: ${w}`);
     return null;
   } catch (e) {
     return { name: 'learner state', ok: false,
@@ -185,7 +185,7 @@ async function start(): Promise<void> {
   // is opened or written.
   let port: number;
   try { port = portFromEnv(); } catch (e) {
-    console.error(`aydinlearns: ${message(e)}`);
+    console.error(`grondig: ${message(e)}`);
     process.exitCode = 1;
     return;
   }
@@ -210,7 +210,7 @@ async function start(): Promise<void> {
   // logs folder writes none unless it names one. The tap turns what the app logs from here on into journey events; the recovery
   // bootState just ran is not part of a visit. Without content, no tap.
   const journeyNote = journeySettingNote(process.env);
-  if (journeyNote) console.log(`aydinlearns: ${journeyNote}`);
+  if (journeyNote) console.log(`grondig: ${journeyNote}`);
   startJourney({ dir: journeyDirFrom(process.env, at('')) });
   if (contentCheck === null) logger.onWrite(journeyTap({ topicOf: topicFinder(content), states: () => conceptStates(state.current()) }));
   // The replay's warnings, or setup mode on a replay fault. Without the content there is nothing to check: the
@@ -240,9 +240,9 @@ async function start(): Promise<void> {
   const ledger = new SpendLedger(logs.records);
   logger.onWrite((file, r) => { if (file === 'attempts') ledger.note(r); });
   const tutorKeys = await openTutorKeys();
-  if (tutorKeys.problem) console.log(`aydinlearns: ${tutorKeys.problem}`);
+  if (tutorKeys.problem) console.log(`grondig: ${tutorKeys.problem}`);
   const tutorNow = tutorState(settings, (p) => tutorKeys.sourceOf(p), TUTOR_FAKE);
-  console.log(tutorNow.enabled ? `aydinlearns: tutor on: ${tutorNow.provider}, ${tutorNow.model}, ${tutorNow.effort} effort.` : `aydinlearns: tutor off. ${tutorNow.reason ?? ''}`.trim());
+  console.log(tutorNow.enabled ? `grondig: tutor on: ${tutorNow.provider}, ${tutorNow.model}, ${tutorNow.effort} effort.` : `grondig: tutor off. ${tutorNow.reason ?? ''}`.trim());
 
   const app = createApp({ port, devOrigin: dev ? 'http://localhost:5173' : undefined, checks, runner, content, logger, session, endHooks, state,
     closedInstances: loggedInstanceIds(logs.records), schemaNotes, manifest, settings, tableCheck: useParseTree ? 'parse_tree' : 'text', distDir: at('web/dist'),
@@ -250,7 +250,7 @@ async function start(): Promise<void> {
   const failing = checks.filter((c) => !c.ok);
   const server = serve({ fetch: app.fetch, port, hostname: '127.0.0.1' }, () => {
     // localhost works only through the browser's fallback to IPv4, so print the address that always works (spike A, item 16).
-    console.log(`aydinlearns on http://127.0.0.1:${port}${failing.length ? ' (setup mode: open the app to see what needs fixing)' : ''}`);
+    console.log(`grondig on http://127.0.0.1:${port}${failing.length ? ' (setup mode: open the app to see what needs fixing)' : ''}`);
     for (const c of failing) console.log(`  ${c.name}: ${c.detail}`);
   });
   const idle = setInterval(() => { session.endIfIdle().catch(() => {}); }, 60_000);   // a failed write shows on the setup screen
@@ -267,7 +267,7 @@ async function start(): Promise<void> {
     process.exit(code);
   };
   server.on('error', (e: NodeJS.ErrnoException) => {
-    console.error(e.code === 'EADDRINUSE' ? `Port ${port} is already in use. Is aydinlearns already running?` : `The server could not start: ${e.message}`);
+    console.error(e.code === 'EADDRINUSE' ? `Port ${port} is already in use. Is Grondig already running?` : `The server could not start: ${e.message}`);
     void stop(1);
   });
   // SIGHUP: closing the console window on Windows, which leaves a few seconds to finish. `once`, so a

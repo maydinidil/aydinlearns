@@ -1,0 +1,154 @@
+{
+  "id": "EX-SQL-CRAFT-02-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "page_view",
+    "sessions",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-path-sessions",
+  "template_params": {
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's content team wants, for each page, the page views and the sessions that viewed it, over the Dublin days 1 to 7 December 2025 (by event_date). A page is the path of page_location: the part after the host www.mailvora.example and before any question mark. Count every page_view event as a view, those of visitors who denied consent included. Count sessions as distinct pairs of user_pseudo_id and ga_session_id, so a page_view missing either ID counts as a view but adds no session. Return exactly three columns, in this order: page, page_views and sessions. Return one row for each page. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "page",
+        "type_class": "text"
+      },
+      {
+        "name": "page_views",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "page",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "page_views",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "page"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the sessions per page from the pairs of visitor and session ID.",
+    "Two visitors can share a ga_session_id, so count each pair of user_pseudo_id and ga_session_id once; a pair with a missing part counts no session."
+  ],
+  "subgoals": [
+    {
+      "from": 128,
+      "to": 356,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 359,
+      "to": 370,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 373,
+      "to": 456,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 549,
+      "to": 667,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 670,
+      "to": 685,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 688,
+      "to": 793,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 794,
+      "to": 804,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 805,
+      "to": 818,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Every page_view counts as a view, while a session counts once per pair of visitor and ID, which two visitors starting in the same second cannot merge."
+}

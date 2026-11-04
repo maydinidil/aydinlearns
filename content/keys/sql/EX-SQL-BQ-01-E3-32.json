@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E3-32",
+  "item_version": 1,
+  "reference_sql": "WITH views AS (\n  -- one row per page_view from 16 to 22 November 2025\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251116' AND '20251122'\n)\nSELECT page_location, COUNT(*) AS page_views\nFROM views\nGROUP BY page_location",
+  "alternatives": [
+    "SELECT p.value.string_value AS page_location, COUNT(*) AS page_views\nFROM events AS e\nLEFT JOIN unnest(e.event_params) AS t(p) ON p.key = 'page_location'\nWHERE e.event_name = 'page_view'\n  AND e.event_date BETWEEN '20251116' AND '20251122'\nGROUP BY p.value.string_value",
+    "SELECT [p.value.string_value FOR p IN event_params IF p.key = 'page_location'][1] AS page_location,\n  COUNT(*) AS page_views\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date BETWEEN '20251116' AND '20251122'\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT p.value.string_value AS page_location, COUNT(*) AS page_views\nFROM events AS e\nLEFT JOIN unnest(e.event_params) AS t(p) ON p.key = 'page_location'\nWHERE e.event_name = 'page_view'\n  AND e.event_date BETWEEN '20251116' AND '20251122'\nGROUP BY p.value.string_value",
+    "tradeoff": "A LEFT JOIN to the unnested list keeps the page_view with no page_location, but it unnests every parameter before matching."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT p.value.string_value AS page_location, COUNT(*) AS page_views\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date BETWEEN '20251116' AND '20251122'\n  AND p.key = 'page_location'\nGROUP BY p.value.string_value"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, COUNT(user_pseudo_id) AS page_views FROM events WHERE event_name = 'page_view' AND event_date BETWEEN '20251116' AND '20251122' GROUP BY 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, COUNT(*) AS page_views FROM events WHERE event_name = 'page_view' AND event_date BETWEEN '2025-11-16' AND '2025-11-22' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "WITH views AS (\n  -- one row per page_view from 16 to 22 November 2025\n  SELECT list_filter(event_params, lambda p: ___)[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date BETWEEN '20251116' AND '20251122'\n)\nSELECT page_location, COUNT(*) AS page_views\nFROM views\nGROUP BY page_location",
+  "solver": {
+    "prompt_hash": "c9941272d1b3d22b",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, COUNT(*) AS page_views\r\nFROM events\r\nWHERE event_name = 'page_view'\r\n  AND event_date BETWEEN '20251116' AND '20251122'\r\nGROUP BY 1\r\n",
+    "at": "2026-11-03T19:01:26.789Z"
+  }
+}

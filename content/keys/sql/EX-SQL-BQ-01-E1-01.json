@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "WITH views AS (\n  -- one row per page_view on 9 December 2025\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251209'\n)\nSELECT page_location, COUNT(*) AS page_views\nFROM views\nGROUP BY page_location",
+  "alternatives": [
+    "SELECT [p.value.string_value FOR p IN event_params IF p.key = 'page_location'][1] AS page_location,\n  COUNT(*) AS page_views\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date = '20251209'\nGROUP BY 1",
+    "SELECT p.value.string_value AS page_location, COUNT(*) AS page_views\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date = '20251209'\n  AND p.key = 'page_location'\nGROUP BY p.value.string_value"
+  ],
+  "other_way": {
+    "sql": "SELECT p.value.string_value AS page_location, COUNT(*) AS page_views\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date = '20251209'\n  AND p.key = 'page_location'\nGROUP BY p.value.string_value",
+    "tradeoff": "A lateral unnest filtered on the key works here, but it drops any page_view that carries no page_location."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-55",
+      "sql": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, COUNT(*) AS page_views FROM events WHERE event_name = 'page_view' AND event_date = '2025-12-09' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, COUNT(user_pseudo_id) AS page_views FROM events WHERE event_name = 'page_view' AND event_date = '20251209' GROUP BY 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-02",
+      "sql": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value AS page_location, COUNT(*) AS page_views FROM events WHERE event_name = 'page_view' AND event_date = '20251209' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "WITH views AS (\n  -- one row per page_view on 9 December 2025\n  SELECT list_filter(event_params, lambda p: p.key = ___)[1].value.___ AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = ___\n)\nSELECT page_location, COUNT(*) AS page_views\nFROM views\nGROUP BY page_location",
+  "solver": {
+    "prompt_hash": "3addb2745e4e44a4",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, COUNT(*) AS page_views\r\nFROM events\r\nWHERE event_name = 'page_view' AND event_date = '20251209'\r\nGROUP BY 1\r\n",
+    "at": "2026-11-03T19:01:24.366Z"
+  }
+}

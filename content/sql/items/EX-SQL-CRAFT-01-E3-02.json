@@ -1,0 +1,147 @@
+{
+  "id": "EX-SQL-CRAFT-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "check_report",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-three-checks",
+  "template_params": {
+    "month": "2025-11"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's analyst wants one result that reconciles November 2025, the Dublin days 1 to 30 November, in three checks. sessions: every session_start event by event_date, those of visitors who denied consent included, against the rows of sessions whose session_start falls on those Dublin days. sign-ups: every sign_up event against the rows of signups by the Dublin day of signup_ts. purchases: every purchase event against the subscriptions whose first payment (earliest paid_at) falls on those Dublin days, a first payment that was later refunded included. Return four columns, in this order: check_name (the text sessions, sign-ups or purchases), export_count, backend_count and result (the text pass when the two counts are equal, fail when they are not). Return one row for each check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "check_name",
+        "type_class": "text"
+      },
+      {
+        "name": "export_count",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_count",
+        "type_class": "numeric"
+      },
+      {
+        "name": "result",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "check_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "export_count",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_count",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "result",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "check_name"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the purchases check: the backend side counts first payments, not every payment.",
+    "Take each subscription's earliest paid_at in a derived table, then count those that fall on a Dublin day of November."
+  ],
+  "subgoals": [
+    {
+      "from": 113,
+      "to": 434,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 531,
+      "to": 794,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 893,
+      "to": 1310,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1313,
+      "to": 1439,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1440,
+      "to": 1451,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each check counts the same rows on both sides by the same Dublin days, so all three pass and the result shows it in one place."
+}

@@ -277,7 +277,7 @@ function ReviewItem(p: { item: MockReviewItem; total: number }) {
       {item.prompt && <p className="prompt">{item.prompt}</p>}
       {item.output_contract && <p className="contract">Return: {item.output_contract.columns.map((c) => `${c.name} (${c.type_class})`).join(', ')}{grainLine(item.output_contract)}</p>}
       {item.query !== null && <><p><strong>Your answer:</strong></p><SqlCode sql={item.query} /></>}
-      {item.grade && <GradePanel grade={item.grade} onDispute={null} />}
+      {item.grade && <GradePanel grade={item.grade} onDispute={null} mascot={false} />}
       {item.item_instance_id && !answer && <p><button type="button" className="link-quiet" onClick={() => void show()}>Show answer</button></p>}
       {answer && <div><p><strong>One correct answer:</strong></p><SqlCode sql={answer.sql} />{answer.display && <ResultTable result={answer.display} caption="Its result" />}</div>}
       {message && <p role="alert">{message}</p>}

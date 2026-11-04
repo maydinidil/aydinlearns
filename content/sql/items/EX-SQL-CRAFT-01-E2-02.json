@@ -1,0 +1,166 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "duplicate_key",
+    "ga_session_id",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-AGG-04",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-key-check",
+  "template_params": {
+    "from": "20251101",
+    "to": "20251107"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Before joining the export to the backend on ga_session_id, Mailvora's analyst checks whether that ID alone can stand for a session. Use every event of the Dublin days 1 to 7 November 2025 (by event_date) that carries both a user_pseudo_id and a ga_session_id; a session is one user_pseudo_id with one ga_session_id. Return three columns, in this order: id_values (the distinct ga_session_id values), sessions (the distinct sessions) and shared_ids (the ga_session_id values that two or more visitors hold). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "id_values",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "shared_ids",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row for the whole check"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "id_values",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "shared_ids",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column that counts the IDs two or more visitors hold.",
+    "Each row of the step before is one ga_session_id with its number of visitors: count the rows where that number is above 1."
+  ],
+  "subgoals": [
+    {
+      "from": 113,
+      "to": 236,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 239,
+      "to": 250,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 253,
+      "to": 303,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 429,
+      "to": 493,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 496,
+      "to": 507,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 510,
+      "to": 576,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 579,
+      "to": 601,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 604,
+      "to": 660,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 663,
+      "to": 713,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 714,
+      "to": 725,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 663,
+    "stage2": 663
+  },
+  "faded_shape": "WITH tagged AS (\n  -- one row per event of 1 to 7 November 2025 (Dublin days), with its ga_session_id read out\n  SELECT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id\n  FROM events\n  WHERE event_date BETWEEN '20251101' AND '20251107'\n), per_id AS (\n  -- one row per ga_session_id: how many visitors hold it; an event missing either ID belongs to no session\n  SELECT ga_session_id, COUNT(DISTINCT user_pseudo_id) AS visitors\n  FROM tagged\n  WHERE user_pseudo_id IS NOT NULL\n    AND ga_session_id IS NOT NULL\n  GROUP BY ga_session_id\n)\nSELECT COUNT(*) AS id_values, SUM(visitors) AS sessions,\n  ",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Grouping by ga_session_id and counting distinct visitors shows how many sessions share each ID, so the shared ones stand out.",
+  "faded_suffix": "\nFROM per_id"
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E2-42",
+  "item_version": 1,
+  "correct_oid": "o761af81",
+  "explanation": "The right query reads the 8 weeks that end the week before the change and divides their units by 8, so a quiet week counts as 0. The most tempting other one averages only the weeks with a sale, so its base shrinks for a product that sold rarely and the average looks too high. Ending the window on the change week takes in days at the new price, and net_revenue_eur measures money, not volume.",
+  "solver": {
+    "prompt_hash": "fa170da6da949c3f",
+    "grader_version": "choice.3",
+    "chosen": "o761af81",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.607Z"
+  }
+}

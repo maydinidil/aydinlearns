@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-BQ-01-E2-32",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_timestamp",
+    "time_zone",
+    "session_start",
+    "fix"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-fix-timestamp-unit",
+  "template_params": {
+    "event_name": "session_start",
+    "from": "20251026",
+    "to": "20251104"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: at what time on Dublin's clock did the first session start on each day from 26 October to 4 November 2025, by event_date? event_timestamp holds microseconds since 1 January 1970, in UTC; the answer is Dublin's local date and time, with no time zone. Use every session_start, the ones with a missing user_pseudo_id included. Return event_date, as the text the export stores, and first_session_at. Return one row for each day with a session start; a day with none has no row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text"
+      },
+      {
+        "name": "first_session_at",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "first_session_at",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_date"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the unit the query reads event_timestamp in.",
+    "event_timestamp counts microseconds, and to_timestamp takes seconds, so divide by a million."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 112,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 113,
+      "to": 124,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 125,
+      "to": 210,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 211,
+      "to": 230,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT event_date,\n  MIN(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000))) AS first_session_at\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251026' AND '20251104'\nGROUP BY event_date",
+  "time_target_ms": 180000,
+  "why_this_works": "Dividing by a million turns microseconds into the seconds to_timestamp reads, and timezone shows that moment on Dublin's clock.",
+  "starter_error_id": "ERR-LOG-54"
+}

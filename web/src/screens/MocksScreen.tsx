@@ -4,6 +4,7 @@
 // case, minutes, pass mark), its forms left unseen or the date unseen questions return, a start (or the way back to its run that is on), and
 // its history (date, score, passed, late, practice) with a review link per run. Stage 6: the live reps of G-STAGE-6's window, with a link to
 // Drills. #/mocks?stage=N (a Progress board row) focuses that stage's card. Read only (GET /api/mocks); nothing on it is a gate.
+import { EmptyLine } from '../components/Mascot.tsx';
 import { useEffect, useState } from 'react';
 import { criterionLine } from '../lib/labels.ts';
 import {
@@ -23,7 +24,7 @@ function MockPart(p: { card: MockCard; view: MocksView }) {
       {forms && <p className="muted">{forms}</p>}
       {on ? <p>{`A ${name} is on. `}<a className="btn-main" href={mockHref(card.mock)}>{`Back to the ${name}`}</a></p>
         : card.next !== null && <p><a className="btn-main" href={mockHref(card.mock)}>{`Start the ${name}`}</a></p>}
-      {card.history.length === 0 ? <p className="muted">{`No ${name} runs yet.`}</p> : (
+      {card.history.length === 0 ? <EmptyLine text={`No ${name} runs yet.`} className="muted" /> : (
         <div className="table-scroll card"><table className="history-table">
           <thead><tr>{HISTORY_COLUMNS.map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
           <tbody>{card.history.map((r) => (

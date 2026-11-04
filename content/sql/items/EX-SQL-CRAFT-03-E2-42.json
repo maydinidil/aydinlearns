@@ -1,0 +1,99 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "choose_query",
+    "price_change",
+    "average"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-DATE-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-choose-avg-weekly-units",
+  "template_params": {
+    "table": "weekly_units",
+    "month": "2025-01",
+    "change": "rise"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each price rise that took effect from 1 to 31 January 2025, the plan needs the average weekly units in the 8 weeks before its change week (the week, Monday to Sunday, that holds valid_from), the change week itself left out and a week with no sale counting as 0. Which query gives it, one row per rise?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o761af81",
+      "text": "WITH versions AS (\n  -- one row per product and price version, with the list price of the version before it\n  SELECT product_id, valid_from, list_price_eur,\n    LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price\n  FROM price_history\n), rises AS (\n  -- one row per price rise from 1 to 31 January 2025, with the Monday of its week\n  SELECT product_id, valid_from, CAST(date_trunc('week', valid_from) AS DATE) AS change_week\n  FROM versions\n  WHERE list_price_eur > prev_price AND valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-01-31'\n)\nSELECT r.product_id, r.valid_from, SUM(w.units) / 8.0 AS avg_units_before\nFROM rises r\nJOIN weekly_units w ON w.product_id = r.product_id\n  AND w.week_start BETWEEN r.change_week - INTERVAL 56 DAY AND r.change_week - INTERVAL 7 DAY\nGROUP BY r.product_id, r.valid_from",
+      "misconception_id": null
+    },
+    {
+      "oid": "oceb53ec",
+      "text": "WITH versions AS (\n  -- one row per product and price version, with the list price of the version before it\n  SELECT product_id, valid_from, list_price_eur,\n    LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price\n  FROM price_history\n), rises AS (\n  -- one row per price rise from 1 to 31 January 2025, with the Monday of its week\n  SELECT product_id, valid_from, CAST(date_trunc('week', valid_from) AS DATE) AS change_week\n  FROM versions\n  WHERE list_price_eur > prev_price AND valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-01-31'\n)\nSELECT r.product_id, r.valid_from, AVG(w.units) AS avg_units_before\nFROM rises r\nJOIN weekly_units w ON w.product_id = r.product_id\n  AND w.week_start BETWEEN r.change_week - INTERVAL 56 DAY AND r.change_week - INTERVAL 7 DAY\n  AND w.units > 0\nGROUP BY r.product_id, r.valid_from",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o3232536",
+      "text": "WITH versions AS (\n  -- one row per product and price version, with the list price of the version before it\n  SELECT product_id, valid_from, list_price_eur,\n    LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price\n  FROM price_history\n), rises AS (\n  -- one row per price rise from 1 to 31 January 2025, with the Monday of its week\n  SELECT product_id, valid_from, CAST(date_trunc('week', valid_from) AS DATE) AS change_week\n  FROM versions\n  WHERE list_price_eur > prev_price AND valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-01-31'\n)\nSELECT r.product_id, r.valid_from, SUM(w.units) / 8.0 AS avg_units_before\nFROM rises r\nJOIN weekly_units w ON w.product_id = r.product_id\n  AND w.week_start BETWEEN r.change_week - INTERVAL 49 DAY AND r.change_week\nGROUP BY r.product_id, r.valid_from",
+      "misconception_id": "ERR-LOG-06"
+    },
+    {
+      "oid": "o67abfb8",
+      "text": "WITH versions AS (\n  -- one row per product and price version, with the list price of the version before it\n  SELECT product_id, valid_from, list_price_eur,\n    LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price\n  FROM price_history\n), rises AS (\n  -- one row per price rise from 1 to 31 January 2025, with the Monday of its week\n  SELECT product_id, valid_from, CAST(date_trunc('week', valid_from) AS DATE) AS change_week\n  FROM versions\n  WHERE list_price_eur > prev_price AND valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-01-31'\n)\nSELECT r.product_id, r.valid_from, SUM(w.net_revenue_eur) / 8.0 AS avg_units_before\nFROM rises r\nJOIN weekly_units w ON w.product_id = r.product_id\n  AND w.week_start BETWEEN r.change_week - INTERVAL 56 DAY AND r.change_week - INTERVAL 7 DAY\nGROUP BY r.product_id, r.valid_from",
+      "misconception_id": "ERR-LOG-00"
+    }
+  ]
+}

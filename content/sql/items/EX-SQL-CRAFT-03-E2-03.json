@@ -1,0 +1,170 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "mrr_churn",
+    "rate",
+    "fx"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-mrr-churn-rate-month",
+  "template_params": {
+    "table": "subscription_events",
+    "year": 2025,
+    "fx_date": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Finance asks for revenue churn, not logo churn. For each month of 2025, give LedgerLoop's gross MRR churn rate: the MRR lost to churn events dated in the month divided by the MRR at the end of the month before. A churn event (event_type churn in subscription_events) carries the subscription's whole MRR as a negative mrr_delta_local; its lost MRR is that amount with the sign flipped, in euros: multiply by fx_rates.eur_per_unit for the subscription's currency on 2025-12-31. The MRR at the end of the month before is the sum of mrr_eur in mrr_monthly for the month before (mrr_monthly.month is its first day), already in euros at that rate. Contractions are not churn. Return two columns, in this order: month_start (the first day of the month) and mrr_churn_rate, as a share (0.02 for 2%), not rounded. Return one row for each month of 2025; a month with no churn shows 0. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "mrr_churn_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "mrr_churn_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each month's opening MRR in euros from the month before's mrr_monthly rows.",
+    "Then add up the churn events' amounts per month with the sign flipped and converted at the one fixed rate, and divide."
+  ],
+  "subgoals": [
+    {
+      "from": 100,
+      "to": 193,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 196,
+      "to": 214,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 217,
+      "to": 278,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 281,
+      "to": 330,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 443,
+      "to": 566,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 569,
+      "to": 595,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 598,
+      "to": 659,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 662,
+      "to": 740,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 743,
+      "to": 836,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 839,
+      "to": 895,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 898,
+      "to": 977,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 978,
+      "to": 992,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 993,
+      "to": 1042,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "A revenue churn rate weighs each lost account by its MRR, so it answers a different question from the logo churn rate."
+}

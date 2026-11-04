@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-BQ-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "list_filter",
+    "page_view"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-page-views-per-page",
+  "template_params": {
+    "event_name": "page_view",
+    "day": "20251209"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's web team wants the page views of each page on 9 December 2025, by event_date. A page is the whole page_location parameter of the page_view event, as text. Count every page_view event of that day, the ones with a missing user_pseudo_id or ga_session_id included. Return page_location and page_views. Return one row for each page. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text"
+      },
+      {
+        "name": "page_views",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per page_location with page views on 9 December 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "page_views",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "page_location"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the page_location parameter out of each page_view's list of parameters.",
+    "Keep the one list element whose key is page_location and take its text slot; event_date is text, so compare it with text in its own form."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 170,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 173,
+      "to": 184,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 187,
+      "to": 249,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 252,
+      "to": 296,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 297,
+      "to": 307,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 308,
+      "to": 330,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "list_filter keeps the one parameter whose key is page_location, so each page_view stays one row and is counted once."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E1-43",
+  "item_version": 1,
+  "correct_oid": "oe000244",
+  "explanation": "A share of customers needs a count of accounts over a base fixed when the month starts: the accounts with MRR at the end of the month before. Taking everyone with MRR at any point in the month puts the month's newcomers in the base, so it grows with the month's own sign-ups. Lost MRR answers a revenue question, and a bare count rises with the customer base even when the share does not.",
+  "solver": {
+    "prompt_hash": "663e9e1f394ed03c",
+    "grader_version": "choice.3",
+    "chosen": "oe000244",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.602Z"
+  }
+}

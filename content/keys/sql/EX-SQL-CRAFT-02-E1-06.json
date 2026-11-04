@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-06",
+  "item_version": 1,
+  "reference_sql": "WITH day_views AS (\n  -- one row per page_view event on the Dublin day 9 December 2025: only the page it shows\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251209'\n)\nSELECT page_location, COUNT(*) AS views\nFROM day_views\nGROUP BY page_location",
+  "alternatives": [
+    "SELECT [p.value.string_value FOR p IN event_params IF p.key = 'page_location'][1] AS page_location, COUNT(*) AS views\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date = '20251209'\nGROUP BY page_location",
+    "WITH params AS (\n  -- one row per parameter of a page_view event on the Dublin day 9 December 2025\n  SELECT unnest(event_params) AS p\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251209'\n)\nSELECT p.value.string_value AS page_location, COUNT(*) AS views\nFROM params\nWHERE p.key = 'page_location'\nGROUP BY p.value.string_value"
+  ],
+  "other_way": {
+    "sql": "SELECT [p.value.string_value FOR p IN event_params IF p.key = 'page_location'][1] AS page_location, COUNT(*) AS views\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date = '20251209'\nGROUP BY page_location",
+    "tradeoff": "A list comprehension in one query reads the same parameter with no CTE, which is shorter but harder to read for some reviewers."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH per_page AS (\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, COUNT(*) AS views, COUNT(DISTINCT user_pseudo_id) AS visitors, MIN(event_timestamp) AS first_view\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251209'\n  GROUP BY page_location\n)\nSELECT *\nFROM per_page"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH day_views AS (\n  -- one row per page_view event on the Dublin day 9 December 2025: only the page it shows\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, user_pseudo_id\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251209'\n)\nSELECT page_location, COUNT(user_pseudo_id) AS views\nFROM day_views\nGROUP BY page_location"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH day_views AS (\n  -- one row per page_view event on the Dublin day 9 December 2025: only the page it shows\n  SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '2025-12-09'\n)\nSELECT page_location, COUNT(*) AS views\nFROM day_views\nGROUP BY page_location"
+    }
+  ],
+  "hint3_partial": "WITH day_views AS (\n  -- one row per page_view event on the Dublin day 9 December 2025: only the page it shows\n  SELECT ___ AS page_location\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251209'\n)\nSELECT page_location, COUNT(*) AS views\nFROM day_views\nGROUP BY page_location",
+  "solver": {
+    "prompt_hash": "d15803ccc61fa58e",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, COUNT(*) AS views\r\nFROM events\r\nWHERE event_name = 'page_view' AND event_date = '20251209'\r\nGROUP BY 1",
+    "at": "2026-11-03T19:01:31.753Z"
+  }
+}

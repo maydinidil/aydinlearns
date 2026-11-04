@@ -444,7 +444,7 @@ function MockReviewCheckpoint({ cp }: { cp: MockCaseReviewCheckpoint }) {
           {cp.item_prompt && <p className="prompt">{cp.item_prompt}</p>}
           {cp.output_contract && <p className="contract">Return: {cp.output_contract.columns.map((c) => `${c.name} (${c.type_class})`).join(', ')}{grainLine(cp.output_contract)}</p>}
           {cp.query !== null && <><p><strong>Your answer:</strong></p><SqlCode sql={cp.query} /></>}
-          {cp.grade && <GradePanel grade={cp.grade} onDispute={null} />}
+          {cp.grade && <GradePanel grade={cp.grade} onDispute={null} mascot={false} />}
           {cp.item_instance_id && !answer && <p><button type="button" className="link-quiet" onClick={() => void show()}>Show answer</button></p>}
           {answer && <div><p><strong>One correct answer:</strong></p><SqlCode sql={answer.sql} />{answer.display && <ResultTable result={answer.display} caption="Its result" />}</div>}
         </>

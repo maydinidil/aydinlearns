@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CRAFT-01-E1-04",
+  "item_version": 1,
+  "reference_sql": "WITH period_lines AS (\n  -- one row per order line of an order placed from 7 to 20 April 2025 (UTC days of order_ts)\n  SELECT l.order_line_id, l.promo_id\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-04-07 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-21 00:00:00'\n), with_promo AS (\n  -- one row per order line, with its promotion's name (missing when the line had none)\n  SELECT w.order_line_id, p.promo_name\n  FROM period_lines w\n  LEFT JOIN promotions p ON p.promo_id = w.promo_id\n), counts AS (\n  -- one row: the row count before and after the join\n  SELECT (SELECT COUNT(*) FROM period_lines) AS lines_before,\n    (SELECT COUNT(*) FROM with_promo) AS rows_after\n)\nSELECT lines_before, rows_after,\n  rows_after - lines_before AS added_rows\nFROM counts",
+  "alternatives": [
+    "WITH joined AS (\n  -- one row per order line and matching promotion: the join being checked\n  SELECT l.order_line_id, p.promo_name\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  LEFT JOIN promotions p ON p.promo_id = l.promo_id\n  WHERE o.order_ts >= TIMESTAMP '2025-04-07 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-21 00:00:00'\n)\nSELECT COUNT(DISTINCT order_line_id) AS lines_before, COUNT(*) AS rows_after,\n  COUNT(*) - COUNT(DISTINCT order_line_id) AS added_rows\nFROM joined",
+    "WITH period_lines AS (\n  -- one row per order line of an order placed from 7 to 20 April 2025 (UTC days of order_ts)\n  SELECT l.order_line_id, l.promo_id\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-04-07 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-21 00:00:00'\n), with_promo AS (\n  -- one row per order line, with its promotion's name (missing when the line had none)\n  SELECT w.order_line_id, p.promo_name\n  FROM period_lines w\n  LEFT JOIN promotions p ON p.promo_id = w.promo_id\n), before_count AS (\n  -- one row: the lines before the join\n  SELECT COUNT(*) AS lines_before FROM period_lines\n), after_count AS (\n  -- one row: the rows after it\n  SELECT COUNT(*) AS rows_after FROM with_promo\n)\nSELECT b.lines_before, a.rows_after, a.rows_after - b.lines_before AS added_rows\nFROM before_count b\nCROSS JOIN after_count a"
+  ],
+  "other_way": {
+    "sql": "WITH joined AS (\n  -- one row per order line and matching promotion: the join being checked\n  SELECT l.order_line_id, p.promo_name\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  LEFT JOIN promotions p ON p.promo_id = l.promo_id\n  WHERE o.order_ts >= TIMESTAMP '2025-04-07 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-21 00:00:00'\n)\nSELECT COUNT(DISTINCT order_line_id) AS lines_before, COUNT(*) AS rows_after,\n  COUNT(*) - COUNT(DISTINCT order_line_id) AS added_rows\nFROM joined",
+    "tradeoff": "Counting distinct line IDs after the join checks the grain in one step, but it trusts order_line_id to be unique."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH period_lines AS (\n  -- one row per order line of an order placed from 7 to 20 April 2025 (UTC days of order_ts)\n  SELECT l.order_line_id, l.promo_id\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-04-07 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-21 00:00:00'\n), with_promo AS (\n  -- one row per order line, with its promotion's name (missing when the line had none)\n  SELECT w.order_line_id, p.promo_name\n  FROM period_lines w\n  JOIN promotions p ON p.promo_id = w.promo_id\n), counts AS (\n  -- one row: the row count before and after the join\n  SELECT (SELECT COUNT(*) FROM period_lines) AS lines_before,\n    (SELECT COUNT(*) FROM with_promo) AS rows_after\n)\nSELECT lines_before, rows_after,\n  rows_after - lines_before AS added_rows\nFROM counts"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "WITH period_lines AS (\n  -- one row per order line of an order placed from 7 to 20 April 2025 (UTC days of order_ts)\n  SELECT l.order_line_id, l.product_id\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-04-07 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-21 00:00:00'\n), with_promo AS (\n  -- one row per order line, with its promotion's name (missing when the line had none)\n  SELECT w.order_line_id, p.promo_name\n  FROM period_lines w\n  LEFT JOIN promotion_products pp ON pp.product_id = w.product_id\n  LEFT JOIN promotions p ON p.promo_id = pp.promo_id\n), counts AS (\n  -- one row: the row count before and after the join\n  SELECT (SELECT COUNT(*) FROM period_lines) AS lines_before,\n    (SELECT COUNT(*) FROM with_promo) AS rows_after\n)\nSELECT lines_before, rows_after,\n  rows_after - lines_before AS added_rows\nFROM counts"
+    }
+  ],
+  "hint3_partial": "WITH period_lines AS (\n  -- one row per order line of an order placed from 7 to 20 April 2025 (UTC days of order_ts)\n  SELECT l.order_line_id, l.promo_id\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-04-07 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-04-21 00:00:00'\n), with_promo AS (\n  -- one row per order line, with its promotion's name (missing when the line had none)\n  SELECT w.order_line_id, p.promo_name\n  FROM period_lines w\n  LEFT JOIN promotions p ON p.promo_id = w.promo_id\n), counts AS (\n  -- one row: the row count before and after the join\n  SELECT (SELECT COUNT(*) FROM period_lines) AS lines_before,\n    (SELECT COUNT(*) FROM with_promo) AS rows_after\n)\nSELECT lines_before, rows_after,\n  rows_after - ___ AS added_rows\nFROM counts",
+  "solver": {
+    "prompt_hash": "abeb3ca5d2662c24",
+    "schema_version": "b1c4e68b1a62",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH ls AS (\r\n  SELECT ol.order_line_id, ol.promo_id\r\n  FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id\r\n  WHERE o.order_ts >= TIMESTAMP '2025-04-07 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-21 00:00:00'\r\n), j AS (\r\n  SELECT ls.order_line_id, p.promo_name\r\n  FROM ls LEFT JOIN promotions p ON p.promo_id = ls.promo_id\r\n)\r\nSELECT (SELECT COUNT(*) FROM ls) AS lines_before, (SELECT COUNT(*) FROM j) AS rows_after,\r\n  (SELECT COUNT(*) FROM j) - (SELECT COUNT(*) FROM ls) AS added_rows",
+    "at": "2026-11-03T19:01:28.796Z"
+  }
+}

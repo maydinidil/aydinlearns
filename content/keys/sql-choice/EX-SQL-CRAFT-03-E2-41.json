@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E2-41",
+  "item_version": 1,
+  "correct_oid": "oaf2e7e6",
+  "explanation": "The right query counts March's churned accounts and divides by the 1,005 accounts that had MRR when March began, the rows for February. The most tempting other one divides by March's own rows, a base that has already lost the churners and gained the newcomers, so it moves with the month it measures. Dividing lost MRR by MRR answers a revenue question, and // drops the decimals, leaving 0.",
+  "solver": {
+    "prompt_hash": "aa770896287dd268",
+    "grader_version": "choice.3",
+    "chosen": "oaf2e7e6",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.605Z"
+  }
+}

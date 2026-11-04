@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-05",
+  "item_version": 3,
+  "reference_sql": "WITH starts AS (\n  -- one row per session_start event from 8 to 15 December 2025\n  SELECT event_date, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_number')[1].value.int_value AS ga_session_number\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251208' AND '20251215'\n)\nSELECT event_date,\n  COUNT(DISTINCT CASE WHEN ga_session_number = 1 THEN user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR) END) AS first_sessions,\n  COUNT(DISTINCT CASE WHEN ga_session_number > 1 THEN user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR) END) AS returning_sessions\nFROM starts\nGROUP BY event_date",
+  "alternatives": [
+    "WITH starts AS (\n  -- one row per session_start event with both IDs from 8 to 15 December 2025\n  SELECT event_date,\n    [p.value.int_value FOR p IN event_params IF p.key = 'ga_session_number'][1] AS ga_session_number\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251208' AND '20251215'\n    AND user_pseudo_id IS NOT NULL\n    AND [p.value.int_value FOR p IN event_params IF p.key = 'ga_session_id'][1] IS NOT NULL\n)\nSELECT event_date,\n  COUNT(*) FILTER (WHERE ga_session_number = 1) AS first_sessions,\n  COUNT(*) FILTER (WHERE ga_session_number > 1) AS returning_sessions\nFROM starts\nGROUP BY event_date",
+    "WITH sessions AS (\n  -- one row per session (user_pseudo_id and ga_session_id) that started from 8 to 15 December 2025\n  SELECT DISTINCT event_date, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_number')[1].value.int_value AS ga_session_number\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251208' AND '20251215'\n)\nSELECT event_date,\n  SUM(CASE WHEN ga_session_number = 1 THEN 1 ELSE 0 END) AS first_sessions,\n  SUM(CASE WHEN ga_session_number > 1 THEN 1 ELSE 0 END) AS returning_sessions\nFROM sessions\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY event_date"
+  ],
+  "other_way": {
+    "sql": "WITH starts AS (\n  -- one row per session_start event with both IDs from 8 to 15 December 2025\n  SELECT event_date,\n    [p.value.int_value FOR p IN event_params IF p.key = 'ga_session_number'][1] AS ga_session_number\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251208' AND '20251215'\n    AND user_pseudo_id IS NOT NULL\n    AND [p.value.int_value FOR p IN event_params IF p.key = 'ga_session_id'][1] IS NOT NULL\n)\nSELECT event_date,\n  COUNT(*) FILTER (WHERE ga_session_number = 1) AS first_sessions,\n  COUNT(*) FILTER (WHERE ga_session_number > 1) AS returning_sessions\nFROM starts\nGROUP BY event_date",
+    "tradeoff": "Counting session_start rows with FILTER is shorter, and right here because each session has exactly one session_start."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-52",
+      "sql": "WITH starts AS (SELECT event_date, user_pseudo_id, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id, list_filter(event_params, lambda p: p.key = 'ga_session_number')[1].value.int_value AS ga_session_number FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251208' AND '20251215') SELECT event_date, COUNT(DISTINCT CASE WHEN ga_session_number = 1 THEN ga_session_id END) AS first_sessions, COUNT(DISTINCT CASE WHEN ga_session_number > 1 THEN ga_session_id END) AS returning_sessions FROM starts GROUP BY event_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH starts AS (SELECT event_date, user_pseudo_id, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id, list_filter(event_params, lambda p: p.key = 'ga_session_number')[1].value.double_value AS ga_session_number FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251208' AND '20251215') SELECT event_date, COUNT(DISTINCT CASE WHEN ga_session_number = 1 THEN user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR) END) AS first_sessions, COUNT(DISTINCT CASE WHEN ga_session_number > 1 THEN user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR) END) AS returning_sessions FROM starts GROUP BY event_date"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH starts AS (SELECT event_date, user_pseudo_id, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id, list_filter(event_params, lambda p: p.key = 'ga_session_number')[1].value.int_value AS ga_session_number FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '2025-12-08' AND '2025-12-15') SELECT event_date, COUNT(DISTINCT CASE WHEN ga_session_number = 1 THEN user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR) END) AS first_sessions, COUNT(DISTINCT CASE WHEN ga_session_number > 1 THEN user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR) END) AS returning_sessions FROM starts GROUP BY event_date"
+    }
+  ],
+  "hint3_partial": "WITH starts AS (\n  -- one row per session_start event from 8 to 15 December 2025\n  SELECT event_date, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id,\n    list_filter(event_params, lambda p: p.key = ___)[1].value.int_value AS ga_session_number\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251208' AND '20251215'\n)\nSELECT event_date,\n  COUNT(DISTINCT CASE WHEN ___ THEN user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR) END) AS first_sessions,\n  COUNT(DISTINCT CASE WHEN ___ THEN user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR) END) AS returning_sessions\nFROM starts\nGROUP BY event_date",
+  "solver": {
+    "prompt_hash": "336ab607ba4a4aa4",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "629fe78dc6bbdb7a",
+    "grader_version": "9a.1",
+    "query": "WITH s AS (\n  SELECT event_date, user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS sid,\n    list_filter(event_params, lambda p: p.key = 'ga_session_number')[1].value.int_value AS num\n  FROM events\n  WHERE event_name = 'session_start' AND event_date BETWEEN '20251208' AND '20251215'\n)\nSELECT event_date,\n  COUNT(DISTINCT CASE WHEN num = 1 THEN (user_pseudo_id, sid) END) AS first_sessions,\n  COUNT(DISTINCT CASE WHEN num > 1 THEN (user_pseudo_id, sid) END) AS returning_sessions\nFROM s WHERE user_pseudo_id IS NOT NULL AND sid IS NOT NULL\nGROUP BY event_date\n",
+    "at": "2026-11-04T01:02:11.182Z"
+  }
+}

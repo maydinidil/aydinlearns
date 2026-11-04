@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "sign_up",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-country-signups",
+  "template_params": {
+    "month": "2025-11"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's marketing team wants sign-ups per country for the Dublin days 1 to 30 November 2025 (by event_date), from the export. Count every sign_up event, those of visitors who denied consent and those sent from Mailvora's server included; the country is geo.country. Return exactly two columns, in this order: country and signups. Return one row for each country. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country",
+        "type_class": "text"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, narrow the events to November's sign_up events and the one column the count needs.",
+    "Keep geo.country only, then count the rows per country in the last step."
+  ],
+  "subgoals": [
+    {
+      "from": 132,
+      "to": 161,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 164,
+      "to": 175,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 178,
+      "to": 259,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 262,
+      "to": 297,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 298,
+      "to": 319,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 320,
+      "to": 336,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The first step keeps only November's sign_up events and their country, so the last step is a plain count with exactly the two columns asked for."
+}

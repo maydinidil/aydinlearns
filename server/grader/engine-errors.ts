@@ -1,6 +1,6 @@
 // server/grader/engine-errors.ts: DuckDB error messages to error IDs (02's taxonomy, rewritten for
 // DuckDB 1.5.6 by knowledge/ERRATA.md E-145; rulings R20 and R22; ERR-SYN-08 by E-189 in sprint 6, widened by S7C-08 in sprint 7c
-// and by S7D-12, E-207, in sprint 7d)
+// and by S7D-12, E-207, in sprint 7d; ERR-SYN-09 by S9-04, E-219, in sprint 9)
 import { maskSql } from '../runner/tables.ts';
 
 export interface EngineErrorClass { errorId: string; column?: string; table?: string }
@@ -111,7 +111,51 @@ function whereNamesAggregateAlias(sql: string): boolean {
     spans.some(([from, to]) => [...masked.slice(from, to).matchAll(PLAIN_NAME)].some((m) => aliases.has(unquote(m[1]!)))));
 }
 
+/**
+ * S9-04 (sprint 9, Task A1; ERRATA E-219; GRADER_VERSION 9a.1): the bind errors DuckDB 1.5.6 gives BigQuery's UNNEST forms. In DuckDB
+ * `UNNEST(event_params) AS p` names the table unnest makes, whose one column is `unnest`, so `p.key` is "Table "p" does not have a column
+ * named "key"" (or "value"); `FROM UNNEST(event_params) WHERE key = ...` is "Referenced column "key" not found"; and `p.key` or
+ * `value.int_value` in a subquery over UNNEST is "Referenced table "p" not found". With UNNEST( in the query, outside strings and
+ * comments, each is ERR-SYN-09. Any other unknown column, such as a typo, stays ERR-SYN-02; so does the same message with no UNNEST(.
+ * Fix round A1-R1: "Referenced table" counts only for a name the query gives an unnest(...) call (`unnest(...) AS p`, `unnest(...) p`;
+ * the `t` of `AS t(p)`), or for key or value; a mistyped alias of another table, such as the events alias, stays ERR-SYN-02.
+ */
+const UNNEST_FIELD_MESSAGE = /does not have a column named "(?:key|value)"|Referenced column "(?:key|value)" not found/i;
+const REFERENCED_TABLE = /Referenced table "([^"]+)" not found/i;
+const UNNEST_CALL = /\bunnest\s*\(/i;
+const AFTER_CALL = new RegExp(String.raw`^\s*(?:as\s+)?(${NAME})`, 'i');
+
+/**
+ * The lower-case names the query gives its unnest(...) calls, read after each call's closing bracket: `[AS] name`. `bare` (strings,
+ * comments and quoted names blanked) finds the calls and their brackets; `masked` reads the name, so a quoted one counts too.
+ */
+function unnestAliases(masked: string, bare: string): Set<string> {
+  const names = new Set<string>();
+  for (const m of bare.matchAll(new RegExp(UNNEST_CALL.source, 'gi'))) {
+    let depth = 0;
+    let close = -1;
+    for (let i = m.index + m[0].length - 1; i < bare.length; i++) {
+      if (bare[i] === '(') depth++;
+      else if (bare[i] === ')' && --depth === 0) { close = i; break; }
+    }
+    if (close < 0) continue;
+    const alias = AFTER_CALL.exec(masked.slice(close + 1));
+    if (alias) names.add(unquote(alias[1]!));
+  }
+  return names;
+}
+
+/** S9-04 with A1-R1: whether a DuckDB message on this query is BigQuery's UNNEST form (ERR-SYN-09). */
+function isBigQueryUnnest(message: string, sql: string): boolean {
+  const { masked, bare } = lexed(sql);
+  if (!UNNEST_CALL.test(bare)) return false;
+  if (UNNEST_FIELD_MESSAGE.test(message)) return true;
+  const table = REFERENCED_TABLE.exec(message)?.[1]?.toLowerCase();
+  return table !== undefined && (table === 'key' || table === 'value' || unnestAliases(masked, bare).has(table));
+}
+
 export function classifyEngineError(message: string, sql: string): EngineErrorClass {
+  if (isBigQueryUnnest(message, sql)) return { errorId: 'ERR-SYN-09' };
   if (/WHERE clause cannot contain aggregates|aggregate functions are not allowed in WHERE/i.test(message)) {
     return { errorId: whereNamesAggregateAlias(sql) ? 'ERR-SYN-06' : 'ERR-SYN-05' };
   }

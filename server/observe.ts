@@ -11,6 +11,7 @@ import { routePath } from 'hono/route';
 import type { ChoiceSection } from '../schemas/choice.ts';
 import type { SqlItem } from '../schemas/item.ts';
 import type { ContentStore } from './content.ts';
+import { worldOfCompany } from './world.ts';
 import { journey, type JourneyAttributes } from './journey.ts';
 
 export type FunnelStep = 'lesson_started' | 'exercise_submitted' | 'exercise_passed' | 'exercise_failed';
@@ -21,19 +22,17 @@ export const levelName = (level: number | null | undefined): string => (level ==
 
 /**
  * The one theme map for SQL (D80, S6-17, S6-32). A case's funnel theme follows its world; an exercise or lesson follows its company
- * (THEME_OF_COMPANY). LedgerLoop and the SAAS world are saas (the owner, 2026-10-28). Anything unknown keeps the old value, pricing.
+ * (worldOfCompany, from server/world.ts). LedgerLoop and the SAAS world are saas (the owner, 2026-10-28). Anything unknown keeps the old value, pricing.
  */
 const THEME_OF_WORLD: Readonly<Record<string, string>> = { PRICE: 'pricing', RETAIL: 'retail', MKT: 'marketing', DQ: 'data_quality', SAAS: 'saas' };
-const THEME_OF_COMPANY: Readonly<Record<string, string>> = { voltmarkt: 'pricing', mailvora: 'marketing', ledgerloop: 'saas' };
-/** A company's theme, only for a company the map names (S7-30): a name an object inherits, such as `constructor`, is no company. */
-const themeOfCompany = (company: string | undefined): string | undefined =>
-  company !== undefined && Object.hasOwn(THEME_OF_COMPANY, company) ? THEME_OF_COMPANY[company] : undefined;
+/** A company's theme, from the one world function (S9-14): its world's name. Only for a company it names (S7-30): a name an object inherits, such as `constructor`, is no company. */
+const themeOfCompany = (company: string | undefined): string | undefined => worldOfCompany(company) ?? undefined;
 export const caseFunnel = (world: string, difficulty: string): FunnelAttributes =>
   ({ topic: 'SQL', case_theme: THEME_OF_WORLD[world] ?? 'pricing', difficulty });
 
 /**
- * A SQL lesson or item follows its company (D80): Voltmarkt is pricing, Mailvora marketing, LedgerLoop saas. No company, or one with no theme yet
- * (a real dataset's world comes with Part 2), keeps pricing, so a call that passes none reads as before.
+ * A SQL lesson or item follows its company (D80): Voltmarkt is pricing, Mailvora marketing, LedgerLoop saas. No company, or one that worldOfCompany (server/world.ts) does not name,
+ * keeps pricing, so a call that passes none reads as before.
  */
 export const sqlFunnel = (difficulty: string, company?: string): FunnelAttributes =>
   ({ topic: 'SQL', case_theme: themeOfCompany(company) ?? 'pricing', difficulty });

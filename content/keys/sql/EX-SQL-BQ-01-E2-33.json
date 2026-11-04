@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-33",
+  "item_version": 2,
+  "reference_sql": "SELECT device.category AS device_category,\n  SUM(list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.int_value) AS engagement_msec\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date = '20251120'\nGROUP BY device.category",
+  "alternatives": [
+    "SELECT e.device.category AS device_category, SUM(p.value.int_value) AS engagement_msec\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date = '20251120'\n  AND p.key = 'engagement_time_msec'\nGROUP BY e.device.category",
+    "WITH views AS (\n  -- one row per page_view on 20 November 2025\n  SELECT device.category AS device_category,\n    [p.value.int_value FOR p IN event_params IF p.key = 'engagement_time_msec'][1] AS engagement_msec\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251120'\n)\nSELECT device_category, SUM(engagement_msec) AS engagement_msec\nFROM views\nGROUP BY device_category"
+  ],
+  "other_way": {
+    "sql": "SELECT e.device.category AS device_category, SUM(p.value.int_value) AS engagement_msec\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date = '20251120'\n  AND p.key = 'engagement_time_msec'\nGROUP BY e.device.category",
+    "tradeoff": "Naming the element with t(p) keeps the unnest from the starter, but it makes one row per parameter before the key filter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-09",
+      "sql": "SELECT device.category AS device_category, SUM(p.value.int_value) AS engagement_msec\nFROM events, UNNEST(event_params) AS p\nWHERE event_name = 'page_view'\n  AND event_date = '20251120'\n  AND p.key = 'engagement_time_msec'\nGROUP BY device.category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT device.category AS device_category, SUM(list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.double_value) AS engagement_msec FROM events WHERE event_name = 'page_view' AND event_date = '20251120' GROUP BY device.category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT e.device.category AS device_category, SUM(list_filter(e.event_params, lambda x: x.key = 'engagement_time_msec')[1].value.int_value) AS engagement_msec FROM events AS e, unnest(e.event_params) AS t(p) WHERE e.event_name = 'page_view' AND e.event_date = '20251120' GROUP BY e.device.category"
+    }
+  ],
+  "hint3_partial": "SELECT device.category AS device_category,\n  SUM(list_filter(event_params, lambda p: p.key = ___)[1].value.___) AS engagement_msec\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date = '20251120'\nGROUP BY device.category",
+  "solver": {
+    "prompt_hash": "0e67c8cad67fc448",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT device.category AS device_category,\n       SUM(list_filter(event_params, lambda p: p.key = 'engagement_time_msec')[1].value.int_value) AS engagement_msec\nFROM events\nWHERE event_name = 'page_view'\n  AND event_date = '20251120'\nGROUP BY device.category\n",
+    "at": "2026-11-03T21:23:46.006Z"
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "concept_id": "SQL-CRAFT-03",
+  "version": 1,
+  "reading_md": "## From question to query plan\n\nA case round or a take-home starts with a question in business words: \"Is churn getting worse?\" or \"Did the spring price rise hurt volume?\" Start typing SQL at once and you answer whatever your first query happens to compute. Write the plan first, one line each:\n\n- **Question**: the manager's words, kept as asked.\n- **Metric formula**: what is counted, divided by what. Name the base of every rate.\n- **Output grain**: what one row of the answer stands for.\n- **Tables and keys**: where each part comes from, and how the tables join.\n- **Filters**: the window, with both ends, and any rows left out.\n- **Edge cases**: what a store, product or account that is not there for the whole window does, and what a part with no rows shows.\n- **Check**: one thing you can test in the result, such as churned accounts never above the base.\n\n### Keep the base still\n\nA rate compares over time only when its base does not move with what it measures. LedgerLoop's monthly logo churn rate divides the accounts that churned in a month by the accounts with MRR at the end of the month before. Divide by the accounts at the end of the month instead, and the base has already lost the churners and gained the newcomers. Divide by everyone seen during the month, and a strong sales month makes churn look lower. All three look like a churn rate, which is why the plan names the base.\n\nAverages have a base too. Average weekly units over 8 weeks is the units divided by 8, a quiet week counting as 0. Averaging only the weeks with a sale divides each product by a different number of weeks.\n\n### Answer the question asked\n\n\"Did the price rise hurt volume?\" asks about units. Revenue can rise with the price while fewer units sell, so a revenue answer can say the opposite. Logo churn counts customers; MRR churn weighs them by what they paid. When two definitions fit, write both in the plan, pick one and say why: logo churn for \"are we losing customers\", MRR churn for \"are we losing revenue\".\n\n### Like with like\n\nCompare windows of the same length, side by side: the 8 weeks before the week of a price change against the 8 weeks after it, with the change week in neither, as it holds days at both prices. A store that opened during the year, or a product launched inside the before window, was not there for the whole window: leave it out, or say how it counts. Promotion weeks move units for another reason, so the plan says whether they stay.\n\n### Caveats\n\nEnd the plan with what the data cannot show. A before-and-after comparison describes what happened; it does not prove that the price caused it, because seasons, competitors and stock move in the same weeks.",
+  "syntax_md": "```sql\n-- Question: Is churn getting worse?\n-- Metric: churned accounts in the month / accounts with MRR at the end of the month before\n-- Output grain: one row per month of 2025\n-- Tables and keys: mrr_monthly (account_id, month); subscription_events (account_id, event_date)\n-- Filters: the months of 2025; event_type churn\n-- Edge cases: an account that starts during a month is not in its base; a month with no churn shows 0\n-- Check: churned accounts never above accounts_at_start\nWITH base AS (...),        -- one row per month and account at its start\nchurned AS (...)           -- one row per account and month with a churn event\nSELECT b.month_start,\n  COUNT(c.account_id) * 1.0 / COUNT(*) AS churn_rate      -- the metric formula\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id AND c.month_start = b.month_start\nGROUP BY b.month_start;   -- the output grain\n```\n\n- The base of a rate: fixed at the window's start, never at its end.\n- An average over weeks: divide by every week of the window, quiet ones included.\n- A before-and-after window: the same number of weeks on each side, the change week in neither.",
+  "dialect_note": "A plan reads the same on any engine; only the window's spelling changes. In BigQuery the GA4 export is one table per day, so a window reads `events_*` with `WHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'`, or parses the text day with `PARSE_DATE('%Y%m%d', event_date)`; here the days sit in one table, and `event_date BETWEEN '20251001' AND '20251031'` keeps the same days. A rate whose base can be 0 is `SAFE_DIVIDE(x, y)` in BigQuery and `x / NULLIF(y, 0)` here.",
+  "worked_examples": [
+    {
+      "title": "Units before and after each February price rise",
+      "prompt": "For each price rise from 1 to 28 February 2025, give the average weekly units over the 8 weeks before its change week and over the 8 weeks after it, the change week in neither and a week with no sale counting as 0.",
+      "clauses": [
+        {
+          "text": "WITH versions AS (SELECT product_id, valid_from, list_price_eur, LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price FROM price_history)  -- one row per price version",
+          "subgoal": "source_grain",
+          "why": "Each version sits beside the price it replaced."
+        },
+        {
+          "text": ", rises AS (SELECT product_id, valid_from, CAST(date_trunc('week', valid_from) AS DATE) AS change_week FROM versions",
+          "subgoal": "source_grain",
+          "why": "The change week is the Monday of the week that holds valid_from."
+        },
+        {
+          "text": "  WHERE list_price_eur > prev_price AND valid_from BETWEEN DATE '2025-02-01' AND DATE '2025-02-28')  -- one row per price rise",
+          "subgoal": "row_filter",
+          "why": "Only rises, and only those of February, both ends included."
+        },
+        {
+          "text": "SELECT r.product_id, r.valid_from,",
+          "subgoal": "metrics",
+          "why": "A rise is a product and the first day of its new price."
+        },
+        {
+          "text": "  SUM(CASE WHEN w.week_start < r.change_week THEN w.units ELSE 0 END) / 8.0 AS avg_units_before,",
+          "subgoal": "metrics",
+          "why": "The base is all 8 weeks, quiet ones included."
+        },
+        {
+          "text": "  SUM(CASE WHEN w.week_start > r.change_week THEN w.units ELSE 0 END) / 8.0 AS avg_units_after",
+          "subgoal": "metrics",
+          "why": "The change week passes neither test, so it counts on neither side."
+        },
+        {
+          "text": "FROM rises r JOIN weekly_units w ON w.product_id = r.product_id",
+          "subgoal": "source_grain",
+          "why": "weekly_units has a row for every week, so no quiet week goes missing."
+        },
+        {
+          "text": "  AND w.week_start BETWEEN r.change_week - INTERVAL 56 DAY AND r.change_week + INTERVAL 56 DAY",
+          "subgoal": "row_filter",
+          "why": "Eight weeks either side of the change week, and the change week itself."
+        },
+        {
+          "text": "GROUP BY r.product_id, r.valid_from",
+          "subgoal": "output_grain",
+          "why": "Back to one row per rise."
+        }
+      ]
+    },
+    {
+      "title": "Monthly logo churn by segment, on a base fixed at the start",
+      "prompt": "For each month from February to December 2024 and each segment, give LedgerLoop's logo churn rate: the accounts with a churn event in the month divided by the segment's accounts with MRR at the end of the month before.",
+      "clauses": [
+        {
+          "text": "WITH base AS (SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, m.account_id, a.segment FROM mrr_monthly m JOIN accounts a ON a.account_id = m.account_id",
+          "subgoal": "source_grain",
+          "why": "A month's row means MRR at its end, so it is the next month's base."
+        },
+        {
+          "text": "  WHERE m.month BETWEEN DATE '2024-01-01' AND DATE '2024-11-01')  -- one row per month and account at its start",
+          "subgoal": "row_filter",
+          "why": "January's rows are February's base, November's are December's."
+        },
+        {
+          "text": ", churned AS (SELECT DISTINCT account_id, CAST(date_trunc('month', event_date) AS DATE) AS month_start FROM subscription_events",
+          "subgoal": "source_grain",
+          "why": "Each churned account counts once per month."
+        },
+        {
+          "text": "  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2024-02-01' AND DATE '2024-12-31')  -- one row per account and month with a churn event",
+          "subgoal": "row_filter",
+          "why": "The same eleven months as the base."
+        },
+        {
+          "text": "SELECT b.month_start, b.segment,",
+          "subgoal": "metrics",
+          "why": "One answer per month and segment."
+        },
+        {
+          "text": "  COUNT(c.account_id) * 1.0 / COUNT(*) AS churn_rate",
+          "subgoal": "metrics",
+          "why": "Churned base accounts over the whole base; * 1.0 keeps the decimals on any engine."
+        },
+        {
+          "text": "FROM base b LEFT JOIN churned c ON c.account_id = b.account_id AND c.month_start = b.month_start",
+          "subgoal": "source_grain",
+          "why": "The LEFT JOIN keeps every base account, so a quiet segment shows 0."
+        },
+        {
+          "text": "GROUP BY b.month_start, b.segment",
+          "subgoal": "output_grain",
+          "why": "One row per month and segment."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-CRAFT-03-E1-01",
+    "EX-SQL-CRAFT-03-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-CRAFT-03-E1-03",
+    "EX-SQL-CRAFT-03-E1-04",
+    "EX-SQL-CRAFT-03-E2-01",
+    "EX-SQL-CRAFT-03-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-CRAFT-03-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-CRAFT-03-E1-06",
+    "EX-SQL-CRAFT-03-E1-07",
+    "EX-SQL-CRAFT-03-E2-03",
+    "EX-SQL-CRAFT-03-E2-04",
+    "EX-SQL-CRAFT-03-E2-05",
+    "EX-SQL-CRAFT-03-E2-06",
+    "EX-SQL-CRAFT-03-E3-01",
+    "EX-SQL-CRAFT-03-E3-02",
+    "EX-SQL-CRAFT-03-E2-31",
+    "EX-SQL-CRAFT-03-E2-32",
+    "EX-SQL-CRAFT-03-E1-42",
+    "EX-SQL-CRAFT-03-E2-41",
+    "EX-SQL-CRAFT-03-E2-42",
+    "EX-SQL-CRAFT-03-E1-43",
+    "EX-SQL-CRAFT-03-E1-44",
+    "EX-SQL-CRAFT-03-E2-43",
+    "EX-SQL-CRAFT-03-E3-41"
+  ],
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "why_clause": {
+    "clause": "WITH base AS (SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, m.account_id, a.segment FROM mrr_monthly m JOIN accounts a ON a.account_id = m.account_id",
+    "stem": "Why does the base move each mrr_monthly row one month forward?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A row means MRR at that month's end, so January's rows are the accounts at risk when February starts: February's base."
+      },
+      {
+        "id": "b",
+        "text": "mrr_monthly runs one month behind subscription_events, and the shift lines the two tables up again."
+      },
+      {
+        "id": "c",
+        "text": "It leaves out the accounts that churn during the month, so the rate can never go above 1."
+      },
+      {
+        "id": "d",
+        "text": "It changes nothing in the rate: the shift only renames the month so the join finds a match."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "A month's row in mrr_monthly says the account had MRR on that month's last day. Moved one month forward, January's rows become the accounts February starts with, a base that this month's churn and sign-ups cannot change. Without the shift the base would be February's own end, which has already lost the churners."
+  }
+}

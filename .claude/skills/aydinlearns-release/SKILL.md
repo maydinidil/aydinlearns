@@ -1,11 +1,11 @@
 ---
 name: aydinlearns-release
-description: Publishes a merged aydinlearns version to the public repository (maydinidil/aydinlearns) - export, scan and install check, push, tag and release notes, the release record, and Aydin's checkout. Use only when Aydin gives the go for a public release of a version already merged to main; do not use to merge a PR, to push the monorepo, or to rehearse.
+description: Publishes a merged Grondig version to the public repository (maydinidil/grondig) - export, scan and install check, push, tag and release notes, the release record, and Aydin's checkout. Use only when Aydin gives the go for a public release of a version already merged to main; do not use to merge a PR, to push the monorepo, or to rehearse.
 argument-hint: <version, for example 0.7.3>
 disable-model-invocation: true
 ---
 
-# Publish an aydinlearns release
+# Publish a Grondig release
 
 One go from Aydin ("do the public release", naming or implying the version) covers every step below, in order. The
 steps stop themselves on any failure; nothing here needs a second go unless a stop condition fires. If you found this
@@ -17,6 +17,9 @@ file by path rather than through the skill command, the same rules apply: do not
 - The version's PR is merged to `main`, and every Codex line comment on it is fixed or answered (D119: Codex before the
   merge). Check with the `review-findings` skill's intake if unsure. If not, stop.
 - `gh` is logged in as `maydinidil` (`gh api user -q .login`).
+- `gh repo view maydinidil/grondig` resolves: the public repo was renamed from `maydinidil/aydinlearns` (S9-19, before
+  the `v0.9.1` release). If it does not resolve, stop and report. Never create a repo: a new `maydinidil/grondig` would
+  take the name and block the rename.
 - The real key prefixes, from the controller's own memory or Aydin. They are passed in `RELEASE_SCAN_PREFIXES`
   (comma-separated), set for that one command only; never echoed, and never written to a file, a commit, a log or a
   message.
@@ -33,7 +36,7 @@ file by path rather than through the skill command, the same rules apply: do not
 Run every command from a checkout or worktree of the monorepo whose tree matches `origin/main` (after `git fetch`), with
 absolute paths, and keep scratch in the session's scratch folder, outside the monorepo.
 
-1. **Clone.** `gh repo clone maydinidil/aydinlearns <scratch>/pub`.
+1. **Clone.** `gh repo clone maydinidil/grondig <scratch>/pub`.
 2. **Export.** `bash aydinlearns/tools/export-public.sh <scratch>/pub origin/main`. It commits once in the clone and never
    pushes. "nothing to refresh" means the public copy already matches: stop and report.
 3. **Check.** `RELEASE_SCAN_PREFIXES=<prefixes> node aydinlearns/tools/release-check.ts <scratch>/pub`, from inside the
@@ -44,8 +47,8 @@ absolute paths, and keep scratch in the session's scratch folder, outside the mo
 4. **Push.** Only on `RESULT: PASS`: `git -C <scratch>/pub push origin main`.
 5. **Tag and release.** Write the notes to `<scratch>/v<version>-notes.md` from the CHANGELOG section: what changed,
    the Codex findings fixed, what is never written or sent, how to update (log version, any package change), and the
-   known issues. Then `gh release create v<version> --repo maydinidil/aydinlearns --target <export commit>
-   --title "aydinlearns <version>" --notes-file <scratch>/v<version>-notes.md --latest`.
+   known issues. Then `gh release create v<version> --repo maydinidil/grondig --target <export commit>
+   --title "Grondig <version>" --notes-file <scratch>/v<version>-notes.md --latest`.
 6. **Record.** On the next sprint's branch (never on `main` directly), add an "after the merge" section to the sprint's
    record: the PR, Codex, the merge, the export commit and its scan (counts and rules only), the install check's lines,
    the tag, and Aydin's checkout; and set the release status in `aydinlearns/CHANGELOG.md` and
@@ -71,7 +74,7 @@ A `NOTE` line (the monorepo's own path in an added line, ruling S7D-C04) does no
 ## Verification
 
 - `git -C <scratch>/pub log origin/main -1` equals the export commit after the push.
-- `gh release view v<version> --repo maydinidil/aydinlearns` shows the tag on that commit, marked Latest.
+- `gh release view v<version> --repo maydinidil/grondig` shows the tag on that commit, marked Latest.
 - Nothing listens on 5194 and no `aydinlearns-release-*` folder is left in the temporary folder.
 
 ## Output

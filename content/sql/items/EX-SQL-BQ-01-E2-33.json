@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-BQ-01-E2-33",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "unnest",
+    "bigquery_form",
+    "fix"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-fix-bigquery-unnest",
+  "template_params": {
+    "event_name": "page_view",
+    "day": "20251120"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what is the total engagement time of the page_view events on 20 November 2025, by event_date, for each device category? The query is written the way BigQuery reads a parameter, and it must run in DuckDB. The engagement time is the engagement_time_msec parameter, a whole number of milliseconds in int_value; a page_view that carries no engagement_time_msec adds nothing, and a device whose page_view events all lack it still gets a row, with a missing engagement_msec. Count every page_view, the ones with a missing user_pseudo_id included. The device is device.category. Return device_category and engagement_msec. Return one row for each device category with a page_view that day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "device_category",
+        "type_class": "text"
+      },
+      {
+        "name": "engagement_msec",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "device_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "engagement_msec",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "device_category"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check how the query names the rows it unnests from event_params.",
+    "DuckDB names the unnested table, not each element, so give the element a column name such as t(p), or pick the parameter with a list function."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 155,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 156,
+      "to": 167,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 168,
+      "to": 228,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 229,
+      "to": 253,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT device.category AS device_category, SUM(p.value.int_value) AS engagement_msec\nFROM events, UNNEST(event_params) AS p\nWHERE event_name = 'page_view'\n  AND event_date = '20251120'\n  AND p.key = 'engagement_time_msec'\nGROUP BY device.category",
+  "time_target_ms": 180000,
+  "why_this_works": "list_filter picks the engagement_time_msec element of each list in DuckDB, where BigQuery would use a subquery over UNNEST.",
+  "starter_error_id": "ERR-SYN-09"
+}

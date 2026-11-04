@@ -1,0 +1,179 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "logo_churn",
+    "rate",
+    "segment"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-logo-churn-rate-segment",
+  "template_params": {
+    "table": "mrr_monthly",
+    "year": 2025,
+    "by": "segment"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Is churn worse in one segment? For each month of 2025 and each segment (accounts.segment), LedgerLoop's logo churn rate: the accounts of the segment that churned in the month divided by the segment's accounts with MRR at the end of the month before. The base of a month is the accounts with MRR at the end of the month before: those with a row in mrr_monthly for the month before (mrr_monthly.month is the first day of a month). An account churned in a month when it has a churn event (event_type churn in subscription_events) dated in that month; count each account once. An account that starts or comes back during the month is not in that month's base. Return three columns, in this order: month_start (the first day of the month), segment and churn_rate, as a share (0.02 for 2%), not rounded. Return one row for each month of 2025 and segment; a segment with no churn in a month shows 0. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025 and segment"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start",
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the rate for each month and segment: churned accounts over the segment's base.",
+    "Group the base by month and segment; the churn rows join onto the base, so a segment with no churn still has its row."
+  ],
+  "subgoals": [
+    {
+      "from": 100,
+      "to": 187,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 190,
+      "to": 208,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 211,
+      "to": 257,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 260,
+      "to": 321,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 394,
+      "to": 482,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 485,
+      "to": 509,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 512,
+      "to": 601,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 604,
+      "to": 636,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 639,
+      "to": 689,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 690,
+      "to": 701,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 702,
+      "to": 786,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 787,
+      "to": 820,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 637,
+    "stage2": 637
+  },
+  "faded_shape": "WITH base AS (\n  -- one row per month of 2025 and account with MRR at the end of the month before\n  SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, m.account_id, a.segment\n  FROM mrr_monthly m\n  JOIN accounts a ON a.account_id = m.account_id\n  WHERE m.month BETWEEN DATE '2024-12-01' AND DATE '2025-11-01'\n), churned AS (\n  -- one row per account and month with a churn event\n  SELECT DISTINCT account_id, CAST(date_trunc('month', event_date) AS DATE) AS month_start\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n)\nSELECT b.month_start, b.segment,\n",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Each segment's rate divides by that segment's own accounts at the start of the month, and the LEFT JOIN keeps months with no churn at 0.",
+  "faded_suffix": "\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id AND c.month_start = b.month_start\nGROUP BY b.month_start, b.segment"
+}

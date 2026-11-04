@@ -72,3 +72,19 @@ test('K1: when one cut is not enough, a second long section is cut too, each wit
   assert.ok((s.text.match(/\[\d+ characters left out to fit\]/g) ?? []).length >= 2, 'more than one long section carries a note');
   assert.ok(s.text.includes('SELECT 1'), 'the short part is kept whole');
 });
+
+test('S9-06: a fixed_choice option shows its text, then its code block\'s dialect and query on lines of their own, as a query option\'s lines show', () => {
+  const base = { label: 'Question', itemId: 'EX-1', instanceId: 'I-3', phase: 'free', answered: false, correct: null, answerShown: false, chosen: null, typed: '' };
+  const options = [
+    { oid: 'o-1', text: 'Name the list itself as each of its rows.', code: { lang: 'bigquery' as const, sql: 'SELECT p.key\nFROM events, UNNEST(event_params) AS p' } },
+    { oid: 'o-2', text: 'Read the key and its value in one row each.' },
+    { oid: 'o-3', text: 'Open the list as a table.', code: { lang: 'duckdb' as const, sql: 'SELECT p.key FROM events, unnest(event_params) AS t(p)' } },
+  ];
+  assert.equal(choicePart({ ...base, options, answered: true, correct: true, chosen: 'Open the list as a table.' }).text, [
+    'Status: answered, correct', 'Options, from the top of the screen down:',
+    'First option: Name the list itself as each of its rows.', '  (BigQuery)', '  SELECT p.key', '  FROM events, UNNEST(event_params) AS p',
+    'Second option: Read the key and its value in one row each.',
+    'Third option: Open the list as a table.', '  (DuckDB)', '  SELECT p.key FROM events, unnest(event_params) AS t(p)',
+    'The learner picked: the third option',
+  ].join('\n'));
+});

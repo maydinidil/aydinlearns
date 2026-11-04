@@ -1,0 +1,160 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "logo_churn",
+    "pooled",
+    "segment"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-logo-churn-pooled-segment",
+  "template_params": {
+    "table": "mrr_monthly",
+    "year": 2025,
+    "by": "segment"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Leadership wants one number per segment: LedgerLoop's average monthly logo churn rate in 2025, pooled over the twelve months. Take each month of 2025: its base is the segment's accounts with MRR at the end of the month before (a row in mrr_monthly for the month before), and its churned accounts are those with a churn event (event_type churn in subscription_events) dated in the month, each counted once per month. The pooled rate is the sum of the twelve months' churned accounts divided by the sum of the twelve months' bases. Use accounts.segment. Return two columns, in this order: segment and avg_monthly_churn_rate, as a share (0.02 for 2%), not rounded. Return one row per segment. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_monthly_churn_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_monthly_churn_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build one base row per month and account, then pool the twelve months per segment.",
+    "Pooling divides the total of the churned accounts by the total of the bases: each month counts by its size, not as one twelfth."
+  ],
+  "subgoals": [
+    {
+      "from": 100,
+      "to": 187,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 190,
+      "to": 208,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 211,
+      "to": 257,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 260,
+      "to": 321,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 394,
+      "to": 482,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 485,
+      "to": 509,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 512,
+      "to": 601,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 604,
+      "to": 684,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 685,
+      "to": 696,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 697,
+      "to": 781,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 782,
+      "to": 800,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Adding up the twelve numerators and the twelve bases before dividing weights each month by its base, as a pooled rate should."
+}

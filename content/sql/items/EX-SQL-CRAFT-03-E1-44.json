@@ -1,0 +1,83 @@
+{
+  "id": "EX-SQL-CRAFT-03-E1-44",
+  "version": 2,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "fixed_choice",
+    "plan",
+    "grain"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-plan-grain",
+  "template_params": {
+    "part": "output_grain"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "A category manager asks: \"Did the spring price rises hurt volume?\" The plan compares each product's units before and after each of its rises. Which line belongs under Output grain?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o358bc15",
+      "text": "One row per order line sold in the 8 weeks either side of a rise, with a column that says before or after.",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "o854e95e",
+      "text": "One row per month from March to May, with the units of every product added up across the whole store network.",
+      "misconception_id": "MIS-SQL-CRAFT-03-07"
+    },
+    {
+      "oid": "o0bc533c",
+      "text": "One row per price rise, that is a product and its valid_from, with its units before and its units after.",
+      "misconception_id": null
+    },
+    {
+      "oid": "ob742e84",
+      "text": "One row per product, with its units in spring 2025 beside its units in spring 2024 at last year's prices.",
+      "misconception_id": "MIS-SQL-CRAFT-03-05"
+    }
+  ]
+}

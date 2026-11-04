@@ -1,0 +1,146 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "engaged_sessions",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-CTE-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-engaged-days",
+  "template_params": {
+    "from": "20251108",
+    "to": "20251114"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's web team tracks engaged sessions. For each Dublin day from 8 to 14 November 2025 (by event_date), count the sessions and the engaged sessions. Count each session from its session_start event; a session is one user_pseudo_id with one ga_session_id, so a session_start event missing either ID (consent denied) is left out. A session is engaged when its session_engaged parameter is the text '1'. Return exactly three columns, in this order: day (the Dublin day as text, in the same form as event_date), sessions and engaged_sessions. Return one row for each of those days that has sessions; a day with none has no row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per Dublin day from 8 to 14 November 2025 that has sessions"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column list of the first step: only what the two counts need.",
+    "Keep the day and the session_engaged parameter of each session_start event, read with list_filter from its text slot."
+  ],
+  "subgoals": [
+    {
+      "from": 141,
+      "to": 255,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 258,
+      "to": 269,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 272,
+      "to": 394,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 397,
+      "to": 504,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 505,
+      "to": 516,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 517,
+      "to": 536,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 141,
+    "stage2": 141
+  },
+  "faded_shape": "WITH starts AS (\n  -- one row per session_start event with both IDs, 8 to 14 November 2025 (Dublin days): only the columns the counts need\n  ",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "One session_start event with both IDs is one session, so counting them per day, and those flagged 1, gives both numbers from two narrow columns.",
+  "faded_suffix": "\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251108' AND '20251114'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT event_date AS day, COUNT(*) AS sessions,\n  COUNT(*) FILTER (WHERE engaged = '1') AS engaged_sessions\nFROM starts\nGROUP BY event_date"
+}

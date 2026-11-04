@@ -1,7 +1,7 @@
 import type { Concept, Level } from '../../schemas/concepts.ts';
 import type { Lesson } from '../../schemas/lesson.ts';
 import type { SqlChoiceKind, SqlItem, UniqueCheck } from '../../schemas/item.ts';
-import type { OptionTable } from '../../schemas/choice-types.ts';
+import type { OptionCode, OptionTable } from '../../schemas/choice-types.ts';
 import type { TableNote } from '../../schemas/schema-notes.ts';
 import { JOURNEY_PATH, type Screen } from '../../schemas/journey.ts';
 import type { CloseReason, Exposure, Phase, Section } from '../../core/envelope.ts';
@@ -100,8 +100,14 @@ export interface SqlChoiceItemView extends Omit<ChoiceItemView, 'section' | 'top
 }
 /** The sections the choice panel shows: GA4, Methodology and the SQL choice kinds. */
 export type ChoicePanelSection = ChoiceSection | 'sql';
-/** One showing: the options in the order shown, which the answer sends back and the log records. A predict_result option carries its table. */
-export interface ChoiceServed { item: ChoiceItemView | SqlChoiceItemView; options: { oid: string; text: string; table?: OptionTable }[]; shown_order: string[]; item_instance_id: string; phase: Phase }
+/**
+ * One showing: the options in the order shown, which the answer sends back and the log records. A predict_result option carries its table,
+ * and a fixed_choice option its code block when it has one (S9-06).
+ */
+export interface ChoiceServed {
+  item: ChoiceItemView | SqlChoiceItemView; options: { oid: string; text: string; table?: OptionTable; code?: OptionCode }[]; shown_order: string[]; item_instance_id: string;
+  phase: Phase;
+}
 export interface ChoiceAnswerBody {
   item_id: string; item_instance_id: string; chosen?: string; typed?: string; confidence: 1 | 2 | 3 | 4 | null;
   shown_order: string[]; phase: Phase; active_ms: number;
@@ -207,7 +213,7 @@ export class ApiError extends Error {
 }
 
 /** What the screens say when the app cannot be reached at all, instead of the browser's "Failed to fetch". */
-export const NOT_RUNNING = 'The app is not running. Start it with Start aydinlearns.bat, then try again.';
+export const NOT_RUNNING = 'The app is not running. Start it with Start Grondig.bat, then try again.';
 
 async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown, keepalive = false): Promise<T> {
   let res: Response;

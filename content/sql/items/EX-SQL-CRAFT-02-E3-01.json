@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-CRAFT-02-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "engaged_sessions",
+    "traffic_source",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-CTE-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-engagement-rate",
+  "template_params": {
+    "from": "20251215",
+    "to": "20251221"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's marketing manager wants the engagement rate per first-touch medium for the Dublin days 15 to 21 December 2025 (by event_date). Count each session from its session_start event; a session is one user_pseudo_id with one ga_session_id, so a session_start event missing either ID (consent denied) is left out. The medium is traffic_source.medium, and a session is engaged when its session_engaged parameter is the text '1'. Return exactly four columns, in this order: medium, sessions, engaged_sessions and engagement_rate (engaged_sessions divided by sessions, as a fraction from 0 to 1, not rounded). Return one row for each medium. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "medium",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "engagement_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "engaged_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "engagement_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the rate column from the two counts.",
+    "Divide the engaged count by all sessions as a fraction, with a division that keeps the decimals."
+  ],
+  "subgoals": [
+    {
+      "from": 141,
+      "to": 280,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 283,
+      "to": 294,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 297,
+      "to": 419,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 422,
+      "to": 589,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 590,
+      "to": 601,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 602,
+      "to": 617,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each session_start with both IDs is one session, and dividing the engaged ones by all of them, with decimals kept, gives the rate per medium."
+}

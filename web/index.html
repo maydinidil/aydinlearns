@@ -4,7 +4,24 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>aydinlearns</title>
+    <script>
+      // The theme before first paint (S9-18): the same key and rules as web/src/lib/theme.ts (startTheme). Dark unless "light" or
+      // "system" is saved; a store that throws reads as dark. No colour here: data-theme picks the token set in tokens.css.
+      (function () {
+        var root = document.documentElement;
+        var choice = null;
+        var dark = true;
+        try { choice = window.localStorage.getItem('aydinlearns.theme'); } catch (e) { choice = null; }
+        if (choice === 'light') dark = false;
+        else if (choice === 'system') {
+          try { dark = window.matchMedia('(prefers-color-scheme: dark)').matches; } catch (e) { dark = true; }
+        }
+        root.setAttribute('data-theme', dark ? 'dark' : 'light');
+        root.style.setProperty('color-scheme', dark ? 'dark' : 'light');
+      })();
+    </script>
+    <title>Grondig</title>
+    <link rel="icon" type="image/png" href="/src/assets/mascot/mole-calm.png" />
   </head>
   <body>
     <div id="root"></div>

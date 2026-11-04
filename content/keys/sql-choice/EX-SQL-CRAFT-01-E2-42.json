@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "oc4c3009",
+  "explanation": "A purchase is a subscription's earliest payment, refunded or not, so the backend side takes each subscription's MIN(paid_at) and keeps the refunded ones. Dropping refunded payments before the MIN can turn a later payment into a first payment and leaves the refunded purchases out of one side only. Counting every payment adds the monthly renewals, and a dashed date compared with event_date keeps no events at all.",
+  "solver": {
+    "prompt_hash": "9107745d3698fd08",
+    "grader_version": "choice.3",
+    "chosen": "oc4c3009",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.583Z"
+  }
+}

@@ -21,6 +21,8 @@
 // cases as they check every case. Sprint 7 Part 2 (Task N1) adds C56, the knowledge pool (S7-10, S7-11, S7-C21), and C46 counts the GA4
 // exam pool without it (server/run.ts ga4ExamPool). Sprint 7c (Task X5, S7C-09) moves C53's reading to tools/rank-cutoffs.ts. Sprint 8
 // (Task A1) stops C11 flagging PIVOT in the other way of an item at SQL-PAT-05 or later (S8-09), and flags PIVOT_WIDER and UNPIVOT.
+// Sprint 9 (Task A1, S9-06) adds C57, the fixed_choice items (ruling S9-C13: the plan's C54 was taken), from tools/check-sql-choice.ts: per
+// item with the SQL choice checks, and per concept (checkFixedChoiceShare) after the level 4 traps.
 // Usage: node tools/check-content.ts [content-root] [--only C14,C25]   (default: content/, every check)
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -49,7 +51,7 @@ import { validateDataset, type DatasetRecord } from '../schemas/dataset.ts';
 import { notesForLevel, type TableNote } from '../schemas/schema-notes.ts';
 import { detectConstructs, helperCalls } from './constructs.ts';
 import { checkChoice, tallyLine } from './check-choice.ts';
-import { checkSqlChoiceItem, checkWhyClause, outermost, sqlChoiceTallyLine } from './check-sql-choice.ts';
+import { checkFixedChoiceShare, checkSqlChoiceItem, checkWhyClause, outermost, sqlChoiceTallyLine } from './check-sql-choice.ts';
 import { caseKeyHash } from './case-key-hash.ts';
 import { casePromptHash } from './export-case-view.ts';
 import { rankCutoffProblems } from './rank-cutoffs.ts';
@@ -1637,16 +1639,17 @@ async function itemFiles(dir: string): Promise<{ ids: string[]; unreadable: stri
   return { ids, unreadable };
 }
 
-/** Every check ID the check tools define, C01 to C56 (a test keeps this list whole when a check is added). */
-export const CHECK_IDS: readonly string[] = Array.from({ length: 56 }, (_, i) => `C${String(i + 1).padStart(2, '0')}`);
+/** Every check ID the check tools define, C01 to C57 (a test keeps this list whole when a check is added). */
+export const CHECK_IDS: readonly string[] = Array.from({ length: 57 }, (_, i) => `C${String(i + 1).padStart(2, '0')}`);
 
 /**
- * The checks that run on the built database (the runner): item checks, the case checks C41 and C47, C51 to C53, the SQL choice checks.
+ * The checks that run on the built database (the runner): item checks, the case checks C41 and C47, C51 to C53, the SQL choice checks
+ * (C57 among them, S9-06).
  * This list and CHOICE_CHECK_IDS decide which stages a partial run skips; tests/tools/check-content-only.test.ts reads the code each
  * `wants(<list>)` guards in main and fails when it can write a check ID its list lacks.
  */
 export const DB_CHECK_IDS: ReadonlySet<string> = new Set([...CHECK_IDS.filter((id) => id <= 'C18'), 'C29', 'C30', ...CHECK_IDS.filter((id) => id >= 'C31' && id <= 'C41'),
-  'C47', 'C51', 'C52', 'C53']);
+  'C47', 'C51', 'C52', 'C53', 'C57']);
 /** The choice checks (tools/check-choice.ts); the full list of IDs those files write. */
 export const CHOICE_CHECK_IDS: readonly string[] = ['C01', 'C14', ...CHECK_IDS.filter((id) => id >= 'C20' && id <= 'C28'), ...CHECK_IDS.filter((id) => id >= 'C31' && id <= 'C37')];
 
@@ -1739,6 +1742,8 @@ async function main(): Promise<void> {
   results.push(...checkMocks(store, drillFile), ...checkMockCases(store));
   // C48: the level 4 traps, on every SQL item and its key.
   results.push(...checkLevel4Traps(allItems, (id) => store.key(id)));
+  // C57 per concept (S9-06): the right option of a concept's fixed_choice items is not the only longest one too often.
+  results.push(...checkFixedChoiceShare(allItems, (id) => store.sqlChoiceKey?.(id)));
   for (const n of files.unreadable) results.push({ id: `sql/items/${n}`, check: 'C01', ok: false, detail: 'not valid JSON, or has no id' });
   const active = [...new Set(ids)].filter((id) => sqlItemOf(id)?.status === 'active');
   const hasCases = (store.cases?.() ?? []).length > 0 || (store.mockCases?.() ?? []).length > 0;
@@ -1781,7 +1786,7 @@ async function main(): Promise<void> {
   for (const r of results.filter((x) => !x.ok)) console.log(`${r.warn ? 'WARN' : 'FAIL'} ${r.check} ${r.id} ${r.detail}`);
   const tally = tallyLine(results);
   if (tally) console.log(tally);
-  if (wants(['C31', 'C32', 'C33', 'C34', 'C35', 'C36', 'C37'])) console.log(sqlChoiceTallyLine(results));
+  if (wants(['C31', 'C32', 'C33', 'C34', 'C35', 'C36', 'C37', 'C57'])) console.log(sqlChoiceTallyLine(results));
   const labTally = labTallyLine(results);
   if (labTally) console.log(labTally);
   const failed = results.filter((r) => !r.ok && !r.warn);

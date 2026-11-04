@@ -1,10 +1,13 @@
 import type { ContentEnvelope } from '../core/content.ts';
 import { validateEnvelope } from '../core/content.ts';
 // Not from schemas/choice.ts, which imports node:crypto: the browser imports this file (DEFAULT_RULES).
-import type { ChoiceOption, TypedSpec } from './choice-types.ts';
+import { CODE_LANGS, type ChoiceOption, type TypedSpec } from './choice-types.ts';
 
-/** S3-13: the SQL choice kinds, graded by the choice grader and rated by the multiple-choice map (S3-14, S3-15). */
-export type SqlChoiceKind = 'predict_rows' | 'predict_result' | 'choose_query' | 'which_table' | 'is_unique';
+/**
+ * S3-13: the SQL choice kinds, graded by the choice grader and rated by the multiple-choice map (S3-14, S3-15). S9-06 (sprint 9): fixed_choice,
+ * a question whose options the app does not run (BigQuery SQL, a cost or plan statement), served, graded, logged and rated as predict_result.
+ */
+export type SqlChoiceKind = 'predict_rows' | 'predict_result' | 'choose_query' | 'which_table' | 'is_unique' | 'fixed_choice';
 export type ItemKind = 'write' | 'fix' | SqlChoiceKind;
 /**
  * `case` (S4B-02): an inbox or daily case's CP3 item, with the ID EX-CASE-<case tail>. `mock` (S7-08): a held-out recruiter mock item, a
@@ -77,7 +80,8 @@ export interface SqlItem extends ContentEnvelope {
   why_this_works: string;             // empty on a choice item: its key's explanation is shown after an answer
   // S3-13: the SQL choice kinds' own fields. Each is absent (or null) on every other kind; validateSqlItem says which takes which.
   shown_sql?: string | null;          // predict_rows, predict_result: the query the item shows
-  options?: ChoiceOption[];           // predict_result (each with a table), choose_query, which_table, is_unique: oids by S2-60
+  options?: ChoiceOption[];           // predict_result (each with a table), choose_query, which_table, is_unique, fixed_choice (3 or 4, each
+                                      // text with an optional code block, S9-06): oids by S2-60
   typed?: TypedSpec | null;           // predict_rows: a count (precision count, scale plain, 0 decimals)
   unique_check?: UniqueCheck | null;  // is_unique
 }
@@ -88,7 +92,7 @@ export const DEFAULT_RULES: GradingRules = {
   timeout_ms: 5000, set_semantics: false, case_insensitive: false, strict_column_order: false,
 };
 
-export const SQL_CHOICE_KINDS: readonly SqlChoiceKind[] = ['predict_rows', 'predict_result', 'choose_query', 'which_table', 'is_unique'];
+export const SQL_CHOICE_KINDS: readonly SqlChoiceKind[] = ['predict_rows', 'predict_result', 'choose_query', 'which_table', 'is_unique', 'fixed_choice'];
 export const isSqlChoiceKind = (kind: unknown): kind is SqlChoiceKind => SQL_CHOICE_KINDS.includes(kind as SqlChoiceKind);
 /** S3-17: the kinds a predict pretest item has. */
 export const PREDICT_KINDS: readonly SqlChoiceKind[] = ['predict_rows', 'predict_result'];
@@ -181,7 +185,7 @@ const article = (kind: string): string => (/^[aeiou]/.test(kind) ? 'an' : 'a');
 /** Each choice field and the kinds that take it; every other kind leaves it out. */
 const CHOICE_FIELDS: readonly { field: 'shown_sql' | 'options' | 'typed' | 'unique_check'; kinds: readonly SqlChoiceKind[] }[] = [
   { field: 'shown_sql', kinds: PREDICT_KINDS },
-  { field: 'options', kinds: ['predict_result', 'choose_query', 'which_table', 'is_unique'] },
+  { field: 'options', kinds: ['predict_result', 'choose_query', 'which_table', 'is_unique', 'fixed_choice'] },
   { field: 'typed', kinds: ['predict_rows'] },
   { field: 'unique_check', kinds: ['is_unique'] },
 ];
@@ -198,9 +202,25 @@ function isOptionTable(t: unknown): boolean {
   return (t.rows as unknown[]).every((r) => Array.isArray(r) && r.length === columns.length && r.every(cell));
 }
 
-/** The options' shape (their S2-60 oids are checked by schemas/choice.ts, which can hash). */
+/**
+ * S9-06: a fixed_choice option's code block, when it has one: exactly a lang (bigquery or duckdb) and a query. Every other kind's option
+ * has none.
+ */
+function checkOptionCode(opt: Obj, i: number, kind: SqlChoiceKind, e: string[]): void {
+  if (opt.code === undefined) return;
+  if (kind !== 'fixed_choice') { e.push(`options[${i}].code belongs on fixed_choice options only`); return; }
+  const c = opt.code;
+  if (!isObj(c) || !('lang' in c) || !('sql' in c)) { e.push(`options[${i}].code must be an object with a lang and a query`); return; }
+  if (Object.keys(c).some((k) => k !== 'lang' && k !== 'sql')) e.push(`options[${i}].code holds only lang and sql`);
+  if (!(CODE_LANGS as readonly unknown[]).includes(c.lang)) e.push(`options[${i}].code.lang must be bigquery or duckdb`);
+  if (!isText(c.sql)) e.push(`options[${i}].code.sql must be a query`);
+}
+
+/** The options' shape (their S2-60 oids are checked by schemas/choice.ts, which can hash). S9-06: a fixed_choice item has 3 or 4. */
 function checkSqlOptions(options: unknown, kind: SqlChoiceKind, e: string[]): void {
-  if (!Array.isArray(options) || options.length < 2 || options.length > 8) { e.push('a choice item needs 2 to 8 options'); return; }
+  if (kind === 'fixed_choice') {
+    if (!Array.isArray(options) || options.length < 3 || options.length > 4) { e.push('a fixed_choice item has 3 or 4 options'); return; }
+  } else if (!Array.isArray(options) || options.length < 2 || options.length > 8) { e.push('a choice item needs 2 to 8 options'); return; }
   const before = e.length;
   const texts: string[] = [];
   options.forEach((opt: unknown, i) => {
@@ -212,6 +232,7 @@ function checkSqlOptions(options: unknown, kind: SqlChoiceKind, e: string[]): vo
     if (kind !== 'predict_result') { if (opt.table !== undefined) e.push(`options[${i}].table belongs on predict_result options only`); }
     else if (opt.table === undefined) e.push(`options[${i}] needs a table: every predict_result option is a result table`);
     else if (!isOptionTable(opt.table)) e.push(`options[${i}].table must have a list of distinct column names and rows of that many cells, each text, a number or null`);
+    checkOptionCode(opt, i, kind, e);
   });
   if (e.length === before && new Set(texts).size !== options.length) e.push('option texts must be different');
   if (kind === 'is_unique' && (options.length !== 2 || !options.every(isObj) || [...options.map((o) => (o as Obj).text)].sort().join('|') !== 'No|Yes')) {

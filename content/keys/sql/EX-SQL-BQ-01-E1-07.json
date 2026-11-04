@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-07",
+  "item_version": 1,
+  "reference_sql": "WITH purchases AS (\n  -- one row per purchase from 1 to 31 December 2025\n  SELECT geo.country AS country,\n    list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n)\nSELECT country, COUNT(*) AS purchases,\n  SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS purchase_value\nFROM purchases\nGROUP BY country",
+  "alternatives": [
+    "SELECT e.geo.country AS country, COUNT(*) AS purchases,\n  SUM(COALESCE(p.value.int_value, p.value.float_value, p.value.double_value)) AS purchase_value\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'purchase'\n  AND e.event_date BETWEEN '20251201' AND '20251231'\n  AND p.key = 'value'\nGROUP BY e.geo.country",
+    "SELECT geo.country AS country, COUNT(*) AS purchases, SUM(ecommerce.purchase_revenue) AS purchase_value\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251201' AND '20251231'\nGROUP BY geo.country"
+  ],
+  "other_way": {
+    "sql": "SELECT geo.country AS country, COUNT(*) AS purchases, SUM(ecommerce.purchase_revenue) AS purchase_value\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251201' AND '20251231'\nGROUP BY geo.country",
+    "tradeoff": "ecommerce.purchase_revenue holds the same amount on this export, so adding it up skips the parameter list."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-53",
+      "sql": "WITH purchases AS (SELECT geo.country AS country, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v FROM events WHERE event_name = 'purchase' AND event_date BETWEEN '20251201' AND '20251231') SELECT country, COUNT(*) AS purchases, SUM(v.double_value) AS purchase_value FROM purchases GROUP BY country"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH purchases AS (SELECT geo.country AS country, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v FROM events WHERE event_name = 'purchase' AND event_date BETWEEN '2025-12-01' AND '2025-12-31') SELECT country, COUNT(*) AS purchases, SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS purchase_value FROM purchases GROUP BY country"
+    }
+  ],
+  "hint3_partial": "WITH purchases AS (\n  -- one row per purchase from 1 to 31 December 2025\n  SELECT geo.country AS country,\n    list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n)\nSELECT country, COUNT(*) AS purchases,\n  SUM(COALESCE(___, ___, ___)) AS purchase_value\nFROM purchases\nGROUP BY country",
+  "solver": {
+    "prompt_hash": "9b13e8897616055f",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT geo.country AS country, COUNT(*) AS purchases, SUM(COALESCE((list_filter(event_params, lambda p: p.key = 'value')[1].value).int_value, (list_filter(event_params, lambda p: p.key = 'value')[1].value).float_value, (list_filter(event_params, lambda p: p.key = 'value')[1].value).double_value)) AS purchase_value\r\nFROM events\r\nWHERE event_name = 'purchase' AND event_date BETWEEN '20251201' AND '20251231'\r\nGROUP BY 1\r\n",
+    "at": "2026-11-03T19:01:24.683Z"
+  }
+}

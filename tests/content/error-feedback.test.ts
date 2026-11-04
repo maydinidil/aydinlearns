@@ -449,9 +449,10 @@ test('S8-08, S8-C06: ERR-LOG-44 to ERR-LOG-51 carry the rulings\' names, under t
     assert.equal(levelOf.get(w.concept), 6, `${w.concept} is a level 6 concept`);
     assert.ok(NEW_ERRORS.some((x) => x.id === id), `${id} is one of the extract's NEW_ERRORS, so npm run extract keeps it`);
   }
-  // The eight come last in errors.json, after sprint 7's, so the catalogue only grows.
+  // The eight come in errors.json after sprint 7's, so the catalogue only grows; sprint 9's five (S9-04) follow them.
   assert.deepEqual(Object.keys(LEVEL6_IDS), Array.from({ length: 8 }, (_, i) => `ERR-LOG-${44 + i}`));
-  assert.deepEqual(errors.slice(-8).map((e) => e.id), Object.keys(LEVEL6_IDS));
+  assert.deepEqual(errors.slice(-13, -5).map((e) => e.id), Object.keys(LEVEL6_IDS));
+  assert.deepEqual(errors.slice(-5).map((e) => e.id), ['ERR-LOG-52', 'ERR-LOG-53', 'ERR-LOG-54', 'ERR-LOG-55', 'ERR-SYN-09']);
 });
 
 test('S8-08: E-209 gives each level 6 ID the name errors.json holds', { skip: !e209 && 'ERRATA E-209 is written by the controller after Task A1' }, () => {

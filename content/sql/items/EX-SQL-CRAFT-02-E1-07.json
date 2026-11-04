@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "revenue",
+    "sales"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-store-sales",
+  "template_params": {
+    "from": "2025-03-17",
+    "to": "2025-03-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each Voltmarkt store, what units and revenue were sold from 17 to 31 March 2025 (sales.order_date, a UTC day)? Revenue is net_revenue_eur. Return exactly three columns, in this order: store_code, units and revenue. Return one row for each store with sales in those days. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep only the lines of those days and the columns the totals need.",
+    "Both end days count; keep the store, the units and the revenue, then add them up per store."
+  ],
+  "subgoals": [
+    {
+      "from": 126,
+      "to": 167,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 170,
+      "to": 180,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 183,
+      "to": 247,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 250,
+      "to": 321,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 322,
+      "to": 337,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 338,
+      "to": 357,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The first step keeps three columns of the fortnight's lines, and the answer adds them up per store with exactly the columns asked for."
+}

@@ -1,0 +1,83 @@
+{
+  "id": "EX-SQL-CRAFT-03-E1-43",
+  "version": 1,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "fixed_choice",
+    "plan",
+    "metric"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-plan-metric",
+  "template_params": {
+    "part": "metric"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Customer Success asks whether LedgerLoop is losing a growing share of its customers from month to month. Before any SQL, the plan's Metric line needs a formula. Which one answers that question?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o719cf80",
+      "text": "Each month, the accounts that churned during the month divided by all the accounts that had MRR at any point in that same month.",
+      "misconception_id": "MIS-SQL-CRAFT-03-01"
+    },
+    {
+      "oid": "oe000244",
+      "text": "Each month, the accounts that churned during the month divided by the accounts with MRR at the end of the month before.",
+      "misconception_id": null
+    },
+    {
+      "oid": "o5b1922e",
+      "text": "Each month, the MRR lost to churn during the month divided by the total MRR at the end of the month before.",
+      "misconception_id": "MIS-SQL-CRAFT-03-02"
+    },
+    {
+      "oid": "o4989f51",
+      "text": "Each month, the number of accounts that churned during the month, set beside the same month a year before.",
+      "misconception_id": "MIS-SQL-CRAFT-03-03"
+    }
+  ]
+}

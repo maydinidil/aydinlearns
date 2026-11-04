@@ -1,0 +1,150 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "sessions",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-session-total",
+  "template_params": {
+    "from": "20251109",
+    "to": "20251115"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's analytics lead wants to know whether the GA4 export agrees with the backend on sessions. Check the Dublin days 9 to 15 November 2025. On the export side, count the session_start events on those days by event_date (the day in Dublin), the events of visitors who denied consent (no user_pseudo_id) included. On the backend side, count the rows of sessions whose session_start falls on those Dublin days. Return three columns, in this order: export_sessions, backend_sessions and difference (export_sessions minus backend_sessions). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "export_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "backend_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row for the whole check"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "export_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "backend_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count each side over the same Dublin days.",
+    "Count every session_start event, with or without a user_pseudo_id, and turn session_start into its Dublin day before you filter the backend side."
+  ],
+  "subgoals": [
+    {
+      "from": 130,
+      "to": 164,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 167,
+      "to": 178,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 181,
+      "to": 268,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 370,
+      "to": 405,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 408,
+      "to": 421,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 424,
+      "to": 524,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 527,
+      "to": 625,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 626,
+      "to": 670,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Both sides cover the same Dublin days and every session_start counts, so each side counts each session once."
+}

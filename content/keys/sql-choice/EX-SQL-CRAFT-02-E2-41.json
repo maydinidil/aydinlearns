@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E2-41",
+  "item_version": 1,
+  "correct_oid": "oad137a3",
+  "explanation": "event_date is text such as '20251001', and text is compared character by character. After '2025' comes a digit in event_date but a dash in '2025-12-01', and a digit sorts after the dash, so every day of 2025 counts as later and all 825,950 events are kept. Written as '20251201', the filter keeps December's 232,670.",
+  "solver": {
+    "prompt_hash": "6d5010e9db770ec6",
+    "grader_version": "choice.3",
+    "chosen": "oad137a3",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.593Z"
+  }
+}

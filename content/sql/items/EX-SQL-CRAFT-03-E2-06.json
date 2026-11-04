@@ -1,0 +1,163 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-06",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "like_for_like",
+    "growth",
+    "country"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-like-for-like-growth-country",
+  "template_params": {
+    "table": "sales",
+    "years": [
+      2024,
+      2025
+    ],
+    "by": "country_code"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Where did Voltmarkt grow like for like? For each country (the store's stores.country_code), give the revenue growth from 2024 to 2025 over the stores open for the whole of both years only: opened_on on or before 1 January 2024, and close_date missing or on or after 31 December 2025. Growth is 100 times (2025 net revenue minus 2024 net revenue) divided by 2024 net revenue, rounded to 2 decimals with ROUND, with net_revenue_eur from sales by sales.order_date, the UTC day. A store that opened or closed during the two years is left out of both years. The webshop counts as a store of its country_code. Return two columns, in this order: country_code and growth_pct. Return one row per country with such a store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "growth_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "growth_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep only the stores open for the whole of both years, then add up each country's revenue per year.",
+    "Growth divides the change by the earlier year, and both years come from the same set of stores."
+  ],
+  "subgoals": [
+    {
+      "from": 82,
+      "to": 113,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 116,
+      "to": 127,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 130,
+      "to": 226,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 320,
+      "to": 342,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 347,
+      "to": 473,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 478,
+      "to": 603,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 606,
+      "to": 623,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 626,
+      "to": 669,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 672,
+      "to": 695,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 698,
+      "to": 806,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 807,
+      "to": 818,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "Growth over one fixed set of stores shows what changed in the business, not which stores opened or closed."
+}

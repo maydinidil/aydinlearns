@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "WITH starts AS (\n  -- one row per session_start event on 12 November 2025\n  SELECT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id,\n    list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date = '20251112'\n)\nSELECT page_location, COUNT(DISTINCT user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR)) AS sessions\nFROM starts\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY page_location",
+  "alternatives": [
+    "SELECT [p.value.string_value FOR p IN event_params IF p.key = 'page_location'][1] AS page_location,\n  COUNT(*) AS sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date = '20251112'\n  AND user_pseudo_id IS NOT NULL\n  AND [p.value.int_value FOR p IN event_params IF p.key = 'ga_session_id'][1] IS NOT NULL\nGROUP BY 1",
+    "WITH sessions AS (\n  -- one row per session (user_pseudo_id and ga_session_id) that started on 12 November 2025\n  SELECT DISTINCT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id,\n    list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date = '20251112'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT page_location, COUNT(*) AS sessions\nFROM sessions\nWHERE ga_session_id IS NOT NULL\nGROUP BY page_location"
+  ],
+  "other_way": {
+    "sql": "SELECT [p.value.string_value FOR p IN event_params IF p.key = 'page_location'][1] AS page_location,\n  COUNT(*) AS sessions\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date = '20251112'\n  AND user_pseudo_id IS NOT NULL\n  AND [p.value.int_value FOR p IN event_params IF p.key = 'ga_session_id'][1] IS NOT NULL\nGROUP BY 1",
+    "tradeoff": "Counting session_start rows with both IDs works because each session has one, but a repeated event would count twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-52",
+      "sql": "WITH starts AS (SELECT user_pseudo_id, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id, list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location FROM events WHERE event_name = 'session_start' AND event_date = '20251112') SELECT page_location, COUNT(DISTINCT ga_session_id) AS sessions FROM starts WHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL GROUP BY page_location"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, COUNT(*) AS sessions FROM events WHERE event_name = 'session_start' AND event_date = '20251112' GROUP BY 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH starts AS (SELECT user_pseudo_id, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS ga_session_id, list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location FROM events WHERE event_name = 'session_start' AND event_date = '2025-11-12') SELECT page_location, COUNT(DISTINCT user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR)) AS sessions FROM starts WHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL GROUP BY page_location"
+    }
+  ],
+  "hint3_partial": "WITH starts AS (\n  -- one row per session_start event on 12 November 2025\n  SELECT user_pseudo_id,\n    list_filter(event_params, lambda p: p.key = ___)[1].value.int_value AS ga_session_id,\n    list_filter(event_params, lambda p: p.key = ___)[1].value.string_value AS page_location\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date = '20251112'\n)\nSELECT page_location, COUNT(DISTINCT ___) AS sessions\nFROM starts\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY page_location",
+  "solver": {
+    "prompt_hash": "8d5258f340bc8bac",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH ss AS (\r\n  SELECT DISTINCT event_date, user_pseudo_id, list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value AS sid, list_filter(event_params, lambda p: p.key = 'page_location')[1].value.string_value AS page_location, list_filter(event_params, lambda p: p.key = 'session_engaged')[1].value.string_value AS engaged, list_filter(event_params, lambda p: p.key = 'ga_session_number')[1].value.int_value AS snum,\r\n    traffic_source.source AS source, traffic_source.medium AS medium, device.category AS device_category\r\n  FROM events\r\n  WHERE event_name = 'session_start' AND event_date BETWEEN '20251112' AND '20251112'\r\n    AND user_pseudo_id IS NOT NULL AND list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value IS NOT NULL\r\n)\r\nSELECT page_location, COUNT(*) AS sessions FROM ss GROUP BY page_location\r\n",
+    "at": "2026-11-03T19:01:24.596Z"
+  }
+}

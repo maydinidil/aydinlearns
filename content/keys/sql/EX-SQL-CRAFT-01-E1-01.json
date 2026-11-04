@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "WITH export_side AS (\n  -- one row: session_start events on the Dublin days 9 to 15 November 2025, consent-denied ones included\n  SELECT COUNT(*) AS export_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251109' AND '20251115'\n), backend_side AS (\n  -- one row: backend sessions whose session_start falls on those Dublin days\n  SELECT COUNT(*) AS backend_sessions\n  FROM sessions\n  WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251109' AND '20251115'\n)\nSELECT e.export_sessions, b.backend_sessions, e.export_sessions - b.backend_sessions AS difference\nFROM export_side e\nCROSS JOIN backend_side b",
+  "alternatives": [
+    "SELECT\n  (SELECT COUNT(*) FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251109' AND '20251115') AS export_sessions,\n  (SELECT COUNT(*) FROM sessions WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251109' AND '20251115') AS backend_sessions,\n  (SELECT COUNT(*) FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251109' AND '20251115')\n    - (SELECT COUNT(*) FROM sessions WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251109' AND '20251115') AS difference",
+    "WITH export_side AS (\n  -- one row: session_start events on the Dublin days 9 to 15 November 2025, consent-denied ones included\n  SELECT COUNT(*) AS export_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND CAST(strptime(event_date, '%Y%m%d') AS DATE) BETWEEN DATE '2025-11-09' AND DATE '2025-11-15'\n), backend_side AS (\n  -- one row: backend sessions whose session_start falls on those Dublin days\n  SELECT COUNT(*) AS backend_sessions\n  FROM sessions\n  WHERE CAST(timezone('Europe/Dublin', session_start) AS DATE) BETWEEN DATE '2025-11-09' AND DATE '2025-11-15'\n)\nSELECT e.export_sessions, b.backend_sessions, e.export_sessions - b.backend_sessions AS difference\nFROM export_side e\nCROSS JOIN backend_side b"
+  ],
+  "other_way": {
+    "sql": "SELECT\n  (SELECT COUNT(*) FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251109' AND '20251115') AS export_sessions,\n  (SELECT COUNT(*) FROM sessions WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251109' AND '20251115') AS backend_sessions,\n  (SELECT COUNT(*) FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251109' AND '20251115')\n    - (SELECT COUNT(*) FROM sessions WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251109' AND '20251115') AS difference",
+    "tradeoff": "Three scalar subqueries give the same row without named steps, but each count is written twice and is harder to check."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH export_side AS (\n  -- one row: session_start events on the Dublin days 9 to 15 November 2025, consent-denied ones included\n  SELECT COUNT(user_pseudo_id) AS export_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251109' AND '20251115'\n), backend_side AS (\n  -- one row: backend sessions whose session_start falls on those Dublin days\n  SELECT COUNT(*) AS backend_sessions\n  FROM sessions\n  WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251109' AND '20251115'\n)\nSELECT e.export_sessions, b.backend_sessions, e.export_sessions - b.backend_sessions AS difference\nFROM export_side e\nCROSS JOIN backend_side b"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-52",
+      "sql": "WITH export_side AS (\n  -- one row: session_start events on the Dublin days 9 to 15 November 2025, consent-denied ones included\n  SELECT COUNT(DISTINCT list_filter(event_params, lambda p: p.key = 'ga_session_id')[1].value.int_value) AS export_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251109' AND '20251115'\n), backend_side AS (\n  -- one row: backend sessions whose session_start falls on those Dublin days\n  SELECT COUNT(*) AS backend_sessions\n  FROM sessions\n  WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251109' AND '20251115'\n)\nSELECT e.export_sessions, b.backend_sessions, e.export_sessions - b.backend_sessions AS difference\nFROM export_side e\nCROSS JOIN backend_side b"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH export_side AS (\n  -- one row: session_start events on the Dublin days 9 to 15 November 2025, consent-denied ones included\n  SELECT COUNT(*) AS export_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '2025-11-09' AND '2025-11-15'\n), backend_side AS (\n  -- one row: backend sessions whose session_start falls on those Dublin days\n  SELECT COUNT(*) AS backend_sessions\n  FROM sessions\n  WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251109' AND '20251115'\n)\nSELECT e.export_sessions, b.backend_sessions, e.export_sessions - b.backend_sessions AS difference\nFROM export_side e\nCROSS JOIN backend_side b"
+    }
+  ],
+  "hint3_partial": "WITH export_side AS (\n  -- one row: session_start events on the Dublin days 9 to 15 November 2025, consent-denied ones included\n  SELECT COUNT(*) AS export_sessions\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251109' AND '20251115'\n), backend_side AS (\n  -- one row: backend sessions whose session_start falls on those Dublin days\n  SELECT COUNT(*) AS backend_sessions\n  FROM sessions\n  WHERE ___ BETWEEN '20251109' AND '20251115'\n)\nSELECT e.export_sessions, b.backend_sessions, e.export_sessions - b.backend_sessions AS difference\nFROM export_side e\nCROSS JOIN backend_side b",
+  "solver": {
+    "prompt_hash": "d15dd2cb1683f9e3",
+    "schema_version": "55961e284aca",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH e AS (\r\n  SELECT COUNT(*) AS c FROM events\r\n  WHERE event_name = 'session_start' AND event_date BETWEEN '20251109' AND '20251115'\r\n), b AS (\r\n  SELECT COUNT(*) AS c FROM sessions\r\n  WHERE strftime(timezone('Europe/Dublin', session_start), '%Y%m%d') BETWEEN '20251109' AND '20251115'\r\n)\r\nSELECT e.c AS export_sessions, b.c AS backend_sessions, e.c - b.c AS difference\r\nFROM e CROSS JOIN b",
+    "at": "2026-11-03T19:01:27.211Z"
+  }
+}

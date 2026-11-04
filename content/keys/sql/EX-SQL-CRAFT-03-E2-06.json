@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E2-06",
+  "item_version": 2,
+  "reference_sql": "WITH lfl_stores AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code, country_code\n  FROM stores\n  WHERE opened_on <= DATE '2024-01-01' AND (close_date IS NULL OR close_date >= DATE '2025-12-31')\n), yearly AS (\n  -- one row per country: its like-for-like net revenue in 2024 and in 2025\n  SELECT l.country_code,\n    SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2024,\n    SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2025\n  FROM lfl_stores l\n  JOIN sales s ON s.store_code = l.store_code\n  GROUP BY l.country_code\n)\nSELECT country_code, ROUND(100.0 * (revenue_2025 - revenue_2024) / NULLIF(revenue_2024, 0), 2) AS growth_pct\nFROM yearly",
+  "alternatives": [
+    "SELECT st.country_code,\n  ROUND(100.0 * (SUM(s.net_revenue_eur) FILTER (WHERE year(s.order_date) = 2025) - SUM(s.net_revenue_eur) FILTER (WHERE year(s.order_date) = 2024))\n    / NULLIF(SUM(s.net_revenue_eur) FILTER (WHERE year(s.order_date) = 2024), 0), 2) AS growth_pct\nFROM stores st\nJOIN sales s ON s.store_code = st.store_code\nWHERE st.opened_on <= DATE '2024-01-01' AND (st.close_date IS NULL OR st.close_date >= DATE '2025-12-31')\n  AND s.order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\nGROUP BY st.country_code",
+    "WITH lfl_stores AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code, country_code\n  FROM stores\n  WHERE opened_on <= DATE '2024-01-01' AND (close_date IS NULL OR close_date >= DATE '2025-12-31')\n), y24 AS (\n  -- one row per country: its like-for-like net revenue in 2024\n  SELECT l.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM lfl_stores l JOIN sales s ON s.store_code = l.store_code\n  WHERE s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n  GROUP BY l.country_code\n), y25 AS (\n  -- one row per country: its like-for-like net revenue in 2025\n  SELECT l.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM lfl_stores l JOIN sales s ON s.store_code = l.store_code\n  WHERE s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY l.country_code\n)\nSELECT a.country_code, ROUND(100.0 * (b.revenue - a.revenue) / NULLIF(a.revenue, 0), 2) AS growth_pct\nFROM y24 a\nJOIN y25 b ON b.country_code = a.country_code"
+  ],
+  "other_way": {
+    "sql": "SELECT st.country_code,\n  ROUND(100.0 * (SUM(s.net_revenue_eur) FILTER (WHERE year(s.order_date) = 2025) - SUM(s.net_revenue_eur) FILTER (WHERE year(s.order_date) = 2024))\n    / NULLIF(SUM(s.net_revenue_eur) FILTER (WHERE year(s.order_date) = 2024), 0), 2) AS growth_pct\nFROM stores st\nJOIN sales s ON s.store_code = st.store_code\nWHERE st.opened_on <= DATE '2024-01-01' AND (st.close_date IS NULL OR st.close_date >= DATE '2025-12-31')\n  AND s.order_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\nGROUP BY st.country_code",
+    "tradeoff": "One grouped query with FILTER sums skips the steps, but the 2024 sum is then written twice and harder to check."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH yearly AS (SELECT st.country_code, SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2024, SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2025 FROM stores st JOIN sales s ON s.store_code = st.store_code GROUP BY st.country_code) SELECT country_code, ROUND(100.0 * (revenue_2025 - revenue_2024) / NULLIF(revenue_2024, 0), 2) AS growth_pct FROM yearly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-49",
+      "sql": "WITH lfl_stores AS (SELECT store_code, country_code FROM stores WHERE opened_on <= DATE '2024-01-01' AND (close_date IS NULL OR close_date >= DATE '2025-12-31')), yearly AS (SELECT l.country_code, SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2024, SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2025 FROM lfl_stores l JOIN sales s ON s.store_code = l.store_code GROUP BY l.country_code) SELECT country_code, ROUND(100.0 * (revenue_2025 - revenue_2024) / NULLIF(revenue_2025, 0), 2) AS growth_pct FROM yearly"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH lfl_stores AS (SELECT store_code, country_code FROM stores WHERE opened_on <= DATE '2024-01-01' AND (close_date IS NULL OR close_date >= DATE '2025-12-31')), yearly AS (SELECT l.country_code, SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2024, SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2025 FROM lfl_stores l JOIN sales s ON s.store_code = l.store_code GROUP BY l.country_code) SELECT country_code, ROUND((revenue_2025 - revenue_2024) / NULLIF(revenue_2024, 0), 2) AS growth_pct FROM yearly"
+    }
+  ],
+  "hint3_partial": "WITH lfl_stores AS (\n  -- one row per store open for the whole of 2024 and 2025\n  SELECT store_code, country_code\n  FROM stores\n  WHERE ___\n), yearly AS (\n  -- one row per country: its like-for-like net revenue in 2024 and in 2025\n  SELECT l.country_code,\n    SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2024,\n    SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.net_revenue_eur ELSE 0 END) AS revenue_2025\n  FROM lfl_stores l\n  JOIN sales s ON s.store_code = l.store_code\n  GROUP BY l.country_code\n)\nSELECT country_code, ROUND(100.0 * (___) / NULLIF(___, 0), 2) AS growth_pct\nFROM yearly",
+  "solver": {
+    "prompt_hash": "6b7dcf4de39aeaed",
+    "schema_version": "5dbd771f9d51",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH r AS (\n  SELECT st.country_code,\n    SUM(CASE WHEN s.order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31' THEN s.net_revenue_eur END) AS r24,\n    SUM(CASE WHEN s.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' THEN s.net_revenue_eur END) AS r25\n  FROM stores st LEFT JOIN sales s ON s.store_code = st.store_code\n  WHERE st.opened_on <= DATE '2024-01-01' AND (st.close_date IS NULL OR st.close_date >= DATE '2025-12-31')\n  GROUP BY st.country_code\n)\nSELECT country_code, ROUND(100.0 * (r25 - r24) / r24, 2) AS growth_pct FROM r\n",
+    "at": "2026-11-03T19:01:34.888Z"
+  }
+}

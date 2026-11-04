@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "purchase",
+    "traffic_source",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-medium-purchases",
+  "template_params": {
+    "month": "2025-12"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's finance team wants December 2025's purchases and revenue per first-touch medium (traffic_source.medium), for the Dublin days 1 to 31 December (by event_date). Every purchase counts, one whose first payment was later refunded included. Revenue is the value parameter, read from whichever number slot holds it. Return exactly three columns, in this order: medium, purchases and revenue. Return one row for each medium. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "medium",
+        "type_class": "text"
+      },
+      {
+        "name": "purchases",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "purchases",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read each purchase's value so that no number slot is missed.",
+    "A tag may send value in int_value or in double_value: take the first slot that is filled before you add it up."
+  ],
+  "subgoals": [
+    {
+      "from": 136,
+      "to": 242,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 245,
+      "to": 256,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 259,
+      "to": 341,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 344,
+      "to": 452,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 453,
+      "to": 476,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 477,
+      "to": 492,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Two narrow columns of December's purchases are enough, and reading value from every slot keeps the purchases sent as whole numbers in the revenue."
+}

@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-BQ-01-E1-42",
+  "version": 2,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "unnest",
+    "inner_unnest",
+    "predict"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-predict-inner-unnest",
+  "template_params": {
+    "visitor": "V0786595",
+    "day": "20251210"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Visitor V0786595's events on 10 December 2025, by event_date, are a purchase, which Mailvora's billing server sent with the value parameter only, then a session_start and a page_view, both with the page_location https://www.mailvora.example/pricing. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "SELECT e.event_name, p.value.string_value AS page_location\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.user_pseudo_id = 'V0786595'\n  AND e.event_date = '20251210'\n  AND p.key = 'page_location'",
+  "options": [
+    {
+      "oid": "o10e588b",
+      "text": "The purchase with a missing page_location, then the session_start and the page_view",
+      "misconception_id": "ERR-LOG-11",
+      "table": {
+        "columns": [
+          "event_name",
+          "page_location"
+        ],
+        "rows": [
+          [
+            "purchase",
+            null
+          ],
+          [
+            "session_start",
+            "https://www.mailvora.example/pricing"
+          ],
+          [
+            "page_view",
+            "https://www.mailvora.example/pricing"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o4b290e8",
+      "text": "The session_start and the page_view only",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "event_name",
+          "page_location"
+        ],
+        "rows": [
+          [
+            "session_start",
+            "https://www.mailvora.example/pricing"
+          ],
+          [
+            "page_view",
+            "https://www.mailvora.example/pricing"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oe6d6ed7",
+      "text": "The page_view only",
+      "misconception_id": "MIS-SQL-BQ-01-06",
+      "table": {
+        "columns": [
+          "event_name",
+          "page_location"
+        ],
+        "rows": [
+          [
+            "page_view",
+            "https://www.mailvora.example/pricing"
+          ]
+        ]
+      }
+    }
+  ]
+}

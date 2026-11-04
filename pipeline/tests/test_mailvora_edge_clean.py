@@ -131,7 +131,8 @@ class MailvoraEdgeClean(unittest.TestCase):
         # Task D1 (S8-16): the two dataset edge schemas, olist_edge and maven_toy_store_edge, are held by pipeline/tests/test_datasets.py.
         # Task E1 (S8-C39): ledgerloop_edge_cases, the six LedgerLoop inbox cases' edge schema, is held by pipeline/tests/test_edge_cases.py.
         datasets = {"olist_edge", "maven_toy_store_edge"}
-        cases = {"ledgerloop_edge_cases"}
+        # Sprint 9 (Task L1, S9-02, S9-03): mailvora_ga4 and mailvora_edge_ga4 are held by pipeline/tests/test_mailvora_ga4.py.
+        cases = {"ledgerloop_edge_cases", "mailvora_ga4", "mailvora_edge_ga4"}
         added = sorted(n for n in set(self.manifest["tables"]) - set(BEFORE_SPRINT7B)
                        if n.split(".")[1] not in part2 and n.split(".")[0] not in datasets | cases)
         # Sprint 8 (Task L1, S8-01): since G1 the build also holds LedgerLoop's clean and raw schemas (16 tables each), and (Task A2,

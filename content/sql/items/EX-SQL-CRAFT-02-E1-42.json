@@ -1,0 +1,91 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "choose_query",
+    "aggregate_first"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-choose-store-orders",
+  "template_params": {
+    "from": "2025-03-10",
+    "to": "2025-03-16"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Which query returns, for each Voltmarkt store, exactly two columns: store_code and the number of orders placed from 10 to 16 March 2025 (the UTC days of order_ts)?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o75ec173",
+      "text": "SELECT s.store_code, COUNT(*) AS orders\nFROM orders o\nJOIN order_lines l ON l.order_id = o.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-10 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-03-17 00:00:00'\nGROUP BY s.store_code",
+      "misconception_id": "ERR-LOG-01"
+    },
+    {
+      "oid": "o6ff5f98",
+      "text": "WITH week_orders AS (\n  SELECT order_id, store_id\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-03-10 00:00:00'\n    AND order_ts < TIMESTAMP '2025-03-17 00:00:00'\n)\nSELECT s.store_code, COUNT(*) AS orders\nFROM week_orders w\nJOIN stores s ON s.store_id = w.store_id\nGROUP BY s.store_code",
+      "misconception_id": null
+    },
+    {
+      "oid": "of719158",
+      "text": "WITH week_orders AS (\n  SELECT *\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-03-10 00:00:00'\n    AND order_ts < TIMESTAMP '2025-03-17 00:00:00'\n)\nSELECT s.store_code, s.city, COUNT(*) AS orders, COUNT(DISTINCT w.customer_id) AS customers\nFROM week_orders w\nJOIN stores s ON s.store_id = w.store_id\nGROUP BY s.store_code, s.city",
+      "misconception_id": "ERR-OUT-01"
+    },
+    {
+      "oid": "o5604050",
+      "text": "WITH week_orders AS (\n  SELECT order_id, store_id\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-03-10 00:00:00'\n    AND order_ts <= TIMESTAMP '2025-03-16 00:00:00'\n)\nSELECT s.store_code, COUNT(*) AS orders\nFROM week_orders w\nJOIN stores s ON s.store_id = w.store_id\nGROUP BY s.store_code",
+      "misconception_id": "ERR-LOG-06"
+    }
+  ]
+}

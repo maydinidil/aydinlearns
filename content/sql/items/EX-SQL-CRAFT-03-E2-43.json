@@ -1,0 +1,83 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-43",
+  "version": 1,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "fixed_choice",
+    "plan",
+    "window"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-plan-window",
+  "template_params": {
+    "part": "window"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "A product's new, higher price took effect on Thursday 13 March 2025. The plan compares its weekly units before and after the rise. Which window line states a fair comparison?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o7ffd8c5",
+      "text": "All of February 2025, the last whole month before the rise, against the 6 weeks from the Monday after 13 March.",
+      "misconception_id": "MIS-SQL-CRAFT-03-04"
+    },
+    {
+      "oid": "of8e61e5",
+      "text": "The 8 weeks up to and including the week of 13 March against the 8 weeks after that week, so no week is lost.",
+      "misconception_id": "ERR-LOG-06"
+    },
+    {
+      "oid": "o6d34f85",
+      "text": "March to May 2025 against March to May 2024, so both periods cover the same season of the year.",
+      "misconception_id": "MIS-SQL-CRAFT-03-05"
+    },
+    {
+      "oid": "o6197ce3",
+      "text": "The 8 whole weeks before the week of 13 March against the 8 whole weeks after it, with that week in neither.",
+      "misconception_id": null
+    }
+  ]
+}

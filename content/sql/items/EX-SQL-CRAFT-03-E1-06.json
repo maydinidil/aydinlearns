@@ -1,0 +1,159 @@
+{
+  "id": "EX-SQL-CRAFT-03-E1-06",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "like_for_like",
+    "stores",
+    "revenue"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-like-for-like-stores",
+  "template_params": {
+    "table": "sales",
+    "years": [
+      2024,
+      2025
+    ]
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Voltmarkt's board compares 2025 with 2024 like for like. For each store open for the whole of both years (opened_on on or before 1 January 2024, and close_date missing or on or after 31 December 2025), give its net revenue (net_revenue_eur in sales) in 2024 and in 2025, by sales.order_date, the UTC day. A store that opened or closed during the two years is left out. The webshop counts as a store. Return three columns, in this order: store_code, revenue_2024 and revenue_2025. Return one row per such store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_2024",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_2025",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_2024",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "revenue_2025",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list the stores open for the whole of both years.",
+    "A store qualifies by its opening day and its closing day, so test opened_on against the first day and close_date against the last."
+  ],
+  "subgoals": [
+    {
+      "from": 82,
+      "to": 99,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 102,
+      "to": 113,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 116,
+      "to": 212,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 215,
+      "to": 235,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 238,
+      "to": 364,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 367,
+      "to": 492,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 493,
+      "to": 510,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 511,
+      "to": 559,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 560,
+      "to": 581,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Comparing only stores open in both whole years keeps a new store's first months from looking like growth."
+}

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-04",
+  "item_version": 2,
+  "reference_sql": "WITH order_units AS (\n  -- one row per order placed from 3 to 9 March 2025 (UTC days of order_ts): its units, added up before any join\n  SELECT order_id, SUM(quantity) AS units\n  FROM order_lines\n  WHERE order_id IN (SELECT order_id FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND order_ts < TIMESTAMP '2025-03-10 00:00:00')\n  GROUP BY order_id\n)\nSELECT s.store_code, COUNT(*) AS orders, SUM(u.units) AS units\nFROM order_units u\nJOIN orders o ON o.order_id = u.order_id\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.store_code",
+  "alternatives": [
+    "SELECT s.store_code, COUNT(DISTINCT o.order_id) AS orders, SUM(l.quantity) AS units\nFROM orders o\nJOIN order_lines l ON l.order_id = o.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'\nGROUP BY s.store_code",
+    "WITH week_orders AS (\n  -- one row per order placed from 3 to 9 March 2025 (UTC): only the columns the report needs\n  SELECT order_id, store_id\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-03-03 00:00:00'\n    AND order_ts < TIMESTAMP '2025-03-10 00:00:00'\n), order_units AS (\n  -- one row per such order: its units\n  SELECT w.order_id, w.store_id, SUM(l.quantity) AS units\n  FROM week_orders w\n  JOIN order_lines l ON l.order_id = w.order_id\n  GROUP BY w.order_id, w.store_id\n)\nSELECT s.store_code, COUNT(*) AS orders, SUM(u.units) AS units\nFROM order_units u\nJOIN stores s ON s.store_id = u.store_id\nGROUP BY s.store_code"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_code, COUNT(DISTINCT o.order_id) AS orders, SUM(l.quantity) AS units\nFROM orders o\nJOIN order_lines l ON l.order_id = o.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'\nGROUP BY s.store_code",
+    "tradeoff": "Joining first and counting distinct orders gives the same numbers, but every line is carried through the joins first."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT s.store_code, COUNT(*) AS orders, SUM(l.quantity) AS units\nFROM orders o\nJOIN order_lines l ON l.order_id = o.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'\nGROUP BY s.store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH order_units AS (\n  -- one row per order placed from 3 to 9 March 2025 (UTC days of order_ts): its units, added up before any join\n  SELECT order_id, SUM(quantity) AS units\n  FROM order_lines\n  WHERE order_id IN (SELECT order_id FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND order_ts < TIMESTAMP '2025-03-10 00:00:00')\n  GROUP BY order_id\n)\nSELECT s.store_code, s.city, s.store_type, COUNT(*) AS orders, SUM(u.units) AS units\nFROM order_units u\nJOIN orders o ON o.order_id = u.order_id\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.store_code, s.city, s.store_type"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH order_units AS (\n  -- one row per order placed from 3 to 9 March 2025 (UTC days of order_ts): its units, added up before any join\n  SELECT order_id, SUM(quantity) AS units\n  FROM order_lines\n  WHERE order_id IN (SELECT order_id FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND order_ts <= TIMESTAMP '2025-03-09 00:00:00')\n  GROUP BY order_id\n)\nSELECT s.store_code, COUNT(*) AS orders, SUM(u.units) AS units\nFROM order_units u\nJOIN orders o ON o.order_id = u.order_id\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.store_code"
+    }
+  ],
+  "hint3_partial": "WITH order_units AS (\n  -- one row per order placed from 3 to 9 March 2025 (UTC days of order_ts): its units, added up before any join\n  SELECT order_id, SUM(quantity) AS units\n  FROM order_lines\n  WHERE order_id IN (SELECT order_id FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND ___)\n  GROUP BY order_id\n)\nSELECT s.store_code, COUNT(*) AS orders, SUM(u.units) AS units\nFROM order_units u\nJOIN orders o ON o.order_id = u.order_id\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.store_code",
+  "solver": {
+    "prompt_hash": "2ac9fc1f00f05726",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH u AS (\n  SELECT order_id, SUM(quantity) AS units FROM order_lines GROUP BY order_id\n)\nSELECT s.store_code, COUNT(*) AS orders, SUM(u.units) AS units\nFROM orders o\nJOIN u ON u.order_id = o.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10'\nGROUP BY s.store_code\n",
+    "at": "2026-11-03T21:23:46.699Z"
+  }
+}

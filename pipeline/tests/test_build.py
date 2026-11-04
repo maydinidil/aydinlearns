@@ -115,12 +115,19 @@ BEFORE_SPRINT8 = json.loads((pathlib.Path(__file__).resolve().parent / "manifest
 # The schema each edge schema mirrors when it is not voltmarkt: the clean edge schema mirrors voltmarkt_raw (S6-04), Mailvora's
 # mirrors mailvora (S6-20), and Part 2's real-data edge schemas (Task G2) mirror their dataset's schema. The build runs every
 # pipeline/edge/*.sql; the real-data ones stay out of the manifest's voltmarkt and mailvora coverage. Sprint 7 Part 2 (Task G1):
-# mailvora_edge_clean mirrors mailvora_raw; its rows, plants and lock are pipeline/tests/test_mailvora_edge_clean.py's.
+# mailvora_edge_clean mirrors mailvora_raw; its rows, plants and lock are pipeline/tests/test_mailvora_edge_clean.py's. Sprint 9
+# (Task L1, S9-03): mailvora_edge_ga4 mirrors mailvora_ga4, with copies of the four mailvora tables a level 7 item joins; its rows,
+# plants and lock are pipeline/tests/test_mailvora_ga4.py's.
+MAILVORA_GA4 = "mailvora_ga4"
+# Ruling S9-C18: mailvora_ga4's four views onto mailvora's own tables, so a graded query, which names no schema, can join them to
+# events. They are the one exception to "a view reads its own schema": each reads exactly mailvora's table of its name.
+GA4_BRIDGE_VIEWS = {(MAILVORA_GA4, t): f"mailvora.{t}" for t in ("sessions", "signups", "subscriptions", "payments")}
 EDGE_MIRRORS = {"voltmarkt_edge_clean": RAW, MAILVORA_EDGE: MAILVORA, MAILVORA_WIN_EDGE: MAILVORA, "online_retail_ii_edge": "online_retail_ii",
                 "breakfast_at_the_frat_edge": "breakfast_at_the_frat", "mailvora_edge_clean": MAILVORA_RAW,
                 MAILVORA_PAT_EDGE: MAILVORA, LEDGERLOOP_EDGE: "ledgerloop", LEDGERLOOP_CLEAN_EDGE: "ledgerloop_raw",
                 "olist_edge": "olist", "maven_toy_store_edge": "maven_toy_store",   # sprint 8 Part 2, Task D1 (S8-16)
-                LEDGERLOOP_CASES_EDGE: "ledgerloop"}   # Task E1 (S8-C39)
+                LEDGERLOOP_CASES_EDGE: "ledgerloop",   # Task E1 (S8-C39)
+                "mailvora_edge_ga4": MAILVORA_GA4}   # sprint 9, Task L1 (S9-03)
 # S4-01: the order and price tables join the schema panel from level 3: (grain, primary key, foreign keys as
 # (column, referenced table, referenced column), each 1:N). Levels 1 and 2 keep today's tables (from_level 1).
 LEVEL3_NOTES = {
@@ -342,7 +349,7 @@ class CourseDb(unittest.TestCase):
         views = self.con.execute("SELECT schema_name, view_name, sql FROM duckdb_views() WHERE NOT internal").fetchall()
         self.assertEqual(len(views), 1 + len(LEVEL1_EDGE_SCHEMAS) + len(ORDER_EDGE_SCHEMAS) + len(LEVEL4_EDGE_SCHEMAS) + len(LEVEL5_EDGE_SCHEMAS)
                          + len(LEVEL6_EDGE_SCHEMAS) + len(WEEKLY_SCHEMAS) + len(WEEKLY_UNITS_SCHEMAS)
-                         + len(build_course_db.MRR_MONTHLY_SCHEMAS))
+                         + len(build_course_db.MRR_MONTHLY_SCHEMAS) + len(GA4_BRIDGE_VIEWS))
         zero_fill = self.zero_fill_views()
         self.assertEqual({numbers for _, numbers in zero_fill.values()}, {frozenset({"0"})},
                          "S6-06: the zero-fill's 0 is the one number the weekly_units step writes, and it holds no data")
@@ -371,6 +378,9 @@ class CourseDb(unittest.TestCase):
             body = sql.split(" AS ", 1)[1]
             refs = re.findall(r"\b(?:from|join)\s+([A-Za-z_][\w.]*)", body, flags=re.IGNORECASE)
             self.assertTrue(refs, f"{schema}.{name}")
+            if (schema, name) in GA4_BRIDGE_VIEWS:
+                self.assertEqual(refs, [GA4_BRIDGE_VIEWS[(schema, name)]], f"{schema}.{name} is mailvora's table of its name")
+                continue
             own = self.names(schema)[0]
             for ref in refs:
                 self.assertRegex(ref, rf"^{schema}\.\w+$", f"{schema}.{name} reads {ref} without its own schema")
@@ -563,7 +573,7 @@ class CourseDb(unittest.TestCase):
                                           "promo_code", "promo_name"}, f"{table}.{column} has too many values to list")
         self.assertEqual(visible["products"], {}, "no products column is category-like")
         for n in notes:
-            if n["schema"] not in ("voltmarkt", RAW, MAILVORA, MAILVORA_RAW, LEDGERLOOP, LEDGERLOOP_RAW):
+            if n["schema"] not in ("voltmarkt", RAW, MAILVORA, MAILVORA_RAW, LEDGERLOOP, LEDGERLOOP_RAW, MAILVORA_GA4):   # S9-02: a visible schema
                 self.assertNotIn("allowed_values", n, f"{n['schema']}: never from the edge schemas")
         # The raw schema is a visible schema too (S6-01): its notes list its own values.
         raw = {n["table"]: n.get("allowed_values", {}) for n in notes if n["schema"] == RAW}

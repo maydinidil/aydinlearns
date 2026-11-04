@@ -1,0 +1,237 @@
+{
+  "id": "EX-SQL-CRAFT-03-E3-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "price_change",
+    "category",
+    "pooled"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-price-rise-category-pooled",
+  "template_params": {
+    "table": "weekly_units",
+    "month": "2025-02",
+    "change": "rise",
+    "by": "category_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Which categories lost volume after February's price rises? For each category (products.category_id) with a price rise that took effect from 1 to 28 February 2025, add up the units of all its rises over their before windows and over their after windows, and give the percentage change: 100 times (units after minus units before) divided by units before, rounded to 1 decimal with ROUND; a category with no units before shows a missing change. A price rise is a version in price_history whose list_price_eur is higher than that of the product's version before it, dated by its valid_from. Its change week is the week (Monday to Sunday) that holds valid_from. The before window is the 8 weeks just before the change week and the after window the 8 weeks just after it; the change week itself is in neither. Units come from weekly_units, which has a row for every product and week (week_start is the Monday), with 0 for a week with no sale. Leave out a rise of a product whose launch_date is later than the first day of its before window (the Monday 8 weeks before the change week). Return five columns, in this order: category_id, rises (the number of rises that stay), units_before, units_after and pct_change. Return one row per category with a rise that stays. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "rises",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_before",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_after",
+        "type_class": "numeric"
+      },
+      {
+        "name": "pct_change",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "rises",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units_before",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units_after",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "pct_change",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, work out each rise's units before and after, then add the rises up per category.",
+    "Pool the category first: divide the change in its total units by its total units before, not by averaging each rise's own change."
+  ],
+  "subgoals": [
+    {
+      "from": 110,
+      "to": 156,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 161,
+      "to": 245,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 248,
+      "to": 266,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 387,
+      "to": 498,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 501,
+      "to": 516,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 519,
+      "to": 565,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 568,
+      "to": 605,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 610,
+      "to": 674,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 679,
+      "to": 764,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 839,
+      "to": 888,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 893,
+      "to": 977,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 982,
+      "to": 1064,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1067,
+      "to": 1079,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1082,
+      "to": 1132,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1137,
+      "to": 1229,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1232,
+      "to": 1282,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1285,
+      "to": 1391,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1394,
+      "to": 1495,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1496,
+      "to": 1508,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1509,
+      "to": 1529,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Pooling the units before dividing weighs each rise by its volume, so one small product cannot swing a category's change."
+}

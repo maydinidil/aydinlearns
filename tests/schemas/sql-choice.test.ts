@@ -29,11 +29,11 @@ test('a field on the wrong kind is an error, and a kind\'s own field is required
   assert.deepEqual(validateSqlItem({ ...write, typed: { precision: 'count', scale: 'plain', decimals: 0, unit_label: 'rows' } }), ['typed belongs on predict_rows items only']);
   assert.deepEqual(validateSqlItem({ ...write, unique_check: { table: 'stores', column: 'store_id' } }), ['unique_check belongs on is_unique items only']);
   assert.deepEqual(validateSqlItem({ ...write, options: sqlOptions(write.id, ['a', 'b']) }),
-    ['options belongs on predict_result, choose_query, which_table and is_unique items only']);
+    ['options belongs on predict_result, choose_query, which_table, is_unique and fixed_choice items only']);
   assert.deepEqual(validateSqlItem({ ...sqlChoiceItem('choose_query'), shown_sql: 'SELECT 1' }), ['shown_sql belongs on predict_rows and predict_result items only']);
   assert.deepEqual(validateSqlItem({ ...sqlChoiceItem('predict_result'), unique_check: { table: 'stores', column: 'store_id' } }), ['unique_check belongs on is_unique items only']);
   assert.deepEqual(validateSqlItem({ ...sqlChoiceItem('predict_rows'), options: sqlOptions(IDS.predict_rows, ['1', '2']) }),
-    ['options belongs on predict_result, choose_query, which_table and is_unique items only']);
+    ['options belongs on predict_result, choose_query, which_table, is_unique and fixed_choice items only']);
   assert.deepEqual(validateSqlItem({ ...sqlChoiceItem('predict_rows'), options: [] }), [], 'an empty list is no options');
   assert.deepEqual(validateSqlItem(without(sqlChoiceItem('predict_rows'), 'shown_sql')), ['a predict_rows item needs shown_sql']);
   assert.deepEqual(validateSqlItem({ ...sqlChoiceItem('predict_result'), shown_sql: '   ' }), ['shown_sql must be a query']);

@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-BQ-01-E3-31",
+  "version": 3,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "unnest",
+    "fan_out",
+    "fix"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-fix-unnest-fan-out",
+  "template_params": {
+    "event_name": "page_view",
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each day from 1 to 7 December 2025, by event_date, how many page_view events were there, and what is their total engagement time? The engagement time is the engagement_time_msec parameter, a whole number of milliseconds in int_value. Count every page_view, the ones with a missing user_pseudo_id or ga_session_id included. Return event_date, as the text the export stores, page_views and engagement_msec. Return one row for each day with a page_view event; a day with none has no row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text"
+      },
+      {
+        "name": "page_views",
+        "type_class": "numeric"
+      },
+      {
+        "name": "engagement_msec",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "page_views",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "engagement_msec",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_date"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check how many rows each page_view becomes before the count.",
+    "The unnest makes one row per parameter, so keep only the engagement_time_msec rows, or read the parameter without unnesting."
+  ],
+  "subgoals": [
+    {
+      "from": 71,
+      "to": 199,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 202,
+      "to": 213,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 216,
+      "to": 299,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 302,
+      "to": 384,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 385,
+      "to": 395,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 396,
+      "to": 415,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT e.event_date, COUNT(*) AS page_views,\n  SUM(CASE WHEN p.key = 'engagement_time_msec' THEN p.value.int_value END) AS engagement_msec\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'page_view'\n  AND e.event_date BETWEEN '20251201' AND '20251207'\nGROUP BY e.event_date",
+  "time_target_ms": 210000,
+  "why_this_works": "Reading the parameter with list_filter keeps one row per page_view, so the count is of events, not of their parameters.",
+  "starter_error_id": "ERR-LOG-01"
+}

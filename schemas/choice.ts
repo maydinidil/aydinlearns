@@ -9,9 +9,9 @@ import type { Ga4Item } from './ga4.ts';
 import type { MethodologyItem } from './methodology.ts';
 import { isSqlChoiceKind, validateSqlItem, type SqlItem } from './item.ts';
 import type { ChoiceOption, TypedSpec } from './choice-types.ts';
-// ChoiceOption (with S3-13's optional table), OptionTable and TypedSpec live in a file with no runtime code, which
-// schemas/item.ts can import without pulling node:crypto into the browser's build.
-export type { ChoiceOption, OptionTable, TypedSpec } from './choice-types.ts';
+// ChoiceOption (with S3-13's optional table and S9-06's optional code), OptionTable, OptionCode and TypedSpec live in a file with no
+// runtime code but CODE_LANGS, which schemas/item.ts can import without pulling node:crypto into the browser's build.
+export type { ChoiceOption, CodeLang, OptionCode, OptionTable, TypedSpec } from './choice-types.ts';
 
 export type ChoiceSection = 'ga4' | 'methodology';
 export type ChoiceKind = 'mcq' | 'typed';

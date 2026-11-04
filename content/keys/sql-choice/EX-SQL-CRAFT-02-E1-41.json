@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-41",
+  "item_version": 1,
+  "correct_oid": "od7ab690",
+  "explanation": "The join repeats the order once for each of its three lines, so COUNT(*) counts 3 rows even though there is one order. The units are a line value, so their sum is still 2 + 1 + 1 = 4. To count orders, add the lines up to one row per order before the join, or count distinct order IDs.",
+  "solver": {
+    "prompt_hash": "4b56965196060ad2",
+    "grader_version": "choice.3",
+    "chosen": "od7ab690",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.586Z"
+  }
+}

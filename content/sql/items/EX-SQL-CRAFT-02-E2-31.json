@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "aggregate_first",
+    "orders",
+    "fix"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-fix-join-first",
+  "template_params": {
+    "month": "2025-04"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each Voltmarkt store, how many orders were placed in April 2025 (the UTC days of order_ts), and how many units did they hold? Return exactly three columns, in this order: store_code, orders and units. Return one row for each store with orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the orders column counts once the lines are joined.",
+    "After the join there is one row per order line, so a count of order_id counts lines; add the lines up per order first, or count distinct orders."
+  ],
+  "subgoals": [
+    {
+      "from": 128,
+      "to": 167,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 170,
+      "to": 186,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 189,
+      "to": 333,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 336,
+      "to": 353,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 356,
+      "to": 418,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 419,
+      "to": 519,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 520,
+      "to": 541,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT s.store_code, COUNT(o.order_id) AS orders, SUM(l.quantity) AS units\nFROM orders o\nJOIN order_lines l ON l.order_id = o.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-04-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-05-01 00:00:00'\nGROUP BY s.store_code",
+  "time_target_ms": 180000,
+  "why_this_works": "Adding the lines up per order before the join keeps one row per order, so the count is a count of orders.",
+  "starter_error_id": "ERR-LOG-01"
+}

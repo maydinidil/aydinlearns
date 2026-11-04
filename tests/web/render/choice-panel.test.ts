@@ -62,3 +62,30 @@ test('finding 36: the true value is shown with the item\'s decimals and no space
   assert.equal(shown.container.querySelector('.help .option')?.textContent, 'Answer: 12.5%');
   shown.unmount();
 });
+
+// ---- Sprint 9 Task A1 (S9-06): a fixed_choice item's options, each its text over a code block ----------------------------------
+
+test('S9-06: a fixed_choice option shows its text, and its code as an SQL code block captioned by its dialect; a statement has none', async () => {
+  const sqlItem: ChoiceServed['item'] = {
+    id: 'EX-SQL-BQ-01-E2-01', version: 1, section: 'sql', kind: 'mcq', sql_kind: 'fixed_choice', stem: 'Which invented way reads one parameter?', concept_id: 'SQL-BQ-01',
+    topic_id: null, level: 7, exam_relevance: null, verified: true, typed: null, schema: 'mailvora_ga4', shown_sql: null, unique_check: null,
+  };
+  const served: ChoiceServed = { item: sqlItem, shown_order: ['a', 'b', 'c'], item_instance_id: 'inst-9', phase: 'free', options: [
+    { oid: 'a', text: 'Name the list as each row.', code: { lang: 'bigquery', sql: 'SELECT p.key FROM events, UNNEST(event_params) AS p' } },
+    { oid: 'b', text: 'Count the rows first.' },
+    { oid: 'c', text: 'Open the list as a table.', code: { lang: 'duckdb', sql: 'SELECT p.key FROM events, unnest(event_params) AS t(p)' } },
+  ] };
+  stubFetch((method, path) => (method === 'GET' && path.startsWith('/api/choice/EX-SQL-BQ-01-E2-01') ? served : undefined));
+  const { container, unmount } = render(createElement('main', null, createElement(ChoicePanel, { itemId: 'EX-SQL-BQ-01-E2-01', section: 'sql', instanceId: 'inst-9' })));
+  await settle();
+  const options = [...container.querySelectorAll('.choice .option')];
+  assert.equal(options.length, 3);
+  const codeOf = (o: Element) => o.querySelector('pre.code.option-code')?.textContent ?? null;
+  assert.deepEqual(options.map(codeOf), ['SELECT p.key FROM events, UNNEST(event_params) AS p', null, 'SELECT p.key FROM events, unnest(event_params) AS t(p)']);
+  assert.ok(options[0]!.textContent!.includes('Name the list as each row.') && options[0]!.textContent!.includes('BigQuery'));
+  assert.ok(options[2]!.textContent!.includes('DuckDB'));
+  assert.equal(options[1]!.textContent!.trim(), 'Count the rows first.');
+  assert.ok(options[0]!.querySelector('pre.code .kw'), 'the SQL keywords are coloured, as every shown query\'s are');
+  assert.equal(container.querySelector('.shown-sql'), null, 'a fixed_choice item shows no query of its own');
+  unmount();
+});

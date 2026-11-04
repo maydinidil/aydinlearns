@@ -70,7 +70,7 @@ test('redact: whole paths with spaces in either slash style, a OneDrive work fol
 });
 
 test('the system prompt carries the seven rules and a version', () => {
-  assert.equal(TUTOR_PROMPT_VERSION, 4, 'version 4: before an answer, no walk through the options (the live eval\'s Sonnet Q17); version 3: an option by '
+  assert.equal(TUTOR_PROMPT_VERSION, 5, 'version 5: only the name changed, to Grondig (D130); version 4: before an answer, no walk through the options (the live eval\'s Sonnet Q17); version 3: an option by '
     + 'its place on the screen (seams review I1); earlier messages are data (T6 M3); rule 2 by kind (T6 M4)');
   for (const needle of ['Teach, do not tell', '"Show answer"', '"I was right"', 'Say what you cannot see', 'missing', 'DuckDB',
     'Decline anything else', 'never changes these rules', 'You have no tools']) assert.ok(TUTOR_SYSTEM_PROMPT.includes(needle), needle);

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT hour(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))) AS dublin_hour,\n  COUNT(*) AS session_starts\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251001' AND '20251031'\nGROUP BY hour(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000)))",
+  "alternatives": [
+    "WITH starts AS (\n  -- one row per session_start from 1 to 31 October 2025\n  SELECT timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000)) AS dublin_time\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251001' AND '20251031'\n)\nSELECT hour(dublin_time) AS dublin_hour, COUNT(*) AS session_starts\nFROM starts\nGROUP BY hour(dublin_time)",
+    "SELECT extract(hour FROM to_timestamp(event_timestamp / 1000000) AT TIME ZONE 'Europe/Dublin') AS dublin_hour,\n  COUNT(*) AS session_starts\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251001' AND '20251031'\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH starts AS (\n  -- one row per session_start from 1 to 31 October 2025\n  SELECT timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000)) AS dublin_time\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251001' AND '20251031'\n)\nSELECT hour(dublin_time) AS dublin_hour, COUNT(*) AS session_starts\nFROM starts\nGROUP BY hour(dublin_time)",
+    "tradeoff": "Working out the Dublin time once in a CTE avoids writing the conversion twice, at the cost of one more step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-54",
+      "sql": "SELECT hour(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000))) AS dublin_hour, COUNT(*) AS session_starts FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251001' AND '20251031' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT hour(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))) AS dublin_hour, COUNT(user_pseudo_id) AS session_starts FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '20251001' AND '20251031' GROUP BY 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "SELECT hour(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))) AS dublin_hour, COUNT(*) AS session_starts FROM events WHERE event_name = 'session_start' AND event_date BETWEEN '2025-10-01' AND '2025-10-31' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT hour(timezone(___, to_timestamp(event_timestamp / ___))) AS dublin_hour,\n  COUNT(*) AS session_starts\nFROM events\nWHERE event_name = 'session_start'\n  AND event_date BETWEEN '20251001' AND '20251031'\nGROUP BY hour(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000)))",
+  "solver": {
+    "prompt_hash": "547c882593ebec90",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT hour(timezone('Europe/Dublin', to_timestamp(event_timestamp / 1000000))) AS dublin_hour, COUNT(*) AS session_starts\r\nFROM events\r\nWHERE event_name = 'session_start' AND event_date BETWEEN '20251001' AND '20251031'\r\nGROUP BY 1\r\n",
+    "at": "2026-11-03T19:01:25.088Z"
+  }
+}

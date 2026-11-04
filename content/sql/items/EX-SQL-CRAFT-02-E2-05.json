@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "aggregate_first",
+    "orders",
+    "order_lines"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-store-type-units",
+  "template_params": {
+    "from": "2025-01",
+    "to": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each Voltmarkt store type (stores.store_type), how many orders were placed from 1 January to 31 March 2025 (the UTC days of order_ts), and how many units did an order hold on average? Count only the orders that have at least one order line: an order with no lines is left out of both columns, not counted as an order with 0 units. Return exactly three columns, in this order: store_type, orders and avg_units_per_order (the units divided by the orders, not rounded). Return one row for each store type with orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_units_per_order",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_units_per_order",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add each order's lines up to one row per order before the join.",
+    "An order with three lines must count once and bring all its units, so total the units per order first."
+  ],
+  "subgoals": [
+    {
+      "from": 141,
+      "to": 180,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 183,
+      "to": 199,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 202,
+      "to": 346,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 349,
+      "to": 366,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 369,
+      "to": 456,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 457,
+      "to": 557,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 558,
+      "to": 579,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "With one row per order before the join, COUNT(*) counts orders and the units divided by it give units per order, not per line."
+}

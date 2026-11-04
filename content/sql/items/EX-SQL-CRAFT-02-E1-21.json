@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "sign_up",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-device-signups",
+  "template_params": {
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's growth team wants sign-ups by device for the Dublin days 1 to 7 December 2025 (by event_date). Count every sign_up event, those of visitors who denied consent included; a sign_up sent from Mailvora's server has no device, so count those in one row whose device_category is missing. Return exactly two columns, in this order: device_category (device.category) and signups. Return one row for each device category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "device_category",
+        "type_class": "text"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "device_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "device_category"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, narrow the events to that week's sign_up events and the one column the count needs.",
+    "Keep device.category only, then count every row per device in the last step."
+  ],
+  "subgoals": [
+    {
+      "from": 127,
+      "to": 168,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 171,
+      "to": 182,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 185,
+      "to": 266,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 269,
+      "to": 312,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 313,
+      "to": 330,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 331,
+      "to": 355,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The first step keeps one column of that week's sign_up events, and counting every row per device keeps the consent-denied sign-ups in."
+}

@@ -1,0 +1,84 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-43",
+  "version": 1,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "fixed_choice",
+    "manager_summary"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-summary-sessions",
+  "template_params": {
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's marketing manager asked whether the GA4 export and the backend agree on sessions for 1 to 7 December 2025. The check returned one row per Dublin day, with a difference of 0 on every day. Which summary states the grain of the numbers and a caveat the manager can act on?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o7c8854d",
+      "text": "Sessions agree between the export and the backend, so the GA4 numbers are right and can go into the board deck as they are, with no notes needed.",
+      "misconception_id": "MIS-SQL-CRAFT-01-02"
+    },
+    {
+      "oid": "o60f20ce",
+      "text": "Each figure is one Dublin day of sessions, a session being one visitor with one session ID; the export and the backend agree on all seven days. Caveat: about 2% of sessions come from visitors who denied consent, so the export cannot link them to a visitor.",
+      "misconception_id": null
+    },
+    {
+      "oid": "od99db03",
+      "text": "Sessions match on every day of the week, one row per Dublin day, and the check shows the difference between the export and the backend is 0 each time, which is what we expected from a correct tag and a correct backend count, so there is nothing further to report.",
+      "misconception_id": "MIS-SQL-CRAFT-01-01"
+    },
+    {
+      "oid": "o5ae3f34",
+      "text": "Tracking looks healthy this week and the numbers tie out. One caveat: some visitors deny consent, so treat the GA4 visitor counts with some care before any campaign decision is made on them.",
+      "misconception_id": "MIS-SQL-CRAFT-01-03"
+    }
+  ]
+}

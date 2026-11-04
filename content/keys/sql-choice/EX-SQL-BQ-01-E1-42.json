@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-42",
+  "item_version": 2,
+  "correct_oid": "o4b290e8",
+  "explanation": "The comma before unnest is an inner join: an event keeps only the rows its own list makes, and the key filter then keeps the page_location row. The purchase's list holds only value, so it has no row left and drops out; it does not come back with a missing page_location. The session_start carries page_location too, so it stays beside the page_view. Keeping only the page_view reads page_location as a parameter that only page_view events carry, but the session_start carries it as well.",
+  "solver": {
+    "prompt_hash": "ae1e30a5d56476fc",
+    "grader_version": "choice.3",
+    "chosen": "o4b290e8",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.562Z"
+  }
+}

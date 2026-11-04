@@ -1,0 +1,84 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-44",
+  "version": 2,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "fixed_choice",
+    "bigquery",
+    "filter_early"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-cheaper-query",
+  "template_params": {
+    "month": "2025-10"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Two BigQuery queries return the same daily purchase counts for October 2025 from Mailvora's events_* tables. The narrow one filters _TABLE_SUFFIX to October and event_name to purchase in its first step, and names no column but event_date and event_name. The wide one starts with SELECT * over events_* with no suffix filter, and keeps October's purchases with a WHERE on event_date and event_name. Which statement about their cost is right?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oce37ed2",
+      "text": "They cost the same, because both return the same rows and BigQuery charges for the result it sends back, not for what it reads.",
+      "misconception_id": "MIS-SQL-CRAFT-02-04"
+    },
+    {
+      "oid": "od38f60b",
+      "text": "The wide one is cheaper, because its filter on event_date lets BigQuery skip the daily tables outside October before it reads them.",
+      "misconception_id": "MIS-SQL-CRAFT-02-03"
+    },
+    {
+      "oid": "oa6f8aa6",
+      "text": "The narrow one is cheaper: its suffix filter keeps the read to the October daily tables, while the wide one reads every daily table.",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2247472",
+      "text": "They cost the same once a LIMIT is added to both, because a LIMIT stops BigQuery reading as soon as it has the rows it needs to return.",
+      "misconception_id": "MIS-SQL-CRAFT-02-01"
+    }
+  ]
+}

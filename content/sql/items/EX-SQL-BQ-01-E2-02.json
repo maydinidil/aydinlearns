@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-BQ-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "list_comprehension",
+    "sessions",
+    "traffic_source"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-sessions-per-medium",
+  "template_params": {
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "For each first-touch medium, count the sessions that started from 1 to 7 December 2025, by event_date. The first-touch medium is traffic_source.medium, how the visitor first arrived, the same on every event of the visitor; direct traffic shows as (none). A session is one user_pseudo_id with one ga_session_id, counted from its session_start event; leave out session_start events whose user_pseudo_id or ga_session_id is missing. Return medium and sessions. Return one row for each medium. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "medium",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per first-touch medium"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read each session_start's ga_session_id out of its parameters.",
+    "The medium is a field of the traffic_source struct, read with a dot; count distinct pairs of visitor and session ID."
+  ],
+  "subgoals": [
+    {
+      "from": 82,
+      "to": 230,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 233,
+      "to": 244,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 247,
+      "to": 334,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 337,
+      "to": 435,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 436,
+      "to": 447,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 448,
+      "to": 510,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 511,
+      "to": 526,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 142,
+    "stage2": 142
+  },
+  "faded_shape": "WITH starts AS (\n  -- one row per session_start event from 1 to 7 December 2025\n  SELECT traffic_source.medium AS medium, user_pseudo_id,\n    ",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The list comprehension keeps the ga_session_id element of each list, and the struct's medium field groups the sessions.",
+  "faded_suffix": "\n  FROM events\n  WHERE event_name = 'session_start'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT medium, COUNT(DISTINCT user_pseudo_id || '-' || CAST(ga_session_id AS VARCHAR)) AS sessions\nFROM starts\nWHERE user_pseudo_id IS NOT NULL AND ga_session_id IS NOT NULL\nGROUP BY medium"
+}

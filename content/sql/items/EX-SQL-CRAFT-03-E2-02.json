@@ -1,0 +1,218 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "price_change",
+    "pct_change",
+    "launch"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-price-rise-pct-change",
+  "template_params": {
+    "table": "weekly_units",
+    "month": "2025-02",
+    "change": "rise"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "How much did volume move after February's price rises? For each price rise that took effect from 1 to 28 February 2025, give the percentage change in units from the before window to the after window: 100 times (units after minus units before) divided by units before, rounded to 1 decimal with ROUND. A rise with no units before shows a missing change. A price rise is a version in price_history whose list_price_eur is higher than that of the product's version before it, dated by its valid_from. Its change week is the week (Monday to Sunday) that holds valid_from. The before window is the 8 weeks just before the change week and the after window the 8 weeks just after it; the change week itself is in neither. Units come from weekly_units, which has a row for every product and week (week_start is the Monday), with 0 for a week with no sale. Leave out a change of a product whose launch_date is later than the first day of its before window (the Monday 8 weeks before the change week): it was not on sale for the whole window. Return three columns, in this order: product_id, valid_from and pct_change. Return one row for each price rise that stays. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "pct_change",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per price rise from 1 to 28 February 2025 of a product on sale for its whole before window"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "pct_change",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the percentage change from each rise's units before and after.",
+    "The base of the change is the before window, and a rise with nothing sold before has no base, so its change stays missing."
+  ],
+  "subgoals": [
+    {
+      "from": 110,
+      "to": 156,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 161,
+      "to": 245,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 248,
+      "to": 266,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 387,
+      "to": 483,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 486,
+      "to": 501,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 504,
+      "to": 550,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 553,
+      "to": 590,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 595,
+      "to": 659,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 664,
+      "to": 749,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 824,
+      "to": 858,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 863,
+      "to": 947,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 952,
+      "to": 1034,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1037,
+      "to": 1049,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1052,
+      "to": 1102,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1107,
+      "to": 1199,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1202,
+      "to": 1237,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1240,
+      "to": 1270,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1273,
+      "to": 1359,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1360,
+      "to": 1372,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 1271,
+    "stage2": 1271
+  },
+  "faded_shape": "WITH versions AS (\n  -- one row per product and price version, with the list price of the version before it\n  SELECT product_id, valid_from, list_price_eur,\n    LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price\n  FROM price_history\n), rises AS (\n  -- one row per price rise from 1 to 28 February 2025 of a product on sale for its whole before window\n  SELECT v.product_id, v.valid_from, CAST(date_trunc('week', v.valid_from) AS DATE) AS change_week\n  FROM versions v\n  JOIN products p ON p.product_id = v.product_id\n  WHERE v.list_price_eur > v.prev_price\n    AND v.valid_from BETWEEN DATE '2025-02-01' AND DATE '2025-02-28'\n    AND p.launch_date <= CAST(date_trunc('week', v.valid_from) AS DATE) - INTERVAL 56 DAY\n), windows AS (\n  -- one row per price rise: its units before and after\n  SELECT r.product_id, r.valid_from,\n    SUM(CASE WHEN w.week_start < r.change_week THEN w.units ELSE 0 END) AS units_before,\n    SUM(CASE WHEN w.week_start > r.change_week THEN w.units ELSE 0 END) AS units_after\n  FROM rises r\n  JOIN weekly_units w ON w.product_id = r.product_id\n    AND w.week_start BETWEEN r.change_week - INTERVAL 56 DAY AND r.change_week + INTERVAL 56 DAY\n  GROUP BY r.product_id, r.valid_from\n)\nSELECT product_id, valid_from,\n",
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The before window is the base of the change, and dropping products launched inside it keeps every base a full 8 weeks of sales.",
+  "faded_suffix": "\nFROM windows"
+}

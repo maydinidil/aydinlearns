@@ -171,7 +171,7 @@ const MAX_FIELD = 2000;
 const MAX_TEXT = 4000;
 const NOT_OPEN = 'This question is closed or was not opened here. Open it again.';
 const OTHER = 'This question belongs to another case or checkpoint.';
-const BUILD_FIRST = 'The number for this question has not been built yet. Close and start aydinlearns again.';
+const BUILD_FIRST = 'The number for this question has not been built yet. Close and start Grondig again.';
 const PLAN_NOTE = 'Answer CP1, then compare your plan with the model plan.';
 /** S6-35: a case with no CP1 holds its model plan until CP2 is answered. */
 const PLAN_NOTE_CP2 = 'Answer CP2, then compare your plan with the model plan.';

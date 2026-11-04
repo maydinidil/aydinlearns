@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "missing_values",
+    "user_pseudo_id",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-missing-ids",
+  "template_params": {
+    "from": "20251026",
+    "to": "20251101"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Before counting visitors from user_pseudo_id, Mailvora's analyst checks how many events lack it. For the Dublin days 26 October to 1 November 2025 (by event_date), return one row for each event_name with three columns, in this order: event_name, events (every event of that name) and without_pseudo_id (the events whose user_pseudo_id is missing). Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_name",
+        "type_class": "text"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric"
+      },
+      {
+        "name": "without_pseudo_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "events",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "without_pseudo_id",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_name"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the count of events whose user_pseudo_id is missing.",
+    "COUNT of a column skips the rows where it is missing, so compare it with the count of every row."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 94,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 95,
+      "to": 106,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 107,
+      "to": 157,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 158,
+      "to": 177,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "COUNT(*) counts every event and COUNT(user_pseudo_id) only those with the ID, so their difference is the events without it."
+}

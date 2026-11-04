@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "traffic_source",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-first-visits",
+  "template_params": {
+    "from": "20251201",
+    "to": "20251215"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's acquisition team counts new visitors by first-touch source and medium. For the Dublin days 1 to 15 December 2025 (by event_date), count the first_visit events, those of visitors who denied consent included, grouped by traffic_source.source and traffic_source.medium. Return exactly three columns, in this order: source, medium and first_visits. Return one row for each source and medium. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "medium",
+        "type_class": "text"
+      },
+      {
+        "name": "first_visits",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "medium",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "first_visits",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "source",
+      "medium"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep only the first_visit events of those days and the two traffic_source fields.",
+    "Count every first_visit event, with or without a user_pseudo_id, per source and medium."
+  ],
+  "subgoals": [
+    {
+      "from": 133,
+      "to": 204,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 207,
+      "to": 218,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 221,
+      "to": 306,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 309,
+      "to": 356,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 357,
+      "to": 374,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 375,
+      "to": 398,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Two narrow columns of the fortnight's first_visit events are all the count needs, and every event counts, consent-denied ones included."
+}

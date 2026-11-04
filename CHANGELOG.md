@@ -1,4 +1,4 @@
-# Changelog: aydinlearns
+# Changelog: Grondig (formerly aydinlearns)
 
 All notable changes to this project, newest first.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
@@ -10,10 +10,171 @@ come from git.
 0.5.0 is the first release. Slices 0 and 1a are the first application code; the entries before
 them are research and planning.
 
+## 0.9.1 (2026-11-04)
+
+Sprint 9 Part 2 (D130 to D134, S9-17 to S9-21, S9-C43 to S9-C51): the app is now Grondig, with a mole as a quiet companion, and
+the UI is dark by default. The public release `v0.9.1` and the GitHub rename to `maydinidil/grondig` follow the merge
+(Task R1, S9-19). No data, grading or log change: the dataset stays `629fe78dc6bbdb7a` and the log stays at version 8.
+
+| What 0.9.1 adds | In short |
+|---|---|
+| A new name | Grondig (Dutch for "thorough"; formerly aydinlearns), on the tab, the header, the launcher, the README and the licences (D130, D132) |
+| The mole | Three pixel-art poses made with PixelLab: a quiet companion that locks nothing (D133) |
+| A dark theme | Dark by default; Light and Follow Windows under Settings, Appearance (D131) |
+| A warm palette | Earth browns, lamp light, indigo for SQL, marigold for GA4 and plum for Methodology, every pair passing in both themes (D134) |
+
+### Added
+
+- The name Grondig (D130, D132, S9-17). The tab title, the header's wordmark (the calm mole at 32 px beside "Grondig"), the
+  launcher, the server's messages, the README, `LICENSE`, `LICENSE-CONTENT.md` and `NOTICE.md` say Grondig. The README's
+  first line says what it is and that the name is Dutch for "thorough".
+- The mole (D133, S9-21). Three poses, calm, thinking and pleased, in `web/src/assets/mascot/`. It shows on the header, in
+  the tab icon, on Today with one calm line, beside the heading of a graded result (thinking for "Not yet", pleased for a
+  pass), and on empty screens. It never appears inside a timed run's question view. Every image is
+  decorative (`alt=""`), so a screen reader hears nothing new, and no line names a streak or a missed day. Nothing moves.
+- A dark theme (D131, S9-18). The app opens dark. Settings and the setup screen have an Appearance card with Dark, Light and
+  Follow Windows; the choice is saved in this browser only, with no setting sent to the server and no log line. The page
+  takes the theme before it first paints, so there is no light flash. The editor and its autocomplete popup follow the
+  theme.
+- The warm notebook palette (D134), as two token sets in `web/src/styles/tokens.css`: light under `:root` and dark under
+  `:root[data-theme="dark"]`. The contrast test checks every pair in both, including five pairs it did not check before.
+- Browser smoke rows 9b-1 to 9b-6 (a fresh profile is dark, Light stays after a reload, Follow Windows follows the system,
+  the popup takes the dark tokens, the start line, the mole's places). The smoke test now has 120 rows.
+
+### Changed
+
+- The launcher is `Start Grondig.bat`. `Start aydinlearns.bat` stays for one release as a two-line shim that starts it.
+- The server's start line is `grondig on http://127.0.0.1:<port>`, and the replay line starts `grondig:`. The smoke test's
+  parsers follow.
+- `TUTOR_PROMPT_VERSION` is 5. Only the name in the prompt changed, so no live eval was run.
+- The narrow top bar (tabs on their own row, "by Zehir Labs" hidden) starts below 900px, not 700px (S9-C50): the mole beside
+  the wordmark made the bar wider, and Today was 831 px wide at 820 px.
+- Smoke row 14 (the port bind) reads `netstat` first. When `netstat` lists no listener for the port (S9-C49), or lists the
+  listener with its owner hidden as PID 0 (S9-C51), it connects instead: 127.0.0.1 must answer, `::1` and every LAN
+  address must not, and a control listener on all addresses must answer on those LAN addresses. A listener line on any
+  other address still fails the row.
+- `AYDINLEARNS_SHOTS_THEME` (`light` or `dark`) is an opt-in for the screenshots: the smoke run's pages start with that
+  theme. The README's four screenshots are now the dark ones.
+- What stays named aydinlearns, and why (S9-17, pinned by `tests/tools/identifiers.test.ts`): the folder, the
+  `AYDINLEARNS_*` variables, the telemetry `service.name` and metric names, the localStorage keys, the log's `app` field, the
+  backup prefix and the venv marker. Renaming them would break a running setup, past logs and Dash0 dashboards for no
+  reader's gain. Past CHANGELOG entries, records, plans and specs are history and stay as written.
+- The mole images are licensed with the content, under CC BY-NC 4.0, not under the code licence (D135, Aydin's call on
+  2026-11-04). `NOTICE.md` gives the mascot its own section and `LICENSE-CONTENT.md` lists `web/src/assets/mascot/`.
+- The release skill stops before its first step if `maydinidil/grondig` does not resolve yet, and never creates the repo
+  (F4-S2-1): a new repo of that name would block the rename.
+
+### Fixed
+
+- Another open tab follows a theme change at once; it used to keep the old theme until a reload (T1's deferred minor).
+- With Settings open, its Appearance radios follow a theme picked in another tab too, so the earlier choice can be picked
+  again at once; the radio used to stay on the old choice and ignore a click (Codex F42, PR #61).
+- A disabled text field, list or text area now looks disabled, like a disabled button (older than T1).
+- An empty Today shows one mole, not two (M1-R4).
+- The GA4 run history's empty line shows the mole, like the drill and mock histories (F4-S4-2).
+- Tests: the colour guard also catches `rgb()`, `hsl()` and named colours in every web file, and raw colours in SVG files
+  (F4-S1-1); render tests pin no mole in a graded review or a running drill (M1-R1), the empty-state placements (M1-R4) and
+  the wordmark's calm pose (M1-R2).
+
+### Known issues
+
+- None new. Every Part 2 minor was fixed or dropped as code tidy-up; [the sprint 9 record](docs/planning/2026-10-31-sprint-9-record.md)
+  lists each.
+
+## 0.9.0 (2026-11-04)
+
+Sprint 9 Part 1 (D128, D129, S9-01 to S9-15): SQL level 7 on a GA4-export-shaped sample of Mailvora's website, and the three
+backlog rows S8-B1 to S8-B3. No public release: Part 2 (0.9.1) renames the app and adds the dark UI.
+
+| What 0.9.0 adds | In short |
+|---|---|
+| SQL level 7 | `SQL-BQ-01` (BigQuery dialect and GA4 export data) and `SQL-CRAFT-01` to `-03` (take-home craft): 4 lessons, 130 exercises and a level 7 drill |
+| GA4 export sample | `mailvora_ga4`: Mailvora's website in the shape of a GA4 BigQuery export, with the nested `event_params` that you unnest. Open in the explorer |
+| A new item kind | `fixed_choice`: BigQuery and cost questions with fixed options, which the app does not run |
+| Cases | The level 7 opener `CASE-MAIL-L7` and two daily cases, `CASE-DAILY-L7-01` and `-02` |
+| Backlog | The drill mix, the world logged with a new attempt, and nine `SQL-PAT-09` prompts |
+
+### Added
+
+- SQL level 7 (S9-08, E-218, E-220): `SQL-BQ-01` teaches unnesting `event_params`, the value slots, the microsecond
+  timestamp and the Dublin day, with the BigQuery form beside each DuckDB form. `SQL-CRAFT-01` is checks and
+  reconciliation, `SQL-CRAFT-02` is cost and filtering early, `SQL-CRAFT-03` is a metric under a stated definition. Each
+  concept has a lesson, write items, one fix item per trap ID, run-checked choice items and `fixed_choice` items (16 in all:
+  6, 2, 4 and 4).
+- `mailvora_ga4` (S9-02, S9-C16 to S9-C18, E-218): one table `events` for 1 October to 31 December 2025 (the Dublin days),
+  825,950 rows, derived from Mailvora's own sessions, sign-ups and first payments, so the counts reconcile to `mailvora`.
+  `event_date` is the Dublin day, `event_timestamp` is microseconds in UTC, and purchases come from the billing server
+  with no session. It also holds four views, `sessions`, `signups`, `subscriptions` and `payments`, onto Mailvora's
+  tables: the first views that read another schema. A graded run reads them by their plain names. Its row cap is
+  1,000,000.
+- `mailvora_edge_ga4` (S9-03, S9-C29, S9-C42): the hidden-data copy, with five tables and ten plants, one for each purpose:
+  an empty `event_params`, a purchase value in `int_value`, two visitors sharing a `ga_session_id`, an event with no
+  `ga_session_id`, an event with no `user_pseudo_id`, both sides of the Dublin day boundary (23:30 UTC on 25 October is
+  Dublin day 26; 23:30 UTC on 27 October is Dublin day 27), a `page_location` with a query string, a session with no
+  `page_view`, and a first payment that was refunded. A sign-up at about 23:30 UTC on 30 September (Dublin day 1 October)
+  is the tenth.
+- The explorer lists the sample as "GA4 export (BigQuery shape)" under Mailvora (S9-C05). Its queries may run for 10
+  seconds, because an unnest over every event takes about 4 seconds.
+- Four new mistake IDs and one syntax ID (S9-04, E-219): `ERR-LOG-52` to `ERR-LOG-55` and `ERR-SYN-09`, each with
+  feedback, a concept and a detection check. `GRADER_VERSION` is `9a.1`.
+- The opener `CASE-MAIL-L7` (asked by Declan, Head of growth) and the daily cases `CASE-DAILY-L7-01` (Aoife, Performance
+  marketing manager) and `CASE-DAILY-L7-02` (Marieke, CFO, on Voltmarkt) (S9-12).
+- The level 7 drill (S9-09, S9-C34): 10 questions in 35 minutes, 90% to pass, from a pool of 24.
+- `G-SQL-LEVEL-7` (S9-11): level 7 practised, and the screen and take-home mocks passed.
+- `fixed_choice` (S9-06, E-220), content check C57 and the construct `unnest_list` (S9-07).
+- Four BigQuery notes (S9-05, S9-C23). A note never fails a query. It shows when a query uses an unnest the DuckDB way, a
+  list function or lambda, `strptime` on `event_date`, or `make_timestamp` on `event_timestamp`, and gives the BigQuery form.
+- Browser smoke rows 9a-1 to 9a-8.
+
+### Changed
+
+- `ERR-LOG-52` to `-55` and `ERR-SYN-09` are new, and `GRADER_VERSION` is `9a.1`. It only adds diagnoses: no pass becomes
+  a fail and no partial score or logged check moves. `CHOICE_GRADER_VERSION` stays `choice.3`.
+- `fixed_choice` (S9-06, S9-C13, S9-C22, E-220): three or four options, each with text and an optional code block marked
+  `bigquery` or `duckdb`. It is graded by its right option, served and logged through the choice route as
+  `predict_result` is, with `item_kind` `fixed_choice` (a new value of an existing field; the log stays at version 8).
+  Check C33 does not run it; C57 checks one right option, distinct options, a `duckdb` option that prepares, no option
+  named by letter, and that the right option is the only longest in at most 35% of a concept's items. Which exercises
+  became `fixed_choice` items is E-220.
+- The drill pools of levels 3 to 5 now mix the bands (S8-B1, S9-13, S9-C09): each pool rotates E1, E2 and E3 as level 6's
+  does. Four runs in a row serve 4 E1, 4 E2 and 2 E3 at levels 3 and 5, and at least 3 of each band at level 4.
+- From 0.9.0 a new SQL attempt logs the real world of its data (S8-B2, S9-14): `marketing` for Mailvora, `saas` for
+  LedgerLoop, `retail` or `marketing` for a prepared dataset, and missing for the 8 Week SQL Challenge. Older lines keep
+  `pricing`; they are not rewritten.
+- Nine `SQL-PAT-09` prompts state one promotion rule (S8-B3, S9-15, S9-C20, S9-C21): a line is on a promotion when its
+  `promo_id` holds the promotion's ID, whatever its date. `EX-SQL-PAT-09-E2-22` names which products are in a promotion,
+  and `-E2-05` says what a promotion with no lines returns. Each was solved again blind.
+- v1 ends with level 7 (D128). Noordkant and the retail cases, KKBox, the compare-with-others tiers, the other GA4 labs,
+  GA4 bank growth and the optimiser path moved to "Later" in the roadmap, with nothing deleted.
+- Seven `SQL-BQ-01` prompts say "a day with none has no row", after the seams review (S9-C42).
+
+### Fixed
+
+- Seams review (S9-C42, five Important and three minor findings): the edge has a sign-up that a UTC reading of the first
+  day gets wrong; seven `SQL-BQ-01` prompts no longer read two ways; `ERR-LOG-53`'s feedback says a text parameter is in
+  `string_value`; `ERR-LOG-52`'s feedback defers to the question about events with no ID; the explorer's 10-second limit
+  for `mailvora_ga4`; the level 7 drill test reads the shipped pool.
+- `ERR-OUT-02`'s feedback says what to do when a list or struct comes back where one value is asked.
+- The alternatives of `EX-SQL-CRAFT-01-E3-22` agree with its reference and prompt on a missing `product_id`.
+
+### Known issues
+
+- DuckDB's JSON arrow, such as `j -> '$.a'`, is read as a lambda, so the list note and `unnest_list` can fire on it. No shipped
+  key uses it.
+- `ChoicePanel` reuses a class name for statement text; the unnest check repeats a helper's blanking; `check-sql-choice`
+  copies `check-choice`'s squash. Code tidy-up only.
+- A daily case on `mailvora_raw` would fall to Voltmarkt's cast rule. No such case exists.
+- No first payment falls near midnight in `mailvora_edge_ga4`, so a UTC reading of `paid_at` is not caught. The prompts state
+  the clock.
+- Browser smoke row 14 (the port bind, read through `netstat`) fails in the build sessions: `netstat` there lists the
+  server's listening socket only some of the time, inside the sandbox or outside it (S9-C48, which corrects S9-C41). The
+  bind was checked by connecting instead: 127.0.0.1 answers, `::1` and the LAN address do not. Part 2 adds that check to
+  the row.
+
 ## 0.8.1 (2026-10-30)
 
 Sprint 8 Part 2 (D124 to D127, S8-14 to S8-23): the SaaS cases on LedgerLoop, two retail cases on Voltmarkt, Olist and
-Maven Toy Store as datasets you prepare yourself, and four backlog rows. Released as the public `v0.8.1` after the merge.
+Maven Toy Store as datasets you prepare yourself, and four backlog rows. Released as the public `v0.8.1` on 2026-10-30.
 
 | What 0.8.1 adds | In short |
 |---|---|
@@ -61,6 +222,8 @@ Maven Toy Store as datasets you prepare yourself, and four backlog rows. Release
   its other way first. The export takes the latest pass that is not a copy, and a copy only when no own pass exists.
 - The release check from a worktree (S8-21): its monorepo-path note also counts lines that name the main checkout's
   folder.
+- The public release check lets addresses on reserved top-level domains pass, such as the invented `.example` addresses in
+  LedgerLoop's edge data (PR #59, merged before the release).
 - `inventory_chain_daily.snapshot_date`'s note now says the rows start on 1 January 2024 or the store's opening, whichever
   is later.
 - Two GA4 and Methodology tests no longer fail in the first minute after midnight.

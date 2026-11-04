@@ -113,8 +113,13 @@ const TYPED: readonly CheckpointKind[] = ['CP2', 'CP4'];
 const MAY_CREDIT_NOTHING: readonly CheckpointKind[] = ['CP1', 'CP4', 'CP5'];
 /** Design §7's cast: Voltmarkt's five managers and their roles. A daily case on any schema but Mailvora is asked by one of them (S4B-04). */
 const CAST = new Map([['Sanne', 'Category manager'], ['Joost', 'Pricing lead'], ['Fleur', 'Trade marketing'], ['Marieke', 'CFO'], ['Yara', 'Retail operations']]);
-/** Design §7's other cast: Mailvora's four managers and their roles. A daily case whose schema is `mailvora` is asked by one of them (S7-C11). */
+/**
+ * Design §7's other cast: Mailvora's four managers and their roles. A daily case whose schema is `mailvora` is asked by one of them (S7-C11),
+ * and so is one on `mailvora_ga4`, Mailvora's GA4 export with its views onto Mailvora's tables (S9-10).
+ */
 const MAILVORA_CAST = new Map([['Aoife', 'Performance marketing manager'], ['Ciarán', 'Marketing director'], ['Siobhán', 'Lifecycle marketing manager'], ['Declan', 'Head of growth']]);
+/** The schemas whose daily cases Mailvora's cast asks (S7-C11, S9-10). */
+const MAILVORA_SCHEMAS: readonly string[] = ['mailvora', 'mailvora_ga4'];
 /** S8-12 (sprint 8): LedgerLoop's four managers and their roles. A daily case whose schema starts with `ledgerloop` (ledgerloop or ledgerloop_raw) is asked by one of them (F2-3-M4). */
 const LEDGERLOOP_CAST = new Map([['Lieselot', 'CFO'], ['Wannes', 'Head of customer success'], ['Griet', 'Revenue operations lead'], ['Nele', 'Growth marketing manager']]);
 const CASE_ID = /^CASE-[A-Z0-9]+(-[A-Z0-9]+)*$/;
@@ -221,7 +226,7 @@ function checkCheckpoint(c: unknown, i: number, x: Record<string, unknown>, kind
   }
 }
 
-/** S4B-04, amended by S5A-14 (D56): a daily case must have CP3 and CP4 and may add CP1, CP2, CP5 and CP6; difficulty 1, the ID CASE-DAILY-L<level>-NN, and one of Voltmarkt's five managers (S7-C11: one of Mailvora's four when the case's schema is `mailvora`; F2-3-M4: one of LedgerLoop's four when it starts with `ledgerloop`). */
+/** S4B-04, amended by S5A-14 (D56): a daily case must have CP3 and CP4 and may add CP1, CP2, CP5 and CP6; difficulty 1, the ID CASE-DAILY-L<level>-NN, and one of Voltmarkt's five managers (S7-C11: one of Mailvora's four when the case's schema is `mailvora`, and S9-10 when it is `mailvora_ga4`; F2-3-M4: one of LedgerLoop's four when it starts with `ledgerloop`). */
 function checkDaily(x: Record<string, unknown>, kinds: Set<string>, e: string[]): void {
   if (x.kind !== 'daily') {
     if (typeof x.case_id === 'string' && x.case_id.startsWith('CASE-DAILY-')) e.push('only a daily case may use a CASE-DAILY- ID');
@@ -233,7 +238,7 @@ function checkDaily(x: Record<string, unknown>, kinds: Set<string>, e: string[])
     e.push(`a daily case ID looks like CASE-DAILY-L${String(x.level)}-01`);
   }
   const p = x.persona;
-  if (x.schema === 'mailvora') {
+  if (typeof x.schema === 'string' && MAILVORA_SCHEMAS.includes(x.schema)) {
     if (!isObj(p) || typeof p.name !== 'string' || MAILVORA_CAST.get(p.name) !== p.role) {
       e.push('a daily case on Mailvora is asked by one of its four managers in their own role: Aoife, Ciarán, Siobhán or Declan');
     }

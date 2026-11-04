@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-42",
+  "item_version": 1,
+  "correct_oid": "o6ff5f98",
+  "explanation": "Filtering the orders first and joining only stores keeps one row per order, so COUNT(*) counts orders, and the result has exactly the two columns asked for. Joining order_lines repeats each order once per line, so its count is a count of lines. A star in the first step is harmless here, but the answer that adds the city and a customer count returns columns the question did not ask for, and a range that ends at midnight on 16 March leaves out that whole day.",
+  "solver": {
+    "prompt_hash": "92e8bb492ebab6fa",
+    "grader_version": "choice.3",
+    "chosen": "o6ff5f98",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.588Z"
+  }
+}

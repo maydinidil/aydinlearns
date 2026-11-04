@@ -9,7 +9,8 @@
 // Task C4 (S3-13): an active SQL choice item's view goes to <out>/sql/<target concept>/<item_id>.json. It holds what the
 // learner sees: `id`, `kind`, `prompt` and `schema`, plus the kind's own fields: `shown_sql` (predict kinds), `options`
 // ({ oid, text } and a predict_result option's `table`, in a seeded shuffled order), `typed` (predict_rows) and `unique_check`
-// (is_unique). Never the key, the misconceptions, the edge schema, hints or difficulty.
+// (is_unique). Never the key, the misconceptions, the edge schema, hints or difficulty. Sprint 9 (S9-06, S9-C12): a fixed_choice option
+// carries its `code` (lang and query) as the learner sees it, captioned by its dialect.
 // Sprint 4b (Task B2): every case's CP1 and CP5 (`id`, `prompt` and `options` in a seeded shuffled order) and CP2 and CP4 (`id`,
 // `prompt` and `typed`) go to <out>/case/<case_id>/<case_id>-<CP>.json, from content/sql/openers/ and content/sql/cases/. The
 // case's CP3 is an SQL item, in export:solver-view. Never the case key, the brief, the credits, the model plan or the model answer.
@@ -22,7 +23,7 @@ import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CaseRecord, Checkpoint } from '../schemas/case.ts';
-import type { ChoiceItem, ChoiceSection, OptionTable, TypedSpec } from '../schemas/choice.ts';
+import type { ChoiceItem, ChoiceSection, OptionCode, OptionTable, TypedSpec } from '../schemas/choice.ts';
 import { isSqlChoiceKind, type SqlItem } from '../schemas/item.ts';
 import { shuffle } from '../server/routes/choice.ts';
 import { promptHashOf, SECTIONS } from './check-choice.ts';
@@ -32,7 +33,7 @@ export const DEFAULT_SEED = 'choice-view-1';
 export interface ChoiceView { id: string; stem: string; options?: { oid: string; text: string }[]; typed?: TypedSpec }
 /** Task C4: an SQL choice item's view (S3-13). The fields after `schema` are there only for the kinds that have them. */
 export interface SqlChoiceView {
-  id: string; kind: string; prompt: string; schema: string; shown_sql?: string; options?: { oid: string; text: string; table?: OptionTable }[];
+  id: string; kind: string; prompt: string; schema: string; shown_sql?: string; options?: { oid: string; text: string; table?: OptionTable; code?: OptionCode }[];
   typed?: TypedSpec; unique_check?: { table: string; column: string };
 }
 /**
@@ -93,8 +94,8 @@ export function sqlChoiceView(item: SqlItem, seed: string): SqlChoiceView {
   const view: SqlChoiceView = { id: item.id, kind: item.kind, prompt: item.prompt, schema: item.schema };
   if (typeof item.shown_sql === 'string') view.shown_sql = item.shown_sql;
   if (item.options?.length) {
-    view.options = seededOrder(item.options, seed, item.id)
-      .map((o) => (o.table ? { oid: o.oid, text: o.text, table: { columns: o.table.columns, rows: o.table.rows } } : { oid: o.oid, text: o.text }));
+    view.options = seededOrder(item.options, seed, item.id).map((o) => ({ oid: o.oid, text: o.text,
+      ...(o.table ? { table: { columns: o.table.columns, rows: o.table.rows } } : {}), ...(o.code ? { code: { lang: o.code.lang, sql: o.code.sql } } : {}) }));
   }
   if (item.typed) { const { precision, scale, decimals, unit_label } = item.typed; view.typed = { precision, scale, decimals, unit_label }; }
   if (item.unique_check) view.unique_check = { table: item.unique_check.table, column: item.unique_check.column };
@@ -127,7 +128,10 @@ export function sqlViewPromptHash(view: unknown): string | null {
     if (!Array.isArray(v.options)) return null;
     const list = v.options.map((o) => (o && typeof o === 'object' ? o as Record<string, unknown> : {}));
     if (!list.every((o) => typeof o.text === 'string')) return null;
-    options = list.map((o) => (o.table ? { text: o.text as string, table: o.table as OptionTable } : { text: o.text as string }));
+    // S9-06: a code block is a lang and a query, or the value is not a view.
+    const isCode = (c: unknown): c is OptionCode => !!c && typeof c === 'object' && typeof (c as OptionCode).lang === 'string' && typeof (c as OptionCode).sql === 'string';
+    if (!list.every((o) => o.code === undefined || isCode(o.code))) return null;
+    options = list.map((o) => ({ text: o.text as string, ...(o.table ? { table: o.table as OptionTable } : {}), ...(o.code ? { code: o.code as OptionCode } : {}) }));
   }
   const typed = v.typed === undefined ? null : v.typed as TypedSpec;
   const unique = v.unique_check === undefined ? null : v.unique_check as { table: string; column: string };

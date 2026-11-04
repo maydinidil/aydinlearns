@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BQ-01-E3-42",
+  "item_version": 2,
+  "correct_oid": "o78e3152",
+  "explanation": "A session is the pair of visitor and session ID, so the right query counts distinct pairs, reading ga_session_id with BigQuery's subquery over UNNEST. Counting distinct ga_session_id values alone is the tempting slip: two visitors who start in the same second share one. Counting rows keeps the session_start events of visitors who denied consent, and list_filter with a lambda is DuckDB's spelling.",
+  "solver": {
+    "prompt_hash": "7755a3d2de0539e8",
+    "grader_version": "choice.3",
+    "chosen": "o78e3152",
+    "typed": null,
+    "at": "2026-11-03T21:23:49.209Z"
+  }
+}

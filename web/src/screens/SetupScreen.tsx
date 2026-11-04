@@ -12,6 +12,7 @@ import {
   canRemoveKey, EFFORT_NOTE, EFFORT_OPTIONS, keepChoice, keyName, keyNotice, keySourceLine, keyToSave, keyView, KEYS_NOTE, modelOptions, modelToSave,
   removeKeyBody, statusLine, SWITCH_LABEL, switchNotice,
 } from '../lib/tutor-settings.ts';
+import { chooseTheme, readThemeChoice, themeStore, watchThemeChoice, type ThemeChoice } from '../lib/theme.ts';
 
 const OUTSIDE_SOURCES = ['SQLBolt', 'LeetCode', 'HackerRank', 'Skillshop', 'Monthly outside benchmark', 'Other'];
 const NO_REPORT = { item_id: '', text: '' };
@@ -19,6 +20,10 @@ const NO_GA4 = { date: '', score: '', passed: false };
 const NO_PIECE = { title: '', data_source: '', real_data: false };
 
 const TUTOR_PROVIDERS: readonly TutorProviderName[] = ['claude', 'openai'];
+/** The Appearance card's choices (S9-18, D131), in this order. */
+const THEME_OPTIONS: readonly { value: ThemeChoice; label: string }[] = [
+  { value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }, { value: 'system', label: 'Follow Windows' },
+];
 
 /** `onTutorStatus`: each tutor status this screen reads, so the top bar's "Ask the tutor" follows the switch and the keys (App.tsx). */
 export function SetupScreen({ onTutorStatus }: { onTutorStatus?: (s: TutorStatusView) => void } = {}) {
@@ -53,6 +58,14 @@ export function SetupScreen({ onTutorStatus }: { onTutorStatus?: (s: TutorStatus
   const [effort, setEffort] = useState<TutorEffort | null>(null);
   /** The switch as clicked, while its save is on its way; null: as the status says. */
   const [switching, setSwitching] = useState<boolean | null>(null);
+  /** The theme (S9-18): saved in this browser only, never through /api/settings or the log, and applied as it is picked. */
+  const [theme, setTheme] = useState<ThemeChoice>(() => readThemeChoice(themeStore()));
+  // Codex F42: a choice saved in another tab turns this page (startTheme), so the radios follow it too.
+  useEffect(() => watchThemeChoice(setTheme), []);
+  function pickTheme(choice: ThemeChoice) {
+    setTheme(choice);
+    if (!chooseTheme(document.documentElement, themeStore(), choice)) setNotice('The theme could not be saved in this browser, so it lasts until the page is reloaded.');
+  }
   const showTutor = (s: TutorStatusView) => {
     const before = tutorBefore.current;
     tutorBefore.current = s;
@@ -114,12 +127,23 @@ export function SetupScreen({ onTutorStatus }: { onTutorStatus?: (s: TutorStatus
       </details>
       </div>
 
+      <div className="card settings-card">
+      <h2>Appearance</h2>
+      <fieldset className="theme-choice">
+        <legend>Theme</legend>
+        {THEME_OPTIONS.map((o) => (
+          <label key={o.value}><input type="radio" name="theme" value={o.value} checked={theme === o.value} onChange={() => pickTheme(o.value)} /> {o.label}</label>
+        ))}
+      </fieldset>
+      <p className="muted">Saved in this browser. Follow Windows turns light or dark with Windows.</p>
+      </div>
+
       {!status.degraded && (
         <>
           <div className="card settings-card">
           <h2>Backup and dates</h2>
           <p><label>Backup folder (a copy of the log is saved here after each session){' '}
-            <input value={backup} placeholder="D:\Backups\aydinlearns" onChange={(e) => setBackup(e.target.value)} /></label>{' '}
+            <input value={backup} placeholder="D:\Backups\Grondig" onChange={(e) => setBackup(e.target.value)} /></label>{' '}
             <button type="button" disabled={busy} onClick={() => send(() => api.settings('backup_folder', backup.trim()), 'Backup folder saved.')}>Save</button></p>
           <p><label>GA4 exam date <input type="date" value={exam} onChange={(e) => setExam(e.target.value)} /></label>{' '}
             <button type="button" disabled={busy} onClick={() => send(() => api.settings('exam_date', exam || null), 'Exam date saved.')}>Save</button></p>

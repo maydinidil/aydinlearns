@@ -1,6 +1,9 @@
-# aydinlearns
+# Grondig
 
-A local study app for getting hired as a data, marketing or commercial analyst. It covers the
+<img src="web/src/assets/mascot/mole-calm.png" width="64" height="64" alt="">
+
+Grondig (Dutch for "thorough"; formerly aydinlearns) is a local study app for getting hired as a data, marketing or
+commercial analyst. Its mascot is a mole in round reading glasses. It covers the
 three things recruiters test: **SQL**, **GA4** (Google Analytics 4) and **analytics methodology**
 (metrics, A/B testing, statistics and pricing). Every query the learner writes runs on a real
 database and is graded on its result, and the app names the mistake ("you averaged the ratios") instead of only
@@ -8,11 +11,13 @@ saying "wrong".
 
 ![Today: the plan for the session beside the wrap-up](docs/screenshots/today.png)
 
+The app opens dark. Settings, under Appearance, offers Dark, Light or Follow Windows; the choice is saved on this device only.
+
 ## What can be studied now
 
 | Section | Content |
 |---|---|
-| SQL | Levels 1 to 6, 42 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs, set operations, subqueries, text, date arithmetic, data cleaning, window functions and the business patterns of level 6 (top-N per group, dedup, period comparisons, date spines, pivoting, cohorts, funnels, sessions, promo uplift, SaaS MRR): lessons with worked examples, 1,166 exercises (write the query, fix the query, predict the result, choose the query), timed drills and a cumulative drill over levels 1 to 4, a level 6 drill, raw tables with planted errors to clean, 47 cases in an inbox (an opener for each level, thirteen daily cases, five pricing cases, four retail cases, five data-quality tickets, four marketing cases on a second company, Mailvora, a level 6 opener, two daily cases, five SaaS cases and a marketing case on a third, LedgerLoop (a B2B SaaS company in Ghent), two take-home cases on real data, and one case each on Olist and Maven Toy Store), mistake cards for the mistakes that keep coming back, "other ways to write this" after a pass, a dataset explorer over the three companies and the real datasets you prepare, and a portfolio export with flagship drafts on real data |
+| SQL | Levels 1 to 7, 46 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs, set operations, subqueries, text, date arithmetic, data cleaning, window functions and the business patterns of level 6 (top-N per group, dedup, period comparisons, date spines, pivoting, cohorts, funnels, sessions, promo uplift, SaaS MRR) and level 7 (BigQuery dialect and GA4 export data, which you unnest on a sample of Mailvora's website, and take-home craft: checks, cost and metric definitions): lessons with worked examples, 1,296 exercises (write the query, fix the query, predict the result, choose the query, and BigQuery questions with fixed options), timed drills and a cumulative drill over levels 1 to 4, a level 6 drill, a level 7 drill, raw tables with planted errors to clean, 50 cases in an inbox (an opener for each level, thirteen daily cases, five pricing cases, four retail cases, five data-quality tickets, four marketing cases on a second company, Mailvora, a level 6 opener, two daily cases, five SaaS cases and a marketing case on a third, LedgerLoop (a B2B SaaS company in Ghent), two take-home cases on real data, one case each on Olist and Maven Toy Store, and the level 7 opener with two daily cases), mistake cards for the mistakes that keep coming back, "other ways to write this" after a pass, a dataset explorer over the three companies (Mailvora's GA4 export sample included) and the real datasets you prepare, and a portfolio export with flagship drafts on real data |
 | GA4 | Complete for the certification: 16 lessons and 123 questions (73 for practice and 20-question mini drills, 50 held out for 25-question half-mocks and 50-question full mocks), a readiness check, and 10 interview labs in Google's GA4 demo account, each re-checked a week later |
 | Methodology | 78 concepts, each with a reading: 51 metrics (marketing, retail, pricing and SaaS), 13 on experiments and A/B testing, 9 on statistics and 5 on pricing economics. 478 questions, 93 of them held out for mocks |
 | Recruiter mocks | Four timed mocks on questions you have not seen: the screen mock (stage 2's online SQL test), the knowledge mock (stage 3), the case-round mock (stage 4) and the take-home mock (stage 5). The Recruiter mocks screen has one card per recruitment stage, with the readiness board's status, each mock's history and the live reps |
@@ -295,17 +300,17 @@ checked before they ship: 29,148 automated content checks (with the real dataset
 that solves every exercise without seeing its answer key). The design, the plans, every ruling
 and the review logs are in `docs/`.
 
-Today: 3,111 automated tests (the render tests included), 488 data pipeline tests, 29,148 content checks (with the real datasets prepared) and a 106-row browser smoke test, all passing.
+Today: 3,345 automated tests (the render tests included), 525 data pipeline tests, 31,494 content checks (with the real datasets prepared) and a 120-row browser smoke test, run in the dark theme and again in the light one, all passing.
 
 ## Status
 
-Version 0.8.1 (2026-10-30: sprint 8 Part 2, the public `v0.8.1` after the merge). Built: SQL levels 1 to 6 with the scheduler, Today, drills, level
+Version 0.9.1 (2026-11-04: sprint 9 Part 2; the public `v0.9.1` and the repo's rename to `maydinidil/grondig` follow the merge. The last public release is `v0.8.1`; 0.9.0 was private). Built: SQL levels 1 to 7 with the scheduler, Today, drills, level
 openers, cases and the inbox, mistake cards, the portfolio export, the Progress screen, the
 dataset explorer and screen mode; GA4 complete (lessons, mini drills, half-mocks, full mocks,
 the readiness check and the interview labs); Methodology complete; optional telemetry (0.5.2) and
 the study journey (0.5.3); SQL level 4, raw data and the incident tickets (0.6.0); Mailvora, the marketing cases and the first
 real datasets (0.6.1); the opt-in AI tutor (0.6.2); SQL level 5 and the screen mock on the Recruiter mocks screen (0.7.0); the knowledge, case-round
-and take-home mocks and the tutor's second opinion (0.7.1); fixes and polish after the mocks (0.7.2, 0.7.3); SQL level 6 and LedgerLoop (0.8.0); the SaaS cases, Olist and Maven Toy Store (0.8.1). Later 0.x releases add SQL level 7. See
+and take-home mocks and the tutor's second opinion (0.7.1); fixes and polish after the mocks (0.7.2, 0.7.3); SQL level 6 and LedgerLoop (0.8.0); the SaaS cases, Olist and Maven Toy Store (0.8.1); SQL level 7 and the GA4 export sample (0.9.0); the new name Grondig, the mole and a dark theme by default, with Light and Follow Windows under Settings (0.9.1). See
 `docs/planning/roadmap.md` and `CHANGELOG.md`.
 
 It runs on Windows 11; other systems are untested.
@@ -319,7 +324,7 @@ to others. Not affiliated with Google.
 
 ## Where things are
 
-aydinlearns grew inside a private monorepo. Links in the docs that start with `../` point to
+Grondig grew inside a private monorepo. Links in the docs that start with `../` point to
 shared files there and are not part of this repository.
 
 | Path | What it is |
@@ -351,7 +356,7 @@ The app itself:
 | `server/` | The local server: the SQL runner (`server/runner/`), the grader (`server/grader/`), the logs, the routes and the AI tutor (`server/tutor/`) |
 | `web/` | The screens: Today, the maps, lessons, exercises, timed runs, the recruiter mocks, settings and setup, and the tutor panel (`web/src/tutor/`) |
 | `content/` | The SQL, GA4 and Methodology curricula, lessons and exercises, their answer keys (`content/keys/`), and the dataset registry (`content/datasets/registry.json`) |
-| `pipeline/` | The Python build for the course database (Voltmarkt, Mailvora and LedgerLoop), and the real-data prep in `pipeline/datasets/` |
+| `pipeline/` | The Python build for the course database (Voltmarkt, Mailvora, its GA4 export sample and LedgerLoop), and the real-data prep in `pipeline/datasets/` |
 | `tools/` | The content checks, the ERRATA check, the import check, the curriculum extractor, the blind-solver tools, the launcher (`tools/launch.ts`), `npm run journey` (`tools/journey.ts`, with its views in `tools/journey-views.sql`) and the tutor's live eval (`tools/tutor-eval.ts`) |
 | `tests/` | The test suite, with the render tests in `tests/web/render/`, plus the browser smoke test in `tests/e2e/` |
 | `data/`, `logs/` | The built course database (with any real data you prepared, in `data/real/`) and the attempt log. Git ignores both; the log is backed up to the folder chosen in Settings after each session |
@@ -364,7 +369,7 @@ Design §11 has the full layout.
 
 You need Node 24.12 or later, and the Python environment in `pipeline/.venv` for the data build.
 
-To study, double-click `Start aydinlearns.bat`. It sets up anything missing or out of date
+To study, double-click `Start Grondig.bat` (the old `Start aydinlearns.bat` still starts it for one more release). It sets up anything missing or out of date
 (the packages, the Python environment, the course database, the screens), starts the app and
 opens http://127.0.0.1:5174 in your browser. Keep its window open while you study; close it or
 press Ctrl+C to stop, and the session ends and the backup runs first. If the app is already
@@ -472,7 +477,7 @@ anything.
    `Unauthorized`.
 2. Copy `.env.example` to `.env` in this folder, and fill in `DASH0_OTLP_ENDPOINT` (without
    `/v1/traces`) and `DASH0_AUTH_TOKEN`. Git ignores `.env`; never commit it.
-3. Start the app as usual, with `Start aydinlearns.bat` or `npm start`. The console prints
+3. Start the app as usual, with `Start Grondig.bat` or `npm start`. The console prints
    `telemetry on`, then `traces reach the endpoint` once Dash0 accepts the first batch. A wrong
    endpoint or token prints `were not accepted`, with the reason.
 

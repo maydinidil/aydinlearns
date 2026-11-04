@@ -219,3 +219,56 @@ test('sprint 8 Task A1: pivot is the one level 6 construct', () => {
   const level6 = new Set(curriculum.concepts.filter((c) => c.level === 6).map((c) => c.id));
   assert.deepEqual(map.constructs.filter((c: Entry) => level6.has(c.concept_id)).map((c: Entry) => c.construct), ['pivot']);
 });
+
+// Sprint 9 Task A1 (S9-07): level 7's one new syntax is DuckDB's way into a list column, `unnest_list` for SQL-BQ-01: the unnest table
+// function, a lateral unnest, list functions with a lambda (`x -> ...` or `lambda x: ...`) and a list comprehension. C09 keeps them
+// out of every earlier concept's key. Every query here is invented, and the shipped-key test names item IDs only, never key text.
+test('sprint 9 Task A1: unnest_list (SQL-BQ-01) fires on its examples and on each form of a way into a list, and never on a look-alike', () => {
+  const entry = map.constructs.find((c: Entry) => c.construct === 'unnest_list') as Entry;
+  assert.equal(entry?.concept_id, 'SQL-BQ-01');
+  assert.ok(entry.examples.length >= 4);
+  for (const ex of entry.examples) {
+    assert.ok(detectConstructs(ex).includes('unnest_list'), ex);
+    assert.deepEqual(laterConstructs(ex, 'SQL-BQ-01', map.constructs, curriculum), [], ex);
+  }
+  for (const sql of [
+    "SELECT p.value.int_value AS sid FROM events, unnest(event_params) AS t(p) WHERE p.key = 'ga_session_id'",
+    "SELECT p.key FROM events e CROSS JOIN UNNEST (e.event_params) AS t(p)",
+    'SELECT unnest(event_params) AS p FROM events',
+    "SELECT list_filter(event_params, x -> x.key = 'value') AS v FROM events",
+    "SELECT list_transform(event_params, lambda x: x.key) AS keys FROM events",
+    "SELECT [x.value.int_value FOR x IN event_params IF x.key = 'ga_session_id'][1] AS sid FROM events",
+  ]) assert.ok(detectConstructs(sql).includes('unnest_list'), sql);
+  for (const sql of [
+    'SELECT unnest_count, list_count FROM events',
+    "SELECT event_name FROM events WHERE event_name <> 'unnest(x) -> [a for a in b]' -- lambda x: x",
+    'SELECT "unnest(" FROM events',
+    'SELECT event_name FROM events WHERE event_timestamp - 1 > 0 ORDER BY event_name',
+    'SELECT [1, 2, 3] AS l, list_value(1, 2) AS m FROM events',
+  ]) assert.ok(!detectConstructs(sql).includes('unnest_list'), sql);
+  // A key of SQL-PAT-08 (SQL-BQ-01's prerequisite) that opens a list fires it as a later construct: C09 fails it.
+  assert.deepEqual(laterConstructs("SELECT p.key FROM events, unnest(event_params) AS t(p)", 'SQL-PAT-08', map.constructs, curriculum), ['unnest_list']);
+});
+test('sprint 9 Task A1: unnest_list is the one level 7 construct', () => {
+  const level7 = new Set(curriculum.concepts.filter((c) => c.level === 7).map((c) => c.id));
+  assert.deepEqual(map.constructs.filter((c: Entry) => level7.has(c.concept_id)).map((c: Entry) => c.construct), ['unnest_list']);
+});
+test('sprint 9 Task A1: unnest_list fires on no shipped key of an earlier concept (reference, alternatives, other way, hint 3)', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const { existsSync } = await import('node:fs');
+  const order = new Map(curriculum.concepts.map((c) => [c.id, c.order]));
+  const bq = order.get('SQL-BQ-01')!;
+  const fired: string[] = [];
+  let read = 0;
+  for (const name of (await readdir('content/keys/sql')).filter((n) => n.endsWith('.json')).sort()) {
+    if (!existsSync(`content/sql/items/${name}`)) continue;
+    const item = JSON.parse(await readFile(`content/sql/items/${name}`, 'utf8')) as { id: string; target_concept_id: string };
+    if ((order.get(item.target_concept_id) ?? Infinity) >= bq) continue;
+    const key = JSON.parse(await readFile(`content/keys/sql/${name}`, 'utf8')) as { reference_sql: string; alternatives: string[]; other_way: { sql?: unknown } | null; hint3_partial: unknown };
+    const texts = [key.reference_sql, ...key.alternatives, key.other_way?.sql, key.hint3_partial].filter((t): t is string => typeof t === 'string');
+    read++;
+    if (texts.some((t) => detectConstructs(t).includes('unnest_list'))) fired.push(item.id);
+  }
+  assert.ok(read > 500, `read ${read} keys`);
+  assert.deepEqual(fired, [], 'items whose key fires unnest_list');
+});

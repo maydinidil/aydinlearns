@@ -1,0 +1,182 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "logo_churn",
+    "half_year",
+    "channel"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-logo-churn-half-channel",
+  "template_params": {
+    "table": "mrr_monthly",
+    "from": "2025-07",
+    "to": "2025-12",
+    "by": "acquisition_channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Which acquisition channels bring customers who leave? For each acquisition_channel (in accounts), LedgerLoop's logo churn rate for the second half of 2025: of the accounts with MRR at the end of June 2025 (a row in mrr_monthly for June 2025), the share with a churn event (event_type churn in subscription_events) dated from 1 July to 31 December 2025. Count each account once, even if it churned twice; one that churned and came back still counts as churned. An account that started after June 2025 is in neither count. Return four columns, in this order: acquisition_channel, accounts_at_start, churned_accounts and churn_rate, as a share (0.02 for 2%), not rounded. Return one row per channel with a base. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "acquisition_channel",
+        "type_class": "text"
+      },
+      {
+        "name": "accounts_at_start",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churned_accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "acquisition_channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "accounts_at_start",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "churned_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "acquisition_channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, fix the base: the accounts with MRR at the end of June 2025, each with its acquisition channel.",
+    "Join the second half's churners onto that base, each once, and divide by the base."
+  ],
+  "subgoals": [
+    {
+      "from": 75,
+      "to": 117,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 120,
+      "to": 138,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 141,
+      "to": 187,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 190,
+      "to": 223,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 313,
+      "to": 339,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 342,
+      "to": 366,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 369,
+      "to": 458,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 461,
+      "to": 562,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 565,
+      "to": 615,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 616,
+      "to": 627,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 628,
+      "to": 678,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 679,
+      "to": 709,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "One base fixed at the end of June keeps the rate about the customers each channel had, not the ones it won later."
+}

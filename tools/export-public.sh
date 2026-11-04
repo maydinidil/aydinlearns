@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# tools/export-public.sh: refreshes the public copy of aydinlearns (github.com/maydinidil/aydinlearns) from the private
+# tools/export-public.sh: refreshes the public copy of Grondig, formerly aydinlearns, at github.com/maydinidil/grondig from the private
 # monorepo it is developed in.
 #
 # Usage, from anywhere inside the monorepo:
-#   gh repo clone maydinidil/aydinlearns <clone>      # once per refresh, into a folder outside the monorepo
+#   gh repo clone maydinidil/grondig <clone>      # once per refresh, into a folder outside the monorepo
 #   bash aydinlearns/tools/export-public.sh <clone> [<ref>]
 #   git -C <clone> push                               # after looking at the commit
 #
@@ -13,7 +13,7 @@
 # It never pushes.
 set -euo pipefail
 
-PUBLIC_REPO=maydinidil/aydinlearns
+PUBLIC_REPO=maydinidil/grondig
 OWNER=${PUBLIC_REPO%%/*}
 
 clone=${1:?usage: export-public.sh <public clone> [<ref>]}

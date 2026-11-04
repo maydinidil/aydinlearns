@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E2-43",
+  "item_version": 1,
+  "correct_oid": "o6f8d634",
+  "explanation": "_TABLE_SUFFIX is the part of each daily table's name after events_, so a filter on it in the YYYYMMDD form decides which daily tables are read: only October's. A filter on event_date, as text or parsed with PARSE_DATE, keeps the same rows, but events_* with no suffix filter still reads every daily table. With dashes, the suffix filter matches no table name.",
+  "solver": {
+    "prompt_hash": "f66724eecf1bf886",
+    "grader_version": "choice.3",
+    "chosen": "o6f8d634",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.596Z"
+  }
+}

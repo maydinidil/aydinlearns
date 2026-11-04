@@ -1,0 +1,93 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "choose_query",
+    "reconciliation",
+    "purchase"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01",
+    "SQL-JOIN-05",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-choose-purchases",
+  "template_params": {
+    "month": "2025-12"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Every purchase in Mailvora's export stands for a subscription's first payment, and the export keeps a purchase whose first payment was later refunded. Which query compares December 2025's purchase events (Dublin days, by event_date) with the backend's first payments on the same Dublin days, counting a refunded first payment on both sides?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o045bdba",
+      "text": "WITH export_side AS (\n  SELECT COUNT(*) AS export_purchases\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n), backend_side AS (\n  SELECT COUNT(*) AS backend_first_payments\n  FROM (SELECT subscription_id, MIN(paid_at) AS first_paid_at FROM payments WHERE NOT refunded GROUP BY subscription_id) AS f\n  WHERE strftime(timezone('Europe/Dublin', first_paid_at), '%Y%m%d') BETWEEN '20251201' AND '20251231'\n)\nSELECT e.export_purchases, b.backend_first_payments\nFROM export_side e\nCROSS JOIN backend_side b",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o2982a6d",
+      "text": "WITH export_side AS (\n  SELECT COUNT(*) AS export_purchases\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n), backend_side AS (\n  SELECT COUNT(*) AS backend_first_payments\n  FROM (SELECT paid_at AS first_paid_at FROM payments) AS f\n  WHERE strftime(timezone('Europe/Dublin', first_paid_at), '%Y%m%d') BETWEEN '20251201' AND '20251231'\n)\nSELECT e.export_purchases, b.backend_first_payments\nFROM export_side e\nCROSS JOIN backend_side b",
+      "misconception_id": "ERR-LOG-04"
+    },
+    {
+      "oid": "oc4c3009",
+      "text": "WITH export_side AS (\n  SELECT COUNT(*) AS export_purchases\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n), backend_side AS (\n  SELECT COUNT(*) AS backend_first_payments\n  FROM (SELECT subscription_id, MIN(paid_at) AS first_paid_at FROM payments GROUP BY subscription_id) AS f\n  WHERE strftime(timezone('Europe/Dublin', first_paid_at), '%Y%m%d') BETWEEN '20251201' AND '20251231'\n)\nSELECT e.export_purchases, b.backend_first_payments\nFROM export_side e\nCROSS JOIN backend_side b",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0fd36be",
+      "text": "WITH export_side AS (\n  SELECT COUNT(*) AS export_purchases\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '2025-12-01' AND '2025-12-31'\n), backend_side AS (\n  SELECT COUNT(*) AS backend_first_payments\n  FROM (SELECT subscription_id, MIN(paid_at) AS first_paid_at FROM payments GROUP BY subscription_id) AS f\n  WHERE strftime(timezone('Europe/Dublin', first_paid_at), '%Y%m%d') BETWEEN '20251201' AND '20251231'\n)\nSELECT e.export_purchases, b.backend_first_payments\nFROM export_side e\nCROSS JOIN backend_side b",
+      "misconception_id": "ERR-LOG-55"
+    }
+  ]
+}

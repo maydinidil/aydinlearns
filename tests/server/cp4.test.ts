@@ -116,7 +116,7 @@ test('a CP4 whose value is not built yet is not served', async () => {
   const d = await deps([], noTruth);
   const r = await serve(createApp(d), 'CASE-VOLT-L1');
   assert.equal(r.status, 503);
-  assert.match((await r.json()).error, /Close and start aydinlearns again\./);
+  assert.match((await r.json()).error, /Close and start Grondig again\./);
 });
 
 // ---- Answering: a right, a wrong and a factor-of-100 answer (D15) -------------------------------------------------------------

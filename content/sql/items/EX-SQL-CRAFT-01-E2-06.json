@@ -1,0 +1,189 @@
+{
+  "id": "EX-SQL-CRAFT-01-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "promotions",
+    "sales"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-report-months",
+  "template_params": {
+    "from": "2025-04",
+    "to": "2025-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Voltmarkt's pricing team reports revenue for April to June 2025 by promotion type, with the lines that had no promotion (order_lines.promo_id is missing) under 'none'. Before the report goes out, check that it adds up. Revenue is quantity times unit_price_eur minus line_discount_eur, and a line's month is the UTC month of its order's order_ts, as sales.order_month gives it. For each month, return four columns, in this order: month (its first day), report_revenue (the report's revenue over every promotion type, 'none' included), sales_revenue (net_revenue_eur in sales) and difference (report_revenue minus sales_revenue). Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "report_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sales_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "report_revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "sales_revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check how the report finds each line's promotion.",
+    "The report must keep the lines with no promotion and give each line at most one promotion: its own promo_id."
+  ],
+  "subgoals": [
+    {
+      "from": 130,
+      "to": 296,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 299,
+      "to": 412,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 415,
+      "to": 519,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 522,
+      "to": 594,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 688,
+      "to": 732,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 735,
+      "to": 746,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 749,
+      "to": 763,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 859,
+      "to": 925,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 928,
+      "to": 938,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 941,
+      "to": 1006,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1009,
+      "to": 1029,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1032,
+      "to": 1133,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1134,
+      "to": 1195,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "A LEFT JOIN on the line's own promo_id keeps every line once, so the report's types add up to the month's revenue in sales."
+}

@@ -1,0 +1,87 @@
+{
+  "case_id": "CASE-DAILY-L7-01",
+  "kind": "daily",
+  "level": 7,
+  "world": "MKT",
+  "company_id": "mailvora",
+  "schema": "mailvora_ga4",
+  "title": "Engaged sessions by first-touch medium, November 2025",
+  "persona": {
+    "name": "Aoife",
+    "role": "Performance marketing manager"
+  },
+  "brief": {
+    "decision": "Which channels' landing pages get reworked first in the January 2026 campaign refresh",
+    "deadline": "Aoife's channel review on Monday"
+  },
+  "data_needed": [
+    "events"
+  ],
+  "expected_output": {
+    "columns": [
+      "first_touch_medium",
+      "sessions",
+      "engaged_sessions",
+      "engaged_pct"
+    ],
+    "grain": "one row per first-touch medium with at least one session on the Dublin days of November 2025",
+    "sort": [
+      {
+        "column": "first_touch_medium",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Aoife's question.",
+      "credits_concepts": [
+        "SQL-BQ-01",
+        "SQL-AGG-02"
+      ],
+      "item_id": "EX-CASE-DAILY-L7-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Aoife's headline, from the GA4 export: take the session_start events on the Dublin days from 1 to 30 November 2025, by event_date, every channel together. A session is one user_pseudo_id with one ga_session_id, counted once; a session_start with no user_pseudo_id or no ga_session_id comes from a visitor who denied consent and belongs to no session you can count, so leave it out. A session is engaged when the session_engaged parameter of its session_start event is the text '1'. What percentage of those sessions were engaged? Type the percentage rounded to 1 decimal, for example 12.3.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L7-01:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-DAILY-L7-01:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: sessions, the different pairs of user_pseudo_id and ga_session_id among a medium's session_start events; engaged_sessions, those whose session_engaged is '1'; engaged_pct, 100 times engaged_sessions divided by sessions, rounded to 1 decimal.\nOutput grain: one row per first-touch medium with at least one session.\nTables and keys: events alone; ga_session_id and session_engaged read out of event_params, one value per event; the medium from traffic_source, so no join is needed.\nFilters: session_start events with an event_date from 20251101 to 20251130, the Dublin days of November 2025; a start with no user_pseudo_id or no ga_session_id left out.\nEdge cases: two visitors can share a ga_session_id, so a session is the pair, not the ID; session_engaged is text in string_value, not a number; a visitor's later sessions keep the first-touch medium.\nExpected row count: 7",
+  "model_answer_template": "In November 2025, {CP4} percent of Mailvora's sessions were engaged, and the share ran from paid_social at the bottom to video at the top, with no channel far below the rest. The medium is each visitor's first touch, so a returning visitor's later sessions count under the channel that first brought the visitor in, whatever brought the visitor back. Engaged is the export's own session flag, so compare it only with the same flag, not with a bounce rate from another tool. Next, split the engaged share by landing page for paid_social and cpc, the paid mediums with the most sessions, before choosing which pages to rework.",
+  "follow_up_question": "Which landing pages of the paid_social sessions in November 2025 had the lowest engaged share?",
+  "data_source": {
+    "label": "Fictional, generated data: Mailvora",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-BQ-01"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

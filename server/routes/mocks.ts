@@ -278,7 +278,7 @@ export function mountMocks(app: Hono, d: RouteDeps, runs: DrillRuns, engine: Cas
       const r = (await history()).find((x) => x.block_id === run.block_id);
       if (r) runFinishedOnce(runs, r.block_id, finishedAttrs(r, RUN_KIND[r.mock]));
     } catch (e) {
-      console.error(`aydinlearns: the run_finished of ${run.block_id} could not be sent (${message(e)}).`);
+      console.error(`grondig: the run_finished of ${run.block_id} could not be sent (${message(e)}).`);
     }
   });
 

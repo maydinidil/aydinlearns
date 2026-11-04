@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-BQ-01-E1-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "list_filter",
+    "page_view",
+    "engagement"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-engagement-per-page",
+  "template_params": {
+    "event_name": "page_view",
+    "day": "20251203"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "For each page, add up the engagement time of the page_view events on 3 December 2025, by event_date. A page is the whole page_location parameter, as text, and the engagement time is the engagement_time_msec parameter, a whole number of milliseconds in int_value. Count every page_view that day, the ones with a missing user_pseudo_id or ga_session_id included. Return page_location and engagement_msec. Return one row for each page. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text"
+      },
+      {
+        "name": "engagement_msec",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per page_location with page views on 3 December 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "page_location",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "engagement_msec",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "page_location"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read page_location and engagement_time_msec out of each page_view's parameters.",
+    "Pick each parameter by its key with a list function, then take the slot that holds it: the text slot for the page, int_value for the time."
+  ],
+  "subgoals": [
+    {
+      "from": 64,
+      "to": 281,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 284,
+      "to": 295,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 298,
+      "to": 360,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 363,
+      "to": 424,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 425,
+      "to": 435,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 436,
+      "to": 458,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 71,
+    "stage2": 71
+  },
+  "faded_shape": "WITH views AS (\n  -- one row per page_view on 3 December 2025\n  SELECT ",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each list_filter keeps one parameter by its key, so every page_view stays one row before the times are added up.",
+  "faded_suffix": "\n  FROM events\n  WHERE event_name = 'page_view'\n    AND event_date = '20251203'\n)\nSELECT page_location, SUM(engagement_msec) AS engagement_msec\nFROM views\nGROUP BY page_location"
+}

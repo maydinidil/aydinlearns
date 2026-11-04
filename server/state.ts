@@ -142,7 +142,7 @@ export class LearnerState {
       const inst = replay([...this.#attempts, draft], this.#events, replayOptions(this.#catalog, now)).instances.get(draft.item_instance_id);
       return { ...draft, instance_rating: inst?.rating ?? null, card_reviews: inst?.card_reviews ?? [] };
     } catch (e) {
-      console.error(`aydinlearns: the close of ${draft.item_instance_id} could not be rated (${message(e)}); it is logged without a rating.`);
+      console.error(`grondig: the close of ${draft.item_instance_id} could not be rated (${message(e)}); it is logged without a rating.`);
       return draft;
     }
   }
@@ -151,7 +151,7 @@ export class LearnerState {
       const block = replay([...this.#attempts, draft], this.#events, replayOptions(this.#catalog, now)).blocks.get(draft.block_id);
       return { ...draft, card_reviews: block?.card_reviews ?? [] };
     } catch (e) {
-      console.error(`aydinlearns: the block close of ${draft.block_id} could not be rated (${message(e)}); it is logged without reviews.`);
+      console.error(`grondig: the block close of ${draft.block_id} could not be rated (${message(e)}); it is logged without reviews.`);
       return draft;
     }
   }

@@ -5,7 +5,8 @@
 //
 // GET /api/choice/:id?section=ga4|methodology[&instance=<id>]: the question, its options shuffled with crypto randomness,
 //   and the order they were shown in. No instance is opened and nothing is logged until an answer or a "show answer".
-//   Task C4 (S3-13, S3-14): section=sql serves an SQL choice item the same way, with its shown query, option tables and schema;
+//   Task C4 (S3-13, S3-14): section=sql serves an SQL choice item the same way, with its shown query, option tables and schema (S9-06:
+//   a fixed_choice item's options with their code blocks, served, graded and logged as a predict_result item's, item_kind fixed_choice);
 //   [&phase=pretest|free] names the phase of an instance no serving gave one (S3-17: the lesson's predict pretest item).
 // POST /api/choice/answer: one answer per instance (S2-61), graded on the server, logged with the order shown, then the
 //   instance closes (pass or left) and the key and explanation come back.
@@ -33,7 +34,7 @@ import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { SCHEMA_VERSION, type Phase, type Section } from '../../core/envelope.ts';
 import { amsterdamDate } from '../../core/time.ts';
-import { choiceTarget, sqlChoiceShape, type ChoiceItem, type ChoiceKey, type ChoiceSection, type ChoiceShape, type OptionTable, type TypedSpec } from '../../schemas/choice.ts';
+import { choiceTarget, sqlChoiceShape, type ChoiceItem, type ChoiceKey, type ChoiceSection, type ChoiceShape, type OptionCode, type OptionTable, type TypedSpec } from '../../schemas/choice.ts';
 import { isSqlChoiceKind, type SqlChoiceKind, type SqlItem, type UniqueCheck } from '../../schemas/item.ts';
 import type { AydinAttempt, KnowledgeMockRunKind, LoggedRunKind } from '../../schemas/log-ext.ts';
 import type { ContentStore } from '../content.ts';
@@ -42,6 +43,7 @@ import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, TYPED_REFUS
 import { HELP_WAITS, isMockPlan, MOCK_ONE_ANSWER, MOCK_RUN_OVER, NO_DRILLS, type DrillGate } from '../drill.ts';
 import { CHOICE_RUN_OVER, CODE_ONE_ANSWER, CODE_RUN_OVER, isChoicePlan, KNOWLEDGE_BLOCK_PREFIX, oneAnswer } from '../run.ts';
 import { answered, choiceFunnel, companyOf, levelName, sqlFunnel, type FunnelAttributes } from '../observe.ts';
+import { worldOfSchema } from '../world.ts';
 import { journey } from '../journey.ts';
 
 /**
@@ -65,9 +67,9 @@ export interface SqlChoiceItemView {
   topic_id: null; level: number | null; typed: TypedSpec | null; exam_relevance: null; verified: boolean;
   schema: string; shown_sql: string | null; unique_check: UniqueCheck | null;
 }
-/** An SQL choice showing: a predict_result option carries its result table. */
+/** An SQL choice showing: a predict_result option carries its result table, and a fixed_choice option its code block when it has one (S9-06). */
 export interface SqlChoiceServedView {
-  item: SqlChoiceItemView; options: { oid: string; text: string; table?: OptionTable }[]; shown_order: string[]; item_instance_id: string; phase: Phase;
+  item: SqlChoiceItemView; options: { oid: string; text: string; table?: OptionTable; code?: OptionCode }[]; shown_order: string[]; item_instance_id: string; phase: Phase;
 }
 export interface ChoiceAnswerView { correct: boolean; correct_oid?: string; value?: number; explanation: string; error_ids: string[]; attempt_id: string }
 /** Task B2 (S3-03): an answer to a timed run's item. Help waits for the end-of-run review: no correctness, key or explanation. */
@@ -188,7 +190,7 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
     const key = d.content.sqlChoiceKey?.(sql.id);
     if (!key) return 'no key';
     return { section: 'sql', item_kind: sql.kind, shape: sqlChoiceShape(sql), key, target_concept_id: sql.target_concept_id, concept_ids: sql.concept_ids,
-      level: sql.level, template_id: sql.template_id, difficulty: sql.difficulty, sub_skill: sql.sub_skill, target_ms: sql.time_target_ms, world: 'pricing',
+      level: sql.level, template_id: sql.template_id, difficulty: sql.difficulty, sub_skill: sql.sub_skill, target_ms: sql.time_target_ms, world: worldOfSchema(sql.schema, d.content.datasets?.() ?? []),
       company: companyOf(sql.schema) };
   };
   /** The question and its key; a 404 for an unknown or held-out ID, before anything else happens (S2-64, S3-12). */
@@ -308,7 +310,7 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
       const sql = d.content.item(item.id)!;
       const byOid = new Map(item.options.map((o) => [o.oid, o]));
       const body: SqlChoiceServedView = { item: publicSqlChoiceItem(sql), shown_order: s.order, item_instance_id: id, phase,
-        options: s.order.map((oid) => { const o = byOid.get(oid)!; return o.table ? { oid, text: o.text, table: o.table } : { oid, text: o.text }; }) };
+        options: s.order.map((oid) => { const o = byOid.get(oid)!; return { oid, text: o.text, ...(o.table ? { table: o.table } : {}), ...(o.code ? { code: o.code } : {}) }; }) };
       return c.json(body);
     }
     const choice = (inMock ? activeChoiceItem(d.content, item.id) : servableChoiceItem(d.content, item.id))!;

@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-BQ-01-E2-05",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "list_filter",
+    "sessions",
+    "ga_session_number"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-first-and-returning-sessions",
+  "template_params": {
+    "from": "20251208",
+    "to": "20251215"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "For each day from 8 to 15 December 2025, by event_date, split the sessions that started into visitors' first sessions and returning ones. The ga_session_number parameter, in int_value, counts the visitor's sessions: 1 is the first, and more than 1 a return. A session is one user_pseudo_id with one ga_session_id, counted from its session_start event; leave out session_start events whose user_pseudo_id or ga_session_id is missing. Return event_date, as the text the export stores, first_sessions and returning_sessions. Return one row for each day with a session start; a day with none has no row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text"
+      },
+      {
+        "name": "first_sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "returning_sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "first_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "returning_sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_date"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read ga_session_id and ga_session_number out of each session_start's parameters.",
+    "Count distinct pairs of visitor and session ID twice, once for a session number of 1 and once for more than 1."
+  ],
+  "subgoals": [
+    {
+      "from": 83,
+      "to": 328,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 331,
+      "to": 342,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 345,
+      "to": 432,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 435,
+      "to": 724,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 725,
+      "to": 736,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 737,
+      "to": 756,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "ga_session_number tells a visitor's first session from a return, and the visitor with the session ID counts each session once."
+}

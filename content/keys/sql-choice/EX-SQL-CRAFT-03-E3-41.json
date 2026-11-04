@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E3-41",
+  "item_version": 2,
+  "correct_oid": "obd9f8e4",
+  "explanation": "Each named case changes the numbers: a product launched inside the before window was not on sale for all of it, promotion weeks move units for another reason, and a rise with nothing sold before has no base for its change. Saying there are none ignores that a zero week before a launch, or a promotion week, is not a normal week. Dropping rises that sold nothing after removes exactly the outcome the question asks about, and the order details do not touch weekly units.",
+  "solver": {
+    "prompt_hash": "262077e6cfdfc1cd",
+    "grader_version": "choice.3",
+    "chosen": "obd9f8e4",
+    "typed": null,
+    "at": "2026-11-03T21:23:49.217Z"
+  }
+}

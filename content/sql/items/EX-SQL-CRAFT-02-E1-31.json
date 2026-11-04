@@ -1,0 +1,115 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "columns",
+    "purchase",
+    "fix",
+    "ga4_export"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-BQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-fix-select-star",
+  "template_params": {
+    "day": "20251202"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which purchases came in on the Dublin day 2 December 2025 (by event_date), and for how much? Return exactly two columns, in this order: transaction_id and purchase_revenue, both read from ecommerce. Return one row for each purchase. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "transaction_id",
+        "type_class": "text"
+      },
+      {
+        "name": "purchase_revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "transaction_id",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "purchase_revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "transaction_id"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, replace the star with the two columns the question asks for.",
+    "Both live in the ecommerce struct: read each field with a dot and give it the name the question uses."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 97,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 98,
+      "to": 109,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 110,
+      "to": 169,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT *\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date = '20251202'",
+  "time_target_ms": 90000,
+  "why_this_works": "Naming the two ecommerce fields returns exactly the columns asked for; a star returns every column of the event.",
+  "starter_error_id": "ERR-OUT-01"
+}

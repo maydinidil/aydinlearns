@@ -1,23 +1,44 @@
-/* web/src/styles/tokens.css: every colour, size, radius and font the app uses (visuals spec §3). Nothing else holds a raw value. */
+/* web/src/styles/tokens.css: every colour, size, radius and font the app uses (visuals spec §3). Nothing else holds a raw value.
+   Two colour sets (S9-18, D131; the warm palette of D134, from tokens-3.css): the light set under :root, and the dark set, the default,
+   under :root[data-theme="dark"]. web/index.html's head script sets data-theme on <html> before first paint; sizes, radii and fonts are
+   the same in both. The --popup-* tokens are the editor's completion list (sql-editor.ts). */
 :root {
-  --ink: #18181B; --ink-2: #52525B; --muted: #71717A;
-  --canvas: #FAFAFB; --surface: #FFFFFF; --fill: #F4F4F5;
-  --line: #ECECEF; --control: #8A8A93; --focus: #2563EB;
-  --sql: #2563EB; --sql-text: #1D4ED8; --sql-soft: #EFF6FF;
-  --ga4: #D97706; --ga4-text: #B45309; --ga4-soft: #FFFBEB;
-  --met: #7C3AED; --met-text: #6D28D9; --met-soft: #F5F3FF;
-  --ok: #15803D; --bad: #B91C1C;
-  --chip-mastered-fg: #166534; --chip-mastered-bg: #DCFCE7;
-  --chip-practising-fg: #1D4ED8; --chip-practising-bg: #EFF6FF;
-  --chip-answered-fg: #92400E; --chip-answered-bg: #FEF3C7;
+  color-scheme: light;
+  --ink: #1F1B17; --ink-2: #554E47; --muted: #716961;
+  --canvas: #F6F5F2; --surface: #FFFFFF; --fill: #EEECE7;
+  --line: #E4E0D9; --control: #8A8279; --focus: #3A4CC0;
+  --sql: #4558D2; --sql-text: #3343B4; --sql-soft: #F0F2FD;
+  --ga4: #BF730B; --ga4-text: #985706; --ga4-soft: #FDF4E2;
+  --met: #9447B8; --met-text: #7C3399; --met-soft: #F7F0FA;
+  --ok: #1D7A3E; --bad: #B3261E;
+  --chip-mastered-fg: #1A6534; --chip-mastered-bg: #DFF3E4;
+  --chip-practising-fg: #3343B4; --chip-practising-bg: #E8EBFC;
+  --chip-answered-fg: #864D06; --chip-answered-bg: #FBEDD0;
+  --popup-bg: #FFFFFF; --popup-line: #CFC9C0; --popup-selected-bg: #3343B4; --popup-selected-text: #FFFFFF;
+  --shadow: 0 1px 2px rgba(31, 27, 23, 0.10);
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
   --r1: 8px; --r2: 12px;
   --t1: 12.5px; --t2: 13.5px; --t3: 14.5px; --t4: 17px; --t5: 21px;
   --lh: 1.55; --read: 70ch;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --mono: "Cascadia Code", Consolas, "Cascadia Mono", monospace;
   --section: var(--ink); --section-text: var(--ink); --section-soft: var(--fill);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #ECE6DF; --ink-2: #B8AEA3; --muted: #9B9185;
+  --canvas: #1D1A17; --surface: #25211D; --fill: #181512;
+  --line: #36302A; --control: #7E756B; --focus: #A3ADFF;
+  --sql: #7F8DF0; --sql-text: #A9B3FF; --sql-soft: #23253B;
+  --ga4: #DB9C3E; --ga4-text: #F0C079; --ga4-soft: #33281A;
+  --met: #BE84DE; --met-text: #D8ACF0; --met-soft: #2E2236;
+  --ok: #7ACF95; --bad: #FF9488;
+  --chip-mastered-fg: #9BDDAF; --chip-mastered-bg: #1B2F21;
+  --chip-practising-fg: #B4BCFF; --chip-practising-bg: #23253B;
+  --chip-answered-fg: #F2C784; --chip-answered-bg: #352917;
+  --popup-bg: #2D2823; --popup-line: #463E36; --popup-selected-bg: #3E4699; --popup-selected-text: #F6F5FF;
+  --mascot-rim: rgba(236, 230, 223, 0.55);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 [data-section="sql"] { --section: var(--sql); --section-text: var(--sql-text); --section-soft: var(--sql-soft); }
 [data-section="ga4"] { --section: var(--ga4); --section-text: var(--ga4-text); --section-soft: var(--ga4-soft); }

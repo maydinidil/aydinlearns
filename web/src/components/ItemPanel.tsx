@@ -1,5 +1,5 @@
 // web/src/components/ItemPanel.tsx: one item of any SQL kind (Task C5). A write or fix item opens in the exercise panel; the
-// SQL choice kinds (predict_rows, predict_result, choose_query, which_table, is_unique) open in the choice panel, with the
+// SQL choice kinds (predict_rows, predict_result, choose_query, which_table, is_unique and, from S9-06, fixed_choice) open in the choice panel, with the
 // schema panel beside the question. The kind comes from the item itself, so a screen that holds only an ID needs no guess.
 import { useEffect, useState } from 'react';
 import { api, type ItemView } from '../api.ts';

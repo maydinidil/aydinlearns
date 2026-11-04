@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-31",
+  "item_version": 1,
+  "reference_sql": "SELECT ecommerce.transaction_id AS transaction_id, ecommerce.purchase_revenue AS purchase_revenue\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date = '20251202'",
+  "alternatives": [
+    "WITH day_purchases AS (\n  -- one row per purchase event on the Dublin day 2 December 2025: its ID and its value parameter\n  SELECT ecommerce.transaction_id AS transaction_id, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date = '20251202'\n)\nSELECT transaction_id, COALESCE(v.int_value, v.float_value, v.double_value) AS purchase_revenue\nFROM day_purchases",
+    "SELECT ecommerce.transaction_id, ecommerce.purchase_revenue\nFROM events\nWHERE event_name = 'purchase'\n  AND CAST(strptime(event_date, '%Y%m%d') AS DATE) = DATE '2025-12-02'"
+  ],
+  "other_way": {
+    "sql": "WITH day_purchases AS (\n  -- one row per purchase event on the Dublin day 2 December 2025: its ID and its value parameter\n  SELECT ecommerce.transaction_id AS transaction_id, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date = '20251202'\n)\nSELECT transaction_id, COALESCE(v.int_value, v.float_value, v.double_value) AS purchase_revenue\nFROM day_purchases",
+    "tradeoff": "The value parameter holds the same amount as purchase_revenue, but it must be read from whichever number slot holds it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT *\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date = '20251202'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-55",
+      "sql": "SELECT ecommerce.transaction_id AS transaction_id, ecommerce.purchase_revenue AS purchase_revenue\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date = '2025-12-02'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-53",
+      "sql": "SELECT ecommerce.transaction_id AS transaction_id, list_filter(event_params, lambda p: p.key = 'value')[1].value.double_value AS purchase_revenue\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date = '20251202'"
+    }
+  ],
+  "hint3_partial": "SELECT ecommerce.transaction_id AS transaction_id, ___ AS purchase_revenue\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date = '20251202'",
+  "solver": {
+    "prompt_hash": "113102e1cdd65900",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT ecommerce.transaction_id AS transaction_id, ecommerce.purchase_revenue AS purchase_revenue\r\nFROM events\r\nWHERE event_name = 'purchase'\r\n  AND event_date = '20251202'",
+    "at": "2026-11-03T19:01:31.863Z"
+  }
+}

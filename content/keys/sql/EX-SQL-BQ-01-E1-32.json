@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-32",
+  "item_version": 1,
+  "reference_sql": "WITH purchases AS (\n  -- one row per purchase from 1 to 31 December 2025\n  SELECT traffic_source.medium AS medium,\n    list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n)\nSELECT medium, SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS purchase_value\nFROM purchases\nGROUP BY medium",
+  "alternatives": [
+    "SELECT e.traffic_source.medium AS medium,\n  SUM(COALESCE(p.value.int_value, p.value.float_value, p.value.double_value)) AS purchase_value\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'purchase'\n  AND e.event_date BETWEEN '20251201' AND '20251231'\n  AND p.key = 'value'\nGROUP BY e.traffic_source.medium",
+    "SELECT traffic_source.medium AS medium, SUM(ecommerce.purchase_revenue) AS purchase_value\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251201' AND '20251231'\nGROUP BY traffic_source.medium"
+  ],
+  "other_way": {
+    "sql": "SELECT e.traffic_source.medium AS medium,\n  SUM(COALESCE(p.value.int_value, p.value.float_value, p.value.double_value)) AS purchase_value\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'purchase'\n  AND e.event_date BETWEEN '20251201' AND '20251231'\n  AND p.key = 'value'\nGROUP BY e.traffic_source.medium",
+    "tradeoff": "Unnesting the purchases' parameters and keeping the value key gives the same total, as every purchase carries one value."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-53",
+      "sql": "WITH purchases AS (\n  -- one row per purchase from 1 to 31 December 2025\n  SELECT traffic_source.medium AS medium,\n    list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n)\nSELECT medium, SUM(v.double_value) AS purchase_value\nFROM purchases\nGROUP BY medium"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-53",
+      "sql": "WITH purchases AS (SELECT traffic_source.medium AS medium, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v FROM events WHERE event_name = 'purchase' AND event_date BETWEEN '20251201' AND '20251231') SELECT medium, SUM(v.int_value) AS purchase_value FROM purchases GROUP BY medium"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH purchases AS (SELECT traffic_source.medium AS medium, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v FROM events WHERE event_name = 'purchase' AND event_date BETWEEN '2025-12-01' AND '2025-12-31') SELECT medium, SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS purchase_value FROM purchases GROUP BY medium"
+    }
+  ],
+  "hint3_partial": "WITH purchases AS (\n  -- one row per purchase from 1 to 31 December 2025\n  SELECT traffic_source.medium AS medium,\n    list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251231'\n)\nSELECT medium, SUM(COALESCE(___)) AS purchase_value\nFROM purchases\nGROUP BY medium",
+  "solver": {
+    "prompt_hash": "d1613dee5b8d0f21",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH purchases AS (\r\n  -- one row per purchase from 1 to 31 December 2025\r\n  SELECT traffic_source.medium AS medium,\r\n    list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\r\n  FROM events\r\n  WHERE event_name = 'purchase'\r\n    AND event_date BETWEEN '20251201' AND '20251231'\r\n)\r\nSELECT medium, SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS purchase_value\r\nFROM purchases\r\nGROUP BY medium\r\n",
+    "at": "2026-11-03T19:01:24.810Z"
+  }
+}

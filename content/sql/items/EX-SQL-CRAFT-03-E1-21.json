@@ -1,0 +1,171 @@
+{
+  "id": "EX-SQL-CRAFT-03-E1-21",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "logo_churn",
+    "rate",
+    "country"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-logo-churn-rate-country",
+  "template_params": {
+    "table": "mrr_monthly",
+    "from": "2025-01",
+    "to": "2025-06",
+    "by": "country_code"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "For each month from January to June 2025 and each country (accounts.country_code), LedgerLoop's logo churn rate: the country's accounts that churned in the month divided by its accounts with MRR at the end of the month before. The base of a month is the accounts with MRR at the end of the month before: those with a row in mrr_monthly for the month before (mrr_monthly.month is the first day of a month). An account churned in a month when it has a churn event (event_type churn in subscription_events) dated in that month; count each account once. An account that starts or comes back during the month is not in that month's base. Return three columns, in this order: month_start (the first day of the month), country_code and churn_rate, as a share (0.02 for 2%), not rounded. Return one row for each month and country with a base; a country with no churn in a month shows 0. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start",
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build the base: each month's accounts with MRR at the end of the month before, with their country.",
+    "Join the month's churners onto that base without losing a base row, then divide per month and country."
+  ],
+  "subgoals": [
+    {
+      "from": 118,
+      "to": 210,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 213,
+      "to": 231,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 234,
+      "to": 280,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 283,
+      "to": 344,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 417,
+      "to": 505,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 508,
+      "to": 532,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 535,
+      "to": 624,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 627,
+      "to": 715,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 716,
+      "to": 727,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 728,
+      "to": 812,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 813,
+      "to": 851,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each country's base is its own accounts at the start of the month, and joining churn onto it keeps quiet countries at 0."
+}

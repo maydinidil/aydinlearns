@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-BQ-01-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_date",
+    "purchase",
+    "fix"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-fix-dashed-date",
+  "template_params": {
+    "event_name": "purchase",
+    "from": "20251201",
+    "to": "20251207"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many purchase events were there on each day from 1 to 7 December 2025, by event_date? Every purchase counts, one whose payment was later refunded included. Return event_date, as the text the export stores, and purchases. Return one row for each day with a purchase. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text"
+      },
+      {
+        "name": "purchases",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "purchases",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_date"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the date filter: event_date holds text such as 20251201.",
+    "Text is compared character by character, so write both ends of the range in the same form as event_date."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 41,
+      "to": 52,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 53,
+      "to": 133,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 134,
+      "to": 153,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT event_date, COUNT(*) AS purchases\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '2025-12-01' AND '2025-12-07'\nGROUP BY event_date",
+  "time_target_ms": 120000,
+  "why_this_works": "event_date is text in YYYYMMDD form, so text in that same form compares day by day.",
+  "starter_error_id": "ERR-LOG-55"
+}

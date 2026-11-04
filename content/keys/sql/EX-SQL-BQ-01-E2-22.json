@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-22",
+  "item_version": 2,
+  "reference_sql": "SELECT event_date, COUNT(DISTINCT user_pseudo_id) AS new_users\nFROM events\nWHERE event_name = 'first_visit'\n  AND event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_date",
+  "alternatives": [
+    "SELECT event_date, COUNT(*) AS new_users\nFROM events\nWHERE event_name = 'first_visit'\n  AND event_date BETWEEN '20251026' AND '20251101'\n  AND user_pseudo_id IS NOT NULL\nGROUP BY event_date",
+    "WITH visitors AS (\n  -- one row per new visitor from 26 October to 1 November 2025\n  SELECT DISTINCT event_date, user_pseudo_id\n  FROM events\n  WHERE event_name = 'first_visit'\n    AND event_date BETWEEN '20251026' AND '20251101'\n    AND user_pseudo_id IS NOT NULL\n)\nSELECT event_date, COUNT(*) AS new_users\nFROM visitors\nGROUP BY event_date"
+  ],
+  "other_way": {
+    "sql": "SELECT event_date, COUNT(*) AS new_users\nFROM events\nWHERE event_name = 'first_visit'\n  AND event_date BETWEEN '20251026' AND '20251101'\n  AND user_pseudo_id IS NOT NULL\nGROUP BY event_date",
+    "tradeoff": "Filtering out the missing IDs and counting rows works too, as each visitor has one first_visit, but it hides the visitor grain."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT event_date, COUNT(*) AS new_users\nFROM events\nWHERE event_name = 'first_visit'\n  AND event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-55",
+      "sql": "SELECT event_date, COUNT(DISTINCT user_pseudo_id) AS new_users FROM events WHERE event_name = 'first_visit' AND event_date BETWEEN '2025-10-26' AND '2025-11-01' GROUP BY event_date"
+    }
+  ],
+  "hint3_partial": "SELECT event_date, COUNT(___) AS new_users\nFROM events\nWHERE event_name = 'first_visit'\n  AND event_date BETWEEN '20251026' AND '20251101'\nGROUP BY event_date",
+  "solver": {
+    "prompt_hash": "0a2a87e00d127ca3",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "629fe78dc6bbdb7a",
+    "grader_version": "9a.1",
+    "query": "SELECT event_date, COUNT(DISTINCT user_pseudo_id) AS new_users\nFROM events\nWHERE event_name = 'first_visit'\n  AND event_date BETWEEN '20251026' AND '20251101'\n  AND user_pseudo_id IS NOT NULL\nGROUP BY event_date\n",
+    "at": "2026-11-04T01:02:11.210Z"
+  }
+}

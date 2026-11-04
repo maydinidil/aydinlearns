@@ -1,0 +1,104 @@
+{
+  "id": "EX-SQL-BQ-01-E1-43",
+  "version": 1,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "bigquery",
+    "table_suffix",
+    "fixed_choice"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-bq-table-suffix",
+  "template_params": {
+    "month": "2025-10"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's GA4 export sits in BigQuery as one table per day, named events_YYYYMMDD, in the dataset mailvora-web.analytics_254316. Which BigQuery query counts the purchase events of October 2025 and reads only October's daily tables?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o43a9ade",
+      "text": "The wildcard table, with a range on the event_date column",
+      "misconception_id": "MIS-SQL-BQ-01-01",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(*) AS purchases\nFROM `mailvora-web.analytics_254316.events_*`\nWHERE event_date BETWEEN '20251001' AND '20251031'\n  AND event_name = 'purchase'"
+      }
+    },
+    {
+      "oid": "o8d43677",
+      "text": "The wildcard table, with a _TABLE_SUFFIX range",
+      "misconception_id": null,
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(*) AS purchases\nFROM `mailvora-web.analytics_254316.events_*`\nWHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'\n  AND event_name = 'purchase'"
+      }
+    },
+    {
+      "oid": "o0b31dad",
+      "text": "The wildcard table, with a _TABLE_SUFFIX range in dashed dates",
+      "misconception_id": "ERR-LOG-55",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(*) AS purchases\nFROM `mailvora-web.analytics_254316.events_*`\nWHERE _TABLE_SUFFIX BETWEEN '2025-10-01' AND '2025-10-31'\n  AND event_name = 'purchase'"
+      }
+    },
+    {
+      "oid": "o1378323",
+      "text": "One table named events, filtered on the event_date column",
+      "misconception_id": "MIS-SQL-BQ-01-02",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT COUNT(*) AS purchases\nFROM `mailvora-web.analytics_254316.events`\nWHERE event_date BETWEEN '20251001' AND '20251031'\n  AND event_name = 'purchase'"
+      }
+    }
+  ]
+}

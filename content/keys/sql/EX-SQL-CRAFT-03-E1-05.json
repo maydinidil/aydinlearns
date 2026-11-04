@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E1-05",
+  "item_version": 1,
+  "reference_sql": "WITH base AS (\n  -- one row per month from February to December 2024 and account with MRR at the end of the month before\n  SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, m.account_id\n  FROM mrr_monthly m\n  WHERE m.month BETWEEN DATE '2024-01-01' AND DATE '2024-11-01'\n), churned AS (\n  -- one row per account and month with a churn event\n  SELECT DISTINCT account_id, CAST(date_trunc('month', event_date) AS DATE) AS month_start\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2024-02-01' AND DATE '2024-12-31'\n)\nSELECT b.month_start, ROUND(100.0 * COUNT(c.account_id) / COUNT(*), 2) AS churn_pct\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id AND c.month_start = b.month_start\nGROUP BY b.month_start",
+  "alternatives": [
+    "WITH starts AS (\n  -- one row per month from February to December 2024: the accounts with MRR at the end of the month before\n  SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, COUNT(*) AS accounts_at_start\n  FROM mrr_monthly m\n  WHERE m.month BETWEEN DATE '2024-01-01' AND DATE '2024-11-01'\n  GROUP BY CAST(m.month + INTERVAL 1 MONTH AS DATE)\n), churns AS (\n  -- one row per month with a churn event\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month_start, COUNT(DISTINCT account_id) AS churned_accounts\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2024-02-01' AND DATE '2024-12-31'\n  GROUP BY CAST(date_trunc('month', event_date) AS DATE)\n)\nSELECT s.month_start, ROUND(100.0 * COALESCE(c.churned_accounts, 0) / s.accounts_at_start, 2) AS churn_pct\nFROM starts s\nLEFT JOIN churns c ON c.month_start = s.month_start",
+    "SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start,\n  ROUND(100.0 * COUNT(*) FILTER (WHERE EXISTS (\n    SELECT 1 FROM subscription_events e\n    WHERE e.account_id = m.account_id AND e.event_type = 'churn'\n      AND e.event_date >= m.month + INTERVAL 1 MONTH AND e.event_date < m.month + INTERVAL 2 MONTH)) / COUNT(*), 2) AS churn_pct\nFROM mrr_monthly m\nWHERE m.month BETWEEN DATE '2024-01-01' AND DATE '2024-11-01'\nGROUP BY CAST(m.month + INTERVAL 1 MONTH AS DATE)"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start,\n  ROUND(100.0 * COUNT(*) FILTER (WHERE EXISTS (\n    SELECT 1 FROM subscription_events e\n    WHERE e.account_id = m.account_id AND e.event_type = 'churn'\n      AND e.event_date >= m.month + INTERVAL 1 MONTH AND e.event_date < m.month + INTERVAL 2 MONTH)) / COUNT(*), 2) AS churn_pct\nFROM mrr_monthly m\nWHERE m.month BETWEEN DATE '2024-01-01' AND DATE '2024-11-01'\nGROUP BY CAST(m.month + INTERVAL 1 MONTH AS DATE)",
+    "tradeoff": "Testing each base account with EXISTS needs no churn step, but the month window must then be written inside the subquery."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "WITH starts AS (SELECT m.month AS month_start, COUNT(*) AS accounts_at_start FROM mrr_monthly m WHERE m.month BETWEEN DATE '2024-02-01' AND DATE '2024-12-01' GROUP BY m.month), churns AS (SELECT CAST(date_trunc('month', event_date) AS DATE) AS month_start, COUNT(DISTINCT account_id) AS churned_accounts FROM subscription_events WHERE event_type = 'churn' AND event_date BETWEEN DATE '2024-02-01' AND DATE '2024-12-31' GROUP BY CAST(date_trunc('month', event_date) AS DATE)) SELECT s.month_start, ROUND(100.0 * COALESCE(c.churned_accounts, 0) / s.accounts_at_start, 2) AS churn_pct FROM starts s LEFT JOIN churns c ON c.month_start = s.month_start"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH base AS (SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, m.account_id FROM mrr_monthly m WHERE m.month BETWEEN DATE '2024-01-01' AND DATE '2024-11-01'), churned AS (SELECT DISTINCT account_id, CAST(date_trunc('month', event_date) AS DATE) AS month_start FROM subscription_events WHERE event_type = 'churn' AND event_date BETWEEN DATE '2024-02-01' AND DATE '2024-12-31') SELECT b.month_start, ROUND(COUNT(c.account_id) * 1.0 / COUNT(*), 2) AS churn_pct FROM base b LEFT JOIN churned c ON c.account_id = b.account_id AND c.month_start = b.month_start GROUP BY b.month_start"
+    }
+  ],
+  "hint3_partial": "WITH base AS (\n  -- one row per month from February to December 2024 and account with MRR at the end of the month before\n  SELECT CAST(m.month + INTERVAL 1 MONTH AS DATE) AS month_start, m.account_id\n  FROM mrr_monthly m\n  WHERE m.month BETWEEN DATE '2024-01-01' AND DATE '2024-11-01'\n), churned AS (\n  -- one row per account and month with a churn event\n  SELECT DISTINCT account_id, CAST(date_trunc('month', event_date) AS DATE) AS month_start\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2024-02-01' AND DATE '2024-12-31'\n)\nSELECT b.month_start, ROUND(100.0 * ___ / ___, 2) AS churn_pct\nFROM base b\nLEFT JOIN churned c ON c.account_id = b.account_id AND c.month_start = b.month_start\nGROUP BY b.month_start",
+  "solver": {
+    "prompt_hash": "6a08da0747f79858",
+    "schema_version": "1a30c74af505",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH months AS (\n  SELECT CAST(m AS DATE) AS month_start FROM generate_series(DATE '2024-02-01', DATE '2024-12-01', INTERVAL 1 MONTH) AS t(m)\n), base AS (\n  SELECT m.month_start, COUNT(*) AS n\n  FROM months m JOIN mrr_monthly r ON r.month = CAST(m.month_start - INTERVAL 1 MONTH AS DATE)\n  GROUP BY m.month_start\n), ch AS (\n  SELECT CAST(date_trunc('month', event_date) AS DATE) AS month_start, COUNT(DISTINCT account_id) AS c\n  FROM subscription_events\n  WHERE event_type = 'churn' AND event_date BETWEEN DATE '2024-02-01' AND DATE '2024-12-31'\n  GROUP BY 1\n)\nSELECT m.month_start, ROUND(100.0 * COALESCE(c.c, 0) / b.n, 2) AS churn_pct\nFROM months m JOIN base b ON b.month_start = m.month_start LEFT JOIN ch c ON c.month_start = m.month_start\n",
+    "at": "2026-11-03T19:01:33.203Z"
+  }
+}

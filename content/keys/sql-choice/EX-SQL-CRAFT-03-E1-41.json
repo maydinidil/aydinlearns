@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CRAFT-03-E1-41",
+  "item_version": 2,
+  "correct_oid": "of6b0a5d",
+  "explanation": "The query counts the mrr_monthly rows for March 2025: the 984 accounts with MRR at the end of March, after the month's churn and new starts. So it divides the 39 churned accounts by 984 and returns 0.0396. A logo churn rate with a fixed base takes the 1,005 accounts of February's end instead, which gives 0.0388; adding the 18 newcomers to that base is a third reading, and the query does neither.",
+  "solver": {
+    "prompt_hash": "6f461f34a2b79902",
+    "grader_version": "choice.3",
+    "chosen": "of6b0a5d",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.599Z"
+  }
+}

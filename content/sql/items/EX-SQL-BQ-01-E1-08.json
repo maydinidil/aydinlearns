@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-BQ-01-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "device",
+    "sign_up",
+    "server_events"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-sign-ups-by-device",
+  "template_params": {
+    "event_name": "sign_up",
+    "from": "20251001",
+    "to": "20251031"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "How many sign_up events were there for each device category from 1 to 31 October 2025, by event_date? The device category is device.category. A sign_up that Mailvora's server sent has no device: count it under a missing device_category. Count every sign_up, the ones with a missing user_pseudo_id included. Return device_category and sign_ups. Return one row for each device category, and one for the missing one if there is one. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "device_category",
+        "type_class": "text"
+      },
+      {
+        "name": "sign_ups",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "device_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sign_ups",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "device_category"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the category field out of the device struct.",
+    "Count rows, not visitor IDs, so the sign_ups of visitors who denied consent still count."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 63,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 64,
+      "to": 75,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 76,
+      "to": 155,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 156,
+      "to": 180,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "device is a struct, so device.category groups the sign_ups, and the server's sign_ups fall under a missing category."
+}

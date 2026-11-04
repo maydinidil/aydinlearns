@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-43",
+  "item_version": 1,
+  "correct_oid": "o8d43677",
+  "explanation": "events_* reads every daily table whose name matches, and the filter on _TABLE_SUFFIX, the part of the name after events_, limits the tables read to October's 31. A filter on event_date gives the same count, but it is a column inside the tables, so every day's table is read first. The suffix is text such as 20251001, so a dashed range keeps no table, and the export has no single events table: in this course the days are stacked into one only for DuckDB.",
+  "solver": {
+    "prompt_hash": "b38f1eac956625f3",
+    "grader_version": "choice.3",
+    "chosen": "o8d43677",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.564Z"
+  }
+}

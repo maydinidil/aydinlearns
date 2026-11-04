@@ -1,0 +1,181 @@
+{
+  "id": "EX-SQL-CRAFT-03-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "logo_churn",
+    "year",
+    "segment"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-logo-churn-year-segment",
+  "template_params": {
+    "table": "mrr_monthly",
+    "year": 2025,
+    "by": "segment"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Is 2025 churn worse in one segment? For each segment (accounts.segment), LedgerLoop's logo churn rate for 2025: of the accounts with MRR at the end of 2024 (a row in mrr_monthly for December 2024), the share that had a churn event (event_type churn in subscription_events) dated from 1 January to 31 December 2025. Count each account once, even if it churned twice; one that churned and came back still counts as churned. An account that started during 2025 is in neither count. Return four columns, in this order: segment, accounts_at_start, churned_accounts and churn_rate, as a share (0.02 for 2%), not rounded. Return one row per segment. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "accounts_at_start",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churned_accounts",
+        "type_class": "numeric"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "accounts_at_start",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "churned_accounts",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "churn_rate",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, fix the base: the accounts with MRR at the end of 2024, each with its segment.",
+    "Join the 2025 churners onto that base, each account once, so a churner who came back and left again counts one time."
+  ],
+  "subgoals": [
+    {
+      "from": 70,
+      "to": 100,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 103,
+      "to": 121,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 124,
+      "to": 170,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 173,
+      "to": 206,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 277,
+      "to": 303,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 306,
+      "to": 330,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 333,
+      "to": 422,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 425,
+      "to": 514,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 517,
+      "to": 567,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 568,
+      "to": 579,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 580,
+      "to": 630,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 631,
+      "to": 649,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The base is set once, at the end of 2024, so accounts that join during 2025 change neither part of the rate."
+}

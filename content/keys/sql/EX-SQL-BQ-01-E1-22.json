@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-22",
+  "item_version": 1,
+  "reference_sql": "WITH purchases AS (\n  -- one row per purchase from 26 November to 2 December 2025\n  SELECT event_date,\n    list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251126' AND '20251202'\n)\nSELECT event_date, COUNT(*) AS purchases,\n  SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS purchase_value\nFROM purchases\nGROUP BY event_date",
+  "alternatives": [
+    "SELECT e.event_date, COUNT(*) AS purchases,\n  SUM(COALESCE(p.value.int_value, p.value.float_value, p.value.double_value)) AS purchase_value\nFROM events AS e, unnest(e.event_params) AS t(p)\nWHERE e.event_name = 'purchase'\n  AND e.event_date BETWEEN '20251126' AND '20251202'\n  AND p.key = 'value'\nGROUP BY e.event_date",
+    "SELECT event_date, COUNT(*) AS purchases, SUM(ecommerce.purchase_revenue) AS purchase_value\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251126' AND '20251202'\nGROUP BY event_date"
+  ],
+  "other_way": {
+    "sql": "SELECT event_date, COUNT(*) AS purchases, SUM(ecommerce.purchase_revenue) AS purchase_value\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251126' AND '20251202'\nGROUP BY event_date",
+    "tradeoff": "ecommerce.purchase_revenue holds the same amount on this export, so adding it up skips the parameter list."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-53",
+      "sql": "WITH purchases AS (SELECT event_date, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v FROM events WHERE event_name = 'purchase' AND event_date BETWEEN '20251126' AND '20251202') SELECT event_date, COUNT(*) AS purchases, SUM(v.double_value) AS purchase_value FROM purchases GROUP BY event_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH purchases AS (SELECT event_date, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v FROM events WHERE event_name = 'purchase' AND event_date BETWEEN '2025-11-26' AND '2025-12-02') SELECT event_date, COUNT(*) AS purchases, SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS purchase_value FROM purchases GROUP BY event_date"
+    }
+  ],
+  "hint3_partial": "WITH purchases AS (\n  -- one row per purchase from 26 November to 2 December 2025\n  SELECT event_date,\n    list_filter(event_params, lambda p: p.key = ___)[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251126' AND '20251202'\n)\nSELECT event_date, COUNT(*) AS purchases,\n  SUM(COALESCE(___)) AS purchase_value\nFROM purchases\nGROUP BY event_date",
+  "solver": {
+    "prompt_hash": "5049eda9c652b0c0",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT event_date, COUNT(*) AS purchases, SUM(COALESCE((list_filter(event_params, lambda p: p.key = 'value')[1].value).int_value, (list_filter(event_params, lambda p: p.key = 'value')[1].value).float_value, (list_filter(event_params, lambda p: p.key = 'value')[1].value).double_value)) AS purchase_value\r\nFROM events\r\nWHERE event_name = 'purchase' AND event_date BETWEEN '20251126' AND '20251202'\r\nGROUP BY event_date\r\n",
+    "at": "2026-11-03T19:01:24.755Z"
+  }
+}

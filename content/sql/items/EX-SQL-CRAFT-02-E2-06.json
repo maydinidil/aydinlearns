@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "aggregate_first",
+    "orders",
+    "order_lines"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-web-country",
+  "template_params": {
+    "month": "2025-04"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each ship_to_country, how many web orders (orders.channel 'web') were placed in April 2025 (the UTC days of order_ts), and what was their average order value? An order's value is quantity times unit_price_eur minus line_discount_eur, over all its lines. Return exactly three columns, in this order: ship_to_country, orders and avg_order_value (the revenue divided by the orders, not rounded). Return one row for each country with web orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "ship_to_country",
+        "type_class": "text"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_order_value",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "ship_to_country",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_order_value",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "ship_to_country"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add each web order's lines up to one value per order before the join.",
+    "An average order value needs one row per order: total the lines of each order first, then divide by the orders."
+  ],
+  "subgoals": [
+    {
+      "from": 136,
+      "to": 214,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 217,
+      "to": 233,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 236,
+      "to": 400,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 403,
+      "to": 420,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 423,
+      "to": 513,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 514,
+      "to": 575,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 576,
+      "to": 602,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Adding the lines up per order first gives one value per order, so dividing their total by COUNT(*) gives the value of an average order."
+}

@@ -2,8 +2,8 @@
 // text does not hold: an exercise's IDs and status, the editor's full text, a typed value, a form's fields), then the visible text of the
 // screen's main area. Cut at SNAPSHOT_MAX characters, longest section first, with a note; the panel says so. Pure functions only.
 import { SNAPSHOT_MAX, type TutorItemRef } from '../../../schemas/tutor.ts';
-import type { OptionTable } from '../../../schemas/choice-types.ts';
-import { optionTableView } from '../lib/sql-choice.ts';
+import type { OptionCode, OptionTable } from '../../../schemas/choice-types.ts';
+import { codeLangLabel, optionTableView } from '../lib/sql-choice.ts';
 
 /**
  * The item a question is about. `passed`: passed, answered or its answer shown, so a question on it counts for nothing and the help
@@ -43,8 +43,8 @@ export function exercisePart(s: ExerciseState): SnapshotPart {
     item: { item_id: s.itemId, item_instance_id: s.instanceId, phase: s.phase, passed: s.passed || s.answerShown } };
 }
 
-/** An option as the screen draws it: its text, and a predict_result option's small result table. */
-export interface ShownOption { text: string; table?: OptionTable }
+/** An option as the screen draws it: its text, a predict_result option's small result table, and a fixed_choice option's code (S9-06). */
+export interface ShownOption { text: string; table?: OptionTable; code?: OptionCode }
 export interface ChoiceState {
   label: string; itemId: string; instanceId: string; phase: string; answered: boolean; correct: boolean | null; answerShown: boolean;
   /** The text of the option picked. */
@@ -59,11 +59,15 @@ const PLACES = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh
 const placeName = (i: number): string => (PLACES[i] ? `the ${PLACES[i]} option` : `option ${i + 1}`);
 const capital = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** One option as the screen shows it: its place, its text (a query on lines of its own) and a result table as the table draws it. */
+/**
+ * One option as the screen shows it: its place, its text (a query on lines of its own), a result table as the table draws it, and (S9-06)
+ * a fixed_choice option's code block: its dialect caption, then its query on lines of their own, as a choose_query option's query shows.
+ */
 function optionLines(o: ShownOption, i: number): string[] {
   const text = o.text.trim().split('\n');
   const t = o.table ? optionTableView(o.table) : null;
-  const table = t ? [`(${t.count})`, t.columns.join(' | '), ...t.rows.map((r) => r.join(' | '))] : [];
+  const table = t ? [`(${t.count})`, t.columns.join(' | '), ...t.rows.map((r) => r.join(' | '))]
+    : o.code ? [`(${codeLangLabel(o.code.lang)})`, ...o.code.sql.trim().split('\n')] : [];
   const head = `${capital(placeName(i).replace(/^the /, ''))}:`;
   const indent = (xs: string[]): string[] => xs.map((x) => `  ${x}`);
   return text.length === 1 ? [`${head} ${text[0]}`, ...indent(table)] : [head, ...indent([...text, ...table])];

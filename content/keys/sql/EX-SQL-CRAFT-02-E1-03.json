@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CRAFT-02-E1-03",
+  "item_version": 1,
+  "reference_sql": "WITH week_purchases AS (\n  -- one row per purchase event of 1 to 7 December 2025 (Dublin days): only the columns the totals need\n  SELECT event_date, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT event_date AS day, COUNT(*) AS purchases,\n  SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS revenue\nFROM week_purchases\nGROUP BY event_date",
+  "alternatives": [
+    "SELECT event_date AS day, COUNT(*) AS purchases, SUM(ecommerce.purchase_revenue) AS revenue\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251201' AND '20251207'\nGROUP BY event_date",
+    "WITH week_purchases AS (\n  -- one row per purchase event of 1 to 7 December 2025 (Dublin days): only the columns the totals need\n  SELECT event_date, [p.value FOR p IN event_params IF p.key = 'value'][1] AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT event_date AS day, COUNT(*) AS purchases,\n  SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS revenue\nFROM week_purchases\nGROUP BY event_date"
+  ],
+  "other_way": {
+    "sql": "SELECT event_date AS day, COUNT(*) AS purchases, SUM(ecommerce.purchase_revenue) AS revenue\nFROM events\nWHERE event_name = 'purchase'\n  AND event_date BETWEEN '20251201' AND '20251207'\nGROUP BY event_date",
+    "tradeoff": "ecommerce.purchase_revenue gives the same amount without reading a parameter, but only purchase events carry it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "WITH week_purchases AS (\n  SELECT *\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT *\nFROM week_purchases"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-53",
+      "sql": "WITH week_purchases AS (\n  -- one row per purchase event of 1 to 7 December 2025 (Dublin days): only the columns the totals need\n  SELECT event_date, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT event_date AS day, COUNT(*) AS purchases,\n  SUM(v.double_value) AS revenue\nFROM week_purchases\nGROUP BY event_date"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-55",
+      "sql": "WITH week_purchases AS (\n  -- one row per purchase event of 1 to 7 December 2025 (Dublin days): only the columns the totals need\n  SELECT event_date, list_filter(event_params, lambda p: p.key = 'value')[1].value AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '2025-12-01' AND '2025-12-07'\n)\nSELECT event_date AS day, COUNT(*) AS purchases,\n  SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS revenue\nFROM week_purchases\nGROUP BY event_date"
+    }
+  ],
+  "hint3_partial": "WITH week_purchases AS (\n  -- one row per purchase event of 1 to 7 December 2025 (Dublin days): only the columns the totals need\n  SELECT event_date, ___ AS v\n  FROM events\n  WHERE event_name = 'purchase'\n    AND event_date BETWEEN '20251201' AND '20251207'\n)\nSELECT event_date AS day, COUNT(*) AS purchases,\n  SUM(COALESCE(v.int_value, v.float_value, v.double_value)) AS revenue\nFROM week_purchases\nGROUP BY event_date",
+  "solver": {
+    "prompt_hash": "176e28881d61652d",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT event_date AS day, COUNT(*) AS purchases, SUM(COALESCE(list_filter(event_params, lambda p: p.key = 'value')[1].value.int_value, list_filter(event_params, lambda p: p.key = 'value')[1].value.float_value, list_filter(event_params, lambda p: p.key = 'value')[1].value.double_value)) AS revenue\r\nFROM events\r\nWHERE event_name = 'purchase' AND event_date BETWEEN '20251201' AND '20251207'\r\nGROUP BY event_date",
+    "at": "2026-11-03T19:01:31.673Z"
+  }
+}

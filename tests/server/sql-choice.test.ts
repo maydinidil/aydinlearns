@@ -22,7 +22,7 @@ import { mixedBlock, pickItem, pretestItemIds } from '../../server/session-compo
 import { optionId } from '../../schemas/choice.ts';
 import type { SqlItem } from '../../schemas/item.ts';
 import { makeContentFixture, FIXTURE_CONCEPT } from '../helpers/content-fixture.ts';
-import { ALL_KINDS, IDS, sqlChoiceItem, sqlChoiceKey, writeSqlChoice } from '../helpers/sql-choice-fixture.ts';
+import { ALL_KINDS, FIXED_ID, fixedChoiceItem, fixedChoiceKey, IDS, sqlChoiceItem, sqlChoiceKey, writeSqlChoice } from '../helpers/sql-choice-fixture.ts';
 import { instance, primed, run } from '../helpers/replay-fixture.ts';
 
 const NEEDS_FIX = `EX-${FIXTURE_CONCEPT}-E1-26`;
@@ -272,4 +272,78 @@ test('S3-16: a mixed block holds at most 2 fix or choice items together: its fix
   const plain = new Map([...pools].map(([c, p]) => [c, p.filter((i) => i.kind !== 'choose_query')]));
   const before = mixedBlock({ concepts, poolOf: (c) => plain.get(c) ?? [], cardOf: (c) => `CARD-${c}`, seen: [], firstExposureOf: () => ago(3), now: NOW, pairs: [] });
   assert.deepEqual(before.filter((b) => b.item.kind !== 'write').map((b) => b.item.kind), ['fix']);
+});
+
+// ---- Sprint 9 Task A1 (S9-06): fixed_choice, served, graded, logged and rated as predict_result ----------------------------------
+
+const fixedRoot = await makeContentFixture();
+await writeSqlChoice(fixedRoot, [sqlChoiceItem('predict_result'), fixedChoiceItem()], [sqlChoiceKey('predict_result'), fixedChoiceKey()]);
+const fixedStore = await loadContent(fixedRoot);
+
+test('S9-06: GET ?section=sql serves a fixed_choice item as predict_result is served: its options with their code, shuffled; never the key', async () => {
+  const d = await deps([], fixedStore);
+  const app = createApp(d);
+  const r = await show(app, FIXED_ID);
+  assert.equal(r.status, 200);
+  const text = await r.text();
+  for (const f of KEY_FIELDS) assert.ok(!text.includes(`"${f}"`), `no ${f}`);
+  assert.ok(!text.includes(fixedChoiceKey().explanation) && !text.includes('MIS-FAKE') && !text.includes('ERR-SYN-09'), 'no explanation, no misconception');
+  const body = JSON.parse(text) as SqlChoiceServedView;
+  const item = fixedChoiceItem();
+  assert.deepEqual(body.item, { id: FIXED_ID, version: 1, section: 'sql', kind: 'mcq', sql_kind: 'fixed_choice', stem: item.prompt, concept_id: FIXTURE_CONCEPT,
+    topic_id: null, level: 1, typed: null, exam_relevance: null, verified: true, schema: 'voltmarkt', shown_sql: null, unique_check: null });
+  assert.deepEqual([...body.shown_order].sort(), item.options!.map((o) => o.oid).sort());
+  assert.deepEqual(body.shown_order, body.options.map((o) => o.oid));
+  for (const o of body.options) {
+    const source = item.options!.find((x) => x.oid === o.oid)!;
+    assert.deepEqual(o, source.code ? { oid: o.oid, text: source.text, code: source.code } : { oid: o.oid, text: source.text });
+  }
+  assert.equal(body.phase, 'free');
+  assert.deepEqual(await attempts(d), [], 'a question shown is not logged');
+  // /api/items sends no options, so no misconception or source order reaches the browser there either.
+  const viaItems = await json(get(app, `/api/items/${FIXED_ID}`));
+  assert.equal(viaItems.item.kind, 'fixed_choice');
+  assert.ok(!('options' in viaItems.item));
+});
+
+test('S9-06: an answer is graded by its right oid, logged with item_kind fixed_choice and the mcq payload, then the key comes back', async () => {
+  const d = await deps([], fixedStore);
+  const app = createApp(d);
+  const served = await json(show(app, FIXED_ID));
+  const right = optionId(FIXED_ID, 0);
+  const r = await json(answer(app, { item_id: FIXED_ID, item_instance_id: served.item_instance_id, chosen: right, confidence: 3, shown_order: served.shown_order, active_ms: 7000 }));
+  assert.deepEqual(r, { correct: true, correct_oid: right, explanation: fixedChoiceKey().explanation, error_ids: [], attempt_id: (await attempts(d))[0].attempt_id });
+  const [a, close] = await attempts(d);
+  assert.deepEqual([a.record, a.schema_version, a.section, a.item_kind, a.item_id, a.grader_version], ['attempt', SCHEMA_VERSION, 'sql', 'fixed_choice', FIXED_ID, CHOICE_GRADER_VERSION]);
+  assert.deepEqual(a.payload, { kind: 'mcq', shown_order: served.shown_order, chosen: right });
+  assert.deepEqual([a.outcome, a.is_correct, a.checks, a.partial_score], ['pass', true, [], null]);
+  assert.deepEqual([close.record, close.reason], ['item_close', 'pass']);
+  // A wrong option names its misconception, as every choice kind's does.
+  const s2 = await json(show(app, FIXED_ID));
+  const wrong = await json(answer(app, { item_id: FIXED_ID, item_instance_id: s2.item_instance_id, chosen: optionId(FIXED_ID, 1) }));
+  assert.deepEqual([wrong.correct, wrong.error_ids, wrong.correct_oid], [false, ['ERR-SYN-09'], right]);
+  // Show-answer reveals the key only when asked, and logs it.
+  const s3 = await json(show(app, FIXED_ID));
+  const revealed = await json(post(app, '/api/choice/show-answer', { item_id: FIXED_ID, item_instance_id: s3.item_instance_id }));
+  assert.deepEqual(revealed, { correct_oid: right, explanation: fixedChoiceKey().explanation });
+  assert.equal((await attempts(d)).at(-1).record, 'solution_opened');
+});
+
+test('S9-06, S9-C06: replay rates a fixed_choice item as it rates a predict_result item: the same family, the same multiple-choice map', async () => {
+  const catalog = buildCatalog(fixedStore);
+  assert.equal(catalog.familyOf(FIXED_ID, 'fixed_choice'), catalog.familyOf(IDS.predict_result, 'predict_result'));
+  assert.equal(catalog.familyOf(FIXED_ID, 'fixed_choice'), 'other_sql');
+  const rate = async (id: string, chosen: string, confidence: number) => {
+    const d = await deps(primed(FIXTURE_CONCEPT, '2026-09-01'), fixedStore);
+    const app = createApp(d);
+    const s = await json(show(app, id));
+    await answer(app, { item_id: id, item_instance_id: s.item_instance_id, chosen, confidence, active_ms: 1 });
+    const i = d.state.current().instances.get(s.item_instance_id)!;
+    return [i.rating, i.countsAsPass, i.qualifying];
+  };
+  for (const [confidence, index] of [[4, 0], [2, 0], [3, 1]] as const) {
+    assert.deepEqual(await rate(FIXED_ID, optionId(FIXED_ID, index), confidence), await rate(IDS.predict_result, optionId(IDS.predict_result, index), confidence),
+      `confidence ${confidence}, option ${index}`);
+  }
+  assert.deepEqual(await rate(FIXED_ID, optionId(FIXED_ID, 0), 4), [3, true, false], 'Good, never Easy, never qualifying');
 });

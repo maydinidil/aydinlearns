@@ -1,0 +1,164 @@
+{
+  "id": "EX-SQL-BQ-01-E3-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "sessions",
+    "sign_up",
+    "left_join",
+    "device"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-sign-up-sessions-by-device",
+  "template_params": {
+    "from": "20251101",
+    "to": "20251130"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "How many sessions lead to a sign-up, by device? For each device category, count the sessions that started from 1 to 30 November 2025, by event_date, and how many of them had a sign_up. A session is one user_pseudo_id with one ga_session_id, counted from its session_start event; leave out session_start events whose user_pseudo_id or ga_session_id is missing. A session had a sign_up when a sign_up event of the same days carries its user_pseudo_id and its ga_session_id. A sign_up that Mailvora's server sent carries no ga_session_id, so it belongs to no session. A sign_up counts for a session when it falls from 1 to 30 November, even on a later day than the session_start; a sign_up after 30 November counts for no session. The device is device.category of the session_start event. Return device_category, sessions and sessions_with_sign_up. Return one row for each device category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "device_category",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sessions_with_sign_up",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "device_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "sessions_with_sign_up",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "device_category"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the visitor and ga_session_id of each session_start and of each sign_up, then match them.",
+    "Keep every session, matched or not, and match on both the visitor and the session ID, never the ID alone."
+  ],
+  "subgoals": [
+    {
+      "from": 105,
+      "to": 264,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 267,
+      "to": 278,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 281,
+      "to": 403,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 525,
+      "to": 657,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 660,
+      "to": 671,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 674,
+      "to": 755,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 758,
+      "to": 854,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 855,
+      "to": 974,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 975,
+      "to": 1008,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1009,
+      "to": 1035,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The LEFT JOIN keeps every session, and matching on the visitor with the session ID credits a sign_up only to its own session."
+}

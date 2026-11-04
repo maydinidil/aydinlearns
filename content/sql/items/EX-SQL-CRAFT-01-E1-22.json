@@ -1,0 +1,170 @@
+{
+  "id": "EX-SQL-CRAFT-01-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "sanity_check",
+    "reconciliation",
+    "revenue",
+    "sales"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-CRAFT-01"
+  ],
+  "template_id": "T-CRAFT-01-revenue-channel",
+  "template_params": {
+    "month": "2025-04"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "Check that Voltmarkt's sales view adds up for April 2025, channel by channel. For each channel, compare the revenue in sales (order_date is the UTC day of order_ts) with the revenue worked out from order_lines and orders: quantity times unit_price_eur minus line_discount_eur, for every line of an order whose order_ts, a UTC time, falls in April. Return four columns, in this order: channel, sales_revenue, lines_revenue and difference (sales_revenue minus lines_revenue). Return one row for each channel. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "sales_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lines_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sales_revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "lines_revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "difference",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the raw revenue per channel over every day of April.",
+    "Each line takes its channel from its order, and an order on the last day of April counts whatever its time."
+  ],
+  "subgoals": [
+    {
+      "from": 109,
+      "to": 162,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 165,
+      "to": 175,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 178,
+      "to": 242,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 245,
+      "to": 261,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 382,
+      "to": 473,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 476,
+      "to": 537,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 540,
+      "to": 644,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 647,
+      "to": 665,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 668,
+      "to": 767,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 768,
+      "to": 828,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Both sides cover the same UTC days and the same revenue rule, so each channel reconciles to 0."
+}

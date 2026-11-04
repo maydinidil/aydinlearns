@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BQ-01-E2-43",
+  "item_version": 1,
+  "correct_oid": "o80f3638",
+  "explanation": "TIMESTAMP_MICROS reads the number as the microseconds it holds and gives the moment in UTC. Multiplying by a thousand treats the number as milliseconds, so every moment lands far in the future; make_timestamp is DuckDB's spelling; and event_date gives only the day on the property's clock, not the moment.",
+  "solver": {
+    "prompt_hash": "b36dcd1472ff5627",
+    "grader_version": "choice.3",
+    "chosen": "o80f3638",
+    "typed": null,
+    "at": "2026-11-03T19:01:37.570Z"
+  }
+}

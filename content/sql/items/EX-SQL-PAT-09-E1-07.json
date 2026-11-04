@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-PAT-09-E1-07",
-  "version": 2,
+  "version": 3,
   "kind": "write",
   "tags": [
     "sql",
@@ -48,7 +48,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_pat",
-  "prompt": "Break the April 2025 promotions down by product. For each promotion that started in April 2025 (start_date from 1 to 30 April 2025) and each product in it, give the units sold on lines that carry that promotion and the units of that product in the promotion's baseline. A line counts for a promotion when it carries it in order_lines.promo_id, and every such line falls within the promotion's dates; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline is the 14 days just before the promotion's first day, that first day not included, and holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A product with no sale in a period shows 0 for it. Return four columns, in this order: promo_id, product_id, promo_units and baseline_units. Return one row for each promotion and product in it. Any row order is fine.",
+  "prompt": "Break the April 2025 promotions down by product. For each promotion that started in April 2025 (start_date from 1 to 30 April 2025) and each product in it, give the units sold on lines that carry that promotion and the units of that product in the promotion's baseline. A product is in a promotion when promotion_products lists it for that promotion, whether it sold or not. A sales line is on a promotion when it carries that promotion's ID in order_lines.promo_id, whatever its date; where two promotions overlap on a product, a line carries only the deeper one, so it counts once. The baseline is the 14 days just before the promotion's first day, that first day not included, and holds every sales line of the promotion's products in those days, whatever promotion the line carries. Days are sales.order_date, the UTC day of the order. A product with no sale in a period shows 0 for it. Return four columns, in this order: promo_id, product_id, promo_units and baseline_units. Return one row for each promotion and product in it. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

@@ -45,7 +45,13 @@ export { INT_DIVISION_NOTE } from './portability.ts';
 // SELECT) carries the PIVOT note in portability_notes, and one that uses UNPIVOT (also one SELECT) carries the UNPIVOT note. S8-C08: ERR-LOG-18's feedback no longer says the rows are right, as a ranking or
 // LIMIT in the wrong direction picks other rows. Outcomes, diagnosis IDs, the partial score and the logged checks are graded exactly as
 // 7d.1 did; only the feedback text shown with ERR-LOG-18 and the new IDs changes.
-export const GRADER_VERSION = '8a.1';
+// 9a.1 (sprint 9, Task A1): three additions, no change. S9-04 (ERRATA E-219): ERR-LOG-52 to ERR-LOG-55, level 7's GA4 export mistakes,
+// have feedback, so a key's plant tagged with one diagnoses it with its own text; and DuckDB's bind errors for BigQuery's UNNEST forms,
+// on a query that calls UNNEST, diagnose ERR-SYN-09, not ERR-SYN-02 (such a query was an engine error and still is). S9-05: a graded
+// query that opens a list column with unnest, uses a lambda, reads event_date with strptime(..., '%Y%m%d') or event_timestamp with
+// make_timestamp carries the BigQuery note in portability_notes. Outcomes, the partial score and the logged checks are graded exactly as
+// 8a.1 did; no key of levels 1 to 6 uses any of these forms, and a query that uses none of them gets 8a.1's diagnosis and notes too.
+export const GRADER_VERSION = '9a.1';
 const DIFF_LIMIT = 10;
 const KEY_FAILED = 'This exercise could not be checked. Please report it.';
 /** `schemaNotes` give the columns of the item's tables to the portability lint; without them it gives only the `==` note. */

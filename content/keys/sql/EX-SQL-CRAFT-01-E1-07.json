@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CRAFT-01-E1-07",
+  "item_version": 1,
+  "reference_sql": "WITH table_side AS (\n  -- one row: the units weekly_units holds for ISO week 11 of 2025\n  SELECT SUM(units) AS weekly_units_total\n  FROM weekly_units\n  WHERE iso_year = 2025\n    AND iso_week = 11\n), sales_side AS (\n  -- one row: the units in sales from Monday 10 to Sunday 16 March 2025 (UTC days), 0 when there are none\n  SELECT COALESCE(SUM(units), 0) AS sales_units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-03-10' AND DATE '2025-03-16'\n)\nSELECT t.weekly_units_total, s.sales_units,\n  t.weekly_units_total - s.sales_units AS difference\nFROM table_side t\nCROSS JOIN sales_side s",
+  "alternatives": [
+    "WITH table_side AS (\n  -- one row: the units weekly_units holds for ISO week 11 of 2025\n  SELECT SUM(units) AS weekly_units_total\n  FROM weekly_units\n  WHERE iso_year = 2025\n    AND iso_week = 11\n), sales_side AS (\n  -- one row: the units in sales on the days calendar puts in ISO week 11 of 2025, 0 when there are none\n  SELECT COALESCE(SUM(s.units), 0) AS sales_units\n  FROM sales s\n  JOIN calendar c ON c.cal_date = s.order_date\n  WHERE c.iso_year = 2025\n    AND c.iso_week = 11\n)\nSELECT t.weekly_units_total, s.sales_units,\n  t.weekly_units_total - s.sales_units AS difference\nFROM table_side t\nCROSS JOIN sales_side s",
+    "WITH table_side AS (\n  -- one row: the units weekly_units holds for ISO week 11 of 2025\n  SELECT SUM(units) AS weekly_units_total\n  FROM weekly_units\n  WHERE iso_year = 2025\n    AND iso_week = 11\n), sales_side AS (\n  -- one row: the units in sales from Monday 10 to Sunday 16 March 2025 (UTC days), 0 when there are none\n  SELECT COALESCE(SUM(units), 0) AS sales_units\n  FROM sales\n  WHERE order_week = DATE '2025-03-10'\n)\nSELECT t.weekly_units_total, s.sales_units,\n  t.weekly_units_total - s.sales_units AS difference\nFROM table_side t\nCROSS JOIN sales_side s"
+  ],
+  "other_way": {
+    "sql": "WITH table_side AS (\n  -- one row: the units weekly_units holds for ISO week 11 of 2025\n  SELECT SUM(units) AS weekly_units_total\n  FROM weekly_units\n  WHERE iso_year = 2025\n    AND iso_week = 11\n), sales_side AS (\n  -- one row: the units in sales on the days calendar puts in ISO week 11 of 2025, 0 when there are none\n  SELECT COALESCE(SUM(s.units), 0) AS sales_units\n  FROM sales s\n  JOIN calendar c ON c.cal_date = s.order_date\n  WHERE c.iso_year = 2025\n    AND c.iso_week = 11\n)\nSELECT t.weekly_units_total, s.sales_units,\n  t.weekly_units_total - s.sales_units AS difference\nFROM table_side t\nCROSS JOIN sales_side s",
+    "tradeoff": "Joining calendar picks the week by its ISO number, so no dates are typed, at the cost of one more join."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH table_side AS (\n  -- one row: the units weekly_units holds for ISO week 11 of 2025\n  SELECT SUM(units) AS weekly_units_total\n  FROM weekly_units\n  WHERE iso_year = 2025\n    AND iso_week = 11\n), sales_side AS (\n  -- one row: the units in sales from Monday 10 to Sunday 16 March 2025 (UTC days), 0 when there are none\n  SELECT COALESCE(SUM(units), 0) AS sales_units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-03-10' AND DATE '2025-03-15'\n)\nSELECT t.weekly_units_total, s.sales_units,\n  t.weekly_units_total - s.sales_units AS difference\nFROM table_side t\nCROSS JOIN sales_side s"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH table_side AS (\n  -- one row: the units weekly_units holds for ISO week 11 of 2025\n  SELECT SUM(units) AS weekly_units_total\n  FROM weekly_units\n  WHERE iso_year = 2025\n    AND iso_week = 11\n), sales_side AS (\n  -- one row: the units in sales from Monday 10 to Sunday 16 March 2025 (UTC days), 0 when there are none\n  SELECT SUM(units) AS sales_units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-03-10' AND DATE '2025-03-16'\n)\nSELECT t.weekly_units_total, s.sales_units,\n  t.weekly_units_total - s.sales_units AS difference\nFROM table_side t\nCROSS JOIN sales_side s"
+    }
+  ],
+  "hint3_partial": "WITH table_side AS (\n  -- one row: the units weekly_units holds for ISO week 11 of 2025\n  SELECT SUM(units) AS weekly_units_total\n  FROM weekly_units\n  WHERE iso_year = 2025\n    AND iso_week = 11\n), sales_side AS (\n  -- one row: the units in sales from Monday 10 to Sunday 16 March 2025 (UTC days), 0 when there are none\n  SELECT COALESCE(SUM(units), 0) AS sales_units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-03-10' AND ___\n)\nSELECT t.weekly_units_total, s.sales_units,\n  t.weekly_units_total - s.sales_units AS difference\nFROM table_side t\nCROSS JOIN sales_side s",
+  "solver": {
+    "prompt_hash": "5ae43a9ac05173e5",
+    "schema_version": "02b0be27d3c1",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "WITH w AS (\r\n  SELECT SUM(units) AS u FROM weekly_units WHERE week_start = DATE '2025-03-10'\r\n), s AS (\r\n  SELECT COALESCE(SUM(units), 0) AS u FROM sales\r\n  WHERE order_date >= DATE '2025-03-10' AND order_date <= DATE '2025-03-16'\r\n)\r\nSELECT w.u AS weekly_units_total, s.u AS sales_units, w.u - s.u AS difference\r\nFROM w CROSS JOIN s",
+    "at": "2026-11-03T19:01:28.951Z"
+  }
+}

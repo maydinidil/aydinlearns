@@ -1,0 +1,148 @@
+{
+  "id": "EX-SQL-CRAFT-02-E1-04",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "aggregate_first",
+    "orders",
+    "order_lines"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-store-orders",
+  "template_params": {
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each Voltmarkt store, how many orders were placed from 3 to 9 March 2025 (the UTC days of order_ts), and how many units did they hold? Count only the orders that have at least one order line: an order with no lines is left out of both counts. Return exactly three columns, in this order: store_code, orders and units. Return one row for each store with orders in those days. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store with orders from 3 to 9 March 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the filter that keeps only the lines of that week's orders, before they are added up.",
+    "The lines carry no date: keep the lines whose order_id belongs to an order placed in those days."
+  ],
+  "subgoals": [
+    {
+      "from": 137,
+      "to": 176,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 179,
+      "to": 195,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 198,
+      "to": 342,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 345,
+      "to": 362,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 365,
+      "to": 427,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 428,
+      "to": 528,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 529,
+      "to": 550,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 198,
+    "stage2": 198
+  },
+  "faded_shape": "WITH order_units AS (\n  -- one row per order placed from 3 to 9 March 2025 (UTC days of order_ts): its units, added up before any join\n  SELECT order_id, SUM(quantity) AS units\n  FROM order_lines\n  ",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The lines are filtered and added up to one row per order before the join, so COUNT(*) counts orders and the join adds no rows.",
+  "faded_suffix": "\n  GROUP BY order_id\n)\nSELECT s.store_code, COUNT(*) AS orders, SUM(u.units) AS units\nFROM order_units u\nJOIN orders o ON o.order_id = u.order_id\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.store_code"
+}

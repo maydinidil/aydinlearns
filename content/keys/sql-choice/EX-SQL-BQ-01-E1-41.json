@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-41",
+  "item_version": 1,
+  "value": 4,
+  "explanation": "The comma before unnest joins each event to its own list of parameters and makes one row for each element, so one session_start with four parameters gives four rows. Reading it as one row per event misses that the unnest changes the grain from events to parameters.",
+  "solver": {
+    "prompt_hash": "359df34236447c0b",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "4",
+    "at": "2026-11-03T19:01:37.559Z"
+  }
+}

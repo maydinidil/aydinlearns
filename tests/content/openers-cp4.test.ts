@@ -26,7 +26,7 @@ test('a CP4 credits only what its CP3 credits (S2-102), and the CP3 item stays t
   }
 });
 test('a CP4 credits only a concept of its own level that no accepted answer can avoid, and may credit none (S2-106)', () => {
-  const credited: Record<string, string[]> = { 'CASE-VOLT-L1': [], 'CASE-VOLT-L2': ['SQL-AGG-01'], 'CASE-VOLT-L3': [], 'CASE-VOLT-L4': [], 'CASE-VOLT-L5': [], 'CASE-LEDGER-L6': [] };
+  const credited: Record<string, string[]> = { 'CASE-VOLT-L1': [], 'CASE-VOLT-L2': ['SQL-AGG-01'], 'CASE-VOLT-L3': [], 'CASE-VOLT-L4': [], 'CASE-VOLT-L5': [], 'CASE-LEDGER-L6': [], 'CASE-MAIL-L7': [] };
   for (const r of records) {
     const cp4 = r.checkpoints.find((c) => c.kind === 'CP4')!;
     assert.deepEqual(cp4.credits_concepts, credited[r.case_id], r.case_id);
@@ -69,6 +69,25 @@ test('the level 6 opener is CASE-LEDGER-L6: level 6, SAAS on ledgerloop, CP1 to 
   const item = JSON.parse(await readFile('content/sql/items/EX-OPENER-L6-01.json', 'utf8')) as SqlItem;
   assert.deepEqual([item.use, item.level, item.company, item.schema, item.edge_schema], ['opener', 6, 'ledgerloop', 'ledgerloop', 'ledgerloop_edge_saas']);
   assert.deepEqual(r.data_source, { label: 'Fictional, generated data: LedgerLoop', real: false, licence: null });
+});
+// Sprint 9, Task C2 (S9-12): the level 7 opener, on Mailvora's GA4 export with its views (world MKT, schema mailvora_ga4, S9-C18),
+// asked by one of Mailvora's managers, CP1 to CP6 in order, CP1 the mid-level question (S4B-14), CRAFT-03's six-line model plan, and
+// its CP3 item EX-OPENER-L7-01 on mailvora_edge_ga4 with the 10 second limit of a key that reads events (S9-C33).
+test('the level 7 opener is CASE-MAIL-L7: level 7, MKT on mailvora_ga4, Declan, CP1 to CP6 in order, and CP3 is EX-OPENER-L7-01 on mailvora_edge_ga4', async () => {
+  const r = records.find((x) => x.case_id === 'CASE-MAIL-L7');
+  assert.ok(r, 'content/sql/openers/ holds CASE-MAIL-L7');
+  assert.deepEqual([r.kind, r.level, r.world, r.company_id, r.schema], ['opener', 7, 'MKT', 'mailvora', 'mailvora_ga4']);
+  assert.deepEqual(r.persona, { name: 'Declan', role: 'Head of growth' });
+  assert.deepEqual(r.checkpoints.map((c) => c.kind), ['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6']);
+  const cp3 = r.checkpoints.find((c) => c.kind === 'CP3')!;
+  assert.equal(cp3.item_id, 'EX-OPENER-L7-01');
+  assert.ok(cp3.credits_concepts.includes('SQL-BQ-01') && cp3.credits_concepts.includes('SQL-CRAFT-01'), 'CP3 credits reading the export and the reconciliation');
+  const item = JSON.parse(await readFile('content/sql/items/EX-OPENER-L7-01.json', 'utf8')) as SqlItem;
+  assert.deepEqual([item.use, item.level, item.company, item.schema, item.edge_schema, item.rules.timeout_ms],
+    ['opener', 7, 'mailvora', 'mailvora_ga4', 'mailvora_edge_ga4', 10000]);
+  assert.deepEqual(r.data_source, { label: 'Fictional, generated data: Mailvora', real: false, licence: null });
+  const labels = r.model_plan.split('\n').map((line) => line.split(':')[0]);
+  assert.deepEqual(labels, ['Metric formula', 'Output grain', 'Tables and keys', 'Filters', 'Edge cases', 'Expected row count'], 'CRAFT-03\'s six labelled lines');
 });
 test('a CP4 prompt states the decimals it grades to, in plain English', () => {
   for (const r of records) {

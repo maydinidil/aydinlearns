@@ -1,0 +1,145 @@
+{
+  "id": "EX-SQL-CRAFT-02-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "cost",
+    "aggregate_first",
+    "orders",
+    "order_lines"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CRAFT-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-02"
+  ],
+  "template_id": "T-CRAFT-02-store-type-orders",
+  "template_params": {
+    "month": "2025-04"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_pat",
+  "prompt": "For each Voltmarkt store type (stores.store_type), how many orders were placed in April 2025 (the UTC days of order_ts), and how many units did they hold? Return exactly three columns, in this order: store_type, orders and units. Return one row for each store type with orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add each April order's lines up to one row per order before the join.",
+    "Keep the lines whose order_id belongs to an April order, total their quantity per order, then join to orders and stores."
+  ],
+  "subgoals": [
+    {
+      "from": 128,
+      "to": 167,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 170,
+      "to": 186,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 189,
+      "to": 333,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 336,
+      "to": 353,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 356,
+      "to": 418,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 419,
+      "to": 519,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 520,
+      "to": 541,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "With one row per order before the joins, COUNT(*) counts orders and the units come along once each."
+}

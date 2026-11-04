@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-BQ-01-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "purchase",
+    "value_slots",
+    "geo"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-purchases-by-country",
+  "template_params": {
+    "event_name": "purchase",
+    "from": "20251201",
+    "to": "20251231"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "For each country, count the purchases of 1 to 31 December 2025, by event_date, and add up their value. The country is geo.country; on a purchase, which Mailvora's billing server sends, it is the account's country. Read the value parameter from whichever number slot holds it, int_value or double_value. Every purchase counts, one whose payment was later refunded included. Return country, purchases and purchase_value, in euros. Return one row for each country with a purchase. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country",
+        "type_class": "text"
+      },
+      {
+        "name": "purchases",
+        "type_class": "numeric"
+      },
+      {
+        "name": "purchase_value",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "purchases",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "purchase_value",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the value parameter of each purchase out of its parameters.",
+    "Some purchases hold the number in int_value and others in double_value, so take whichever slot is filled."
+  ],
+  "subgoals": [
+    {
+      "from": 75,
+      "to": 176,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 179,
+      "to": 190,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 193,
+      "to": 275,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 278,
+      "to": 394,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 395,
+      "to": 409,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 410,
+      "to": 426,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "COALESCE over the number slots reads the value whether the tag sent it as a whole number or a decimal."
+}

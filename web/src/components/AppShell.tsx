@@ -5,12 +5,18 @@ import type { ReactNode } from 'react';
 import { TABS, sectionOfTab, type Tab } from '../lib/nav.ts';
 import { isSetupHash } from '../lib/polish-p2a.ts';
 import { PANEL_ID } from '../tutor/panel-a11y.ts';
+import { poseUrl } from './Mascot.tsx';
 import { useTutor } from '../tutor/TutorContext.tsx';
+
+
+// The calm mole (S9-21): the URL comes from the one shared helper.
+const moleCalm = poseUrl('calm');
 
 export function AppShell(p: { tab: Tab | null; degraded: boolean; ending: boolean; onEndSession: () => void; children: ReactNode }) {
   const tutor = useTutor();
   const current = p.tab;
-  const word = <>aydin<span>learns</span></>;
+  // Decorative (alt=""): the words beside it say the name, so a screen reader hears "Grondig" once.
+  const word = <><img className="mascot" src={moleCalm} alt="" width={32} height={32} />Grondig</>;
   // Setup mode shows Settings whatever the address says, so its link is the current page there too (P1 finding 46).
   const onSetup = p.degraded || (typeof location !== 'undefined' && isSetupHash(location.hash));
   return (

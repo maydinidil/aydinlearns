@@ -1,0 +1,93 @@
+{
+  "id": "EX-SQL-CRAFT-03-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "choose_query",
+    "logo_churn",
+    "base"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-CRAFT-03"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CRAFT-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01",
+    "SQL-CRAFT-03"
+  ],
+  "template_id": "T-CRAFT-03-choose-logo-churn",
+  "template_params": {
+    "table": "mrr_monthly",
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "ledgerloop",
+  "schema": "ledgerloop",
+  "edge_schema": "ledgerloop_edge_saas",
+  "prompt": "Which query gives LedgerLoop's logo churn rate for March 2025: the accounts with a churn event dated in March divided by the accounts with MRR at the end of February 2025 (their mrr_monthly rows for February)?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o18fa5ac",
+      "text": "SELECT COUNT(DISTINCT e.account_id) * 1.0\n  / (SELECT COUNT(*) FROM mrr_monthly WHERE month = DATE '2025-03-01') AS churn_rate\nFROM subscription_events e\nWHERE e.event_type = 'churn'\n  AND e.event_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "oaf2e7e6",
+      "text": "SELECT COUNT(DISTINCT e.account_id) * 1.0\n  / (SELECT COUNT(*) FROM mrr_monthly WHERE month = DATE '2025-02-01') AS churn_rate\nFROM subscription_events e\nWHERE e.event_type = 'churn'\n  AND e.event_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+      "misconception_id": null
+    },
+    {
+      "oid": "o19a68c9",
+      "text": "SELECT SUM(-e.mrr_delta_local * f.eur_per_unit)\n  / (SELECT SUM(mrr_eur) FROM mrr_monthly WHERE month = DATE '2025-02-01') AS churn_rate\nFROM subscription_events e\nJOIN subscriptions s ON s.subscription_id = e.subscription_id\nJOIN fx_rates f ON f.currency = s.currency AND f.rate_date = DATE '2025-12-31'\nWHERE e.event_type = 'churn'\n  AND e.event_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o5b25652",
+      "text": "SELECT COUNT(DISTINCT e.account_id)\n  // (SELECT COUNT(*) FROM mrr_monthly WHERE month = DATE '2025-02-01') AS churn_rate\nFROM subscription_events e\nWHERE e.event_type = 'churn'\n  AND e.event_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+      "misconception_id": "ERR-LOG-05"
+    }
+  ]
+}

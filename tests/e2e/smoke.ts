@@ -5,7 +5,7 @@
 // such as 5184) against an empty temporary logs folder (AYDINLEARNS_LOGS_DIR), so no test record ever reaches
 // the real logs/, and every row sees the same history wherever the test runs. Row 12 restarts that server;
 // row 13 runs a temporary copy of the app with an edited manifest, so the real data/manifest.json is never
-// touched. Row 14 reads netstat. Each server is stopped through its shutdown path (the same handler as Ctrl+C),
+// touched. Row 14 reads netstat, or connects when netstat lists no listener (S9-C49). Each server is stopped through its shutdown path (the same handler as Ctrl+C),
 // except in row 12, which stops one abruptly on purpose.
 //
 // Rows E, R and J (sprint 2) click "End session" while an answer grades, double-click a per-row "I was right",
@@ -65,6 +65,15 @@
 // Rows 8b-1 to 8b-6 (sprint 8 Part 2, Task F3) run after the 8a rows, on a server of their own over an empty logs folder: CASE-SAAS-03 answered through CP6 and exported (the page names
 // LedgerLoop), CASE-MKT-05 through CP4, CASE-RETAIL-04's CP3, G-SQL-LEVEL-6's "SaaS cases solved: 0 of 5" (row 8b-4 runs first there), the explorer's Olist (real, with its licence) and
 // Maven Toy Store (fictional), and CASE-REAL-03 and CASE-MAVEN-01 in the inbox with their data lines. Keys and truth values are read in this process and only typed.
+// Rows 9a-1 to 9a-8 (sprint 9 Part 1, Task F1) run after the 8a rows, on a server of their own over an empty logs folder with the fake tutor model: SQL level 7 on the map and a SQL-BQ-01 pretest item, a
+// write item passed with its reference and event_params returned where a value is asked (ERR-OUT-02), the ERR-LOG-52 and ERR-SYN-09 fix items as their starters stand, a fixed_choice item with its
+// BigQuery code blocks, the level 7 drill (10 questions, help at the review), CASE-MAIL-L7 opened at CP1 with its CP3 graded, the explorer's GA4 export, and a level 4 drill's three difficulty bands.
+// Keys and truth values are read in this process and only typed.
+// Rows 9b-1 to 9b-6 (sprint 9 Part 2, Task F3) check the name, the dark default and the mole: 9b-1 to 9b-3 (a fresh profile is dark, Light stays after a reload, Follow Windows follows the
+// emulated colour scheme) and 9b-5 (the server's start line) run after row 14, each theme row in a browser context of its own with no init script; 9b-4 (the autocomplete popup takes the dark
+// tokens) and 9b-6 (the header, Today, a failed and a passed answer, and no mole in a timed run's question) run after row 9a-8 on that server.
+// AYDINLEARNS_SHOTS_THEME (light or dark) is opt-in and only for the screenshots: when it is set, every page the rows create (apart from rows 9b-1 to 9b-4) starts with that theme
+// choice in localStorage; unset, the app's own default (dark) shows. Use it beside AYDINLEARNS_SHOTS for the light screenshots.
 // Rows tu-1 to tu-8 (sprint T) check the AI tutor: off by default on every server here (the keys are set blank, and each server keeps
 // the keys saved in Settings in a file of its own in the temporary folder, AYDINLEARNS_KEYS_FILE, T-20), then on a server of its own with
 // the fake model (AYDINLEARNS_TUTOR_PROVIDER=fake, T-23), which calls nothing and answers for every model. That server spaces the fake
@@ -85,13 +94,13 @@
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, unlink, writeFile } from 'node:fs/promises';
-import { createServer } from 'node:net';
-import { tmpdir } from 'node:os';
+import { connect, createServer } from 'node:net';
+import { networkInterfaces, tmpdir } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { DuckDBInstance } from '@duckdb/node-api';
-import { chromium, type Browser, type Page } from 'playwright';
+import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 import type { Curriculum } from '../../schemas/concepts.ts';
 import type { SqlItem } from '../../schemas/item.ts';
 import type { SqlKey } from '../../schemas/keys.ts';
@@ -120,6 +129,14 @@ const PORT = (() => { try { return portFromEnv(); } catch (e) { console.log((e a
 const BASE = `http://127.0.0.1:${PORT}`;
 const KEEP = process.argv.includes('--keep');            // keep the temporary folder to inspect it
 const run = promisify(execFile);
+/** Row 14 (S9-C49): whether a TCP connection to host:port opens within 1.5 s. A refusal, an error or no answer is false. */
+const answers = (host: string, port: number) => new Promise<boolean>((done) => {
+  const socket = connect({ host, port, timeout: 1500 });
+  const end = (ok: boolean) => { socket.destroy(); done(ok); };
+  socket.once('connect', () => end(true));
+  socket.once('timeout', () => end(false));
+  socket.once('error', () => end(false));
+});
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const JOURNEY_DIR = join(tmpdir(), `al-e2e-journey-${process.pid}`);   // D77: every server's journey, never the real journey/ (row JN)
 
@@ -142,7 +159,7 @@ const NOT_IT = "SELECT 'not the answer' AS wrong_answer";  // fails every item: 
 const SUBGOAL_LABELS = ['Source and grain', 'Row filter', 'Output grain', 'Metrics', 'Group filter', 'Sort and limit'];
 const GA4_CONCEPT = 'GA4-SETUP-01';                    // rows 2a-1: a level 1 concept with a reading
 const MET_CONCEPT = 'MET-PRICE-07';                    // rows 2a-2: a pool with typed percentage questions
-const LOCKED_GREY = 'rgb(82, 82, 91)';                    // --ink-2 in web/src/styles/tokens.css (ruling P-4: the locked prefix reads --ink-2 on --fill)
+const LOCKED_GREY = 'var(--ink-2)';                       // the locked prefix's colour (ruling P-4: --ink-2 on --fill), resolved in the page under the theme in force (S9-18)
 // Block P (T-21 to T-23): why the tutor is off for the default model with no key (server/tutor/config.ts), and the five models Settings
 // lists, each named with its price per million tokens (server/tutor/prices.ts), and the provider whose key it needs.
 const TUTOR_NEEDS_CLAUDE_KEY = 'Claude Haiku 5.5 needs a Claude key. Add one in Settings to turn the tutor on.';
@@ -255,6 +272,14 @@ const results: { row: string; ok: boolean; detail: string }[] = [];
 function expect(cond: unknown, what: string): asserts cond { if (!cond) throw new Error(what); }
 /** Visuals sprint (ruling V-3): when AYDINLEARNS_SHOTS names a folder, the run saves the screens the sprint compares. */
 const SHOTS = process.env.AYDINLEARNS_SHOTS;
+/** Opt-in light screenshots: AYDINLEARNS_SHOTS_THEME (light or dark) is saved as the theme choice before any page script runs. Unset: the app's own default. */
+const SHOTS_THEME = process.env.AYDINLEARNS_SHOTS_THEME;
+if (SHOTS_THEME !== undefined && SHOTS_THEME !== '' && SHOTS_THEME !== 'light' && SHOTS_THEME !== 'dark') { console.log('AYDINLEARNS_SHOTS_THEME must be light or dark'); process.exit(1); }
+const THEME_STORAGE_KEY = 'aydinlearns.theme';          // web/src/lib/theme.ts THEME_KEY (a class B name that keeps its spelling)
+async function themed(ctx: BrowserContext): Promise<BrowserContext> {
+  if (SHOTS_THEME) await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k!, v!); } catch { /* no storage */ } }, [THEME_STORAGE_KEY, SHOTS_THEME]);
+  return ctx;
+}
 async function shot(page: Page, name: string): Promise<void> {
   if (!SHOTS) return;
   await mkdir(SHOTS, { recursive: true });
@@ -363,7 +388,7 @@ async function startServer(appDir: string, logsDir: string, o: { clock?: boolean
     const timer = setTimeout(() => fail(new Error('the server was not ready within 60 s')), 60_000);
     child.stdout!.on('data', (b: Buffer) => {
       output.push(b.toString());
-      const line = output.join('').split(/\r?\n/).find((l) => l.startsWith(`aydinlearns on ${BASE}`));
+      const line = output.join('').split(/\r?\n/).find((l) => l.startsWith(`grondig on ${BASE}`));
       if (line) { clearTimeout(timer); done(line); }
     });
     child.stderr!.on('data', (b: Buffer) => output.push(b.toString()));
@@ -489,7 +514,7 @@ async function tutorModelRadios(p: Page): Promise<{ count: number; rows: { id: s
 }
 
 async function newPage(browser: Browser, dialogs: string[]): Promise<Page> {
-  const page = await (await browser.newContext()).newPage();
+  const page = await (await themed(await browser.newContext())).newPage();
   page.setDefaultTimeout(15_000);
   page.on('dialog', (d) => { dialogs.push(d.message()); void d.accept(); });
   return page;
@@ -519,6 +544,7 @@ async function main(): Promise<number> {
   let browser: Browser | null = null;
   const dialogs: string[] = [];
   let pageErrors = 0;
+  let runQuestionMoles = -1;                             // row 2b-2 counts the moles inside main on a GA4 run question; row 9b-6 checks it is 0
   let appCopy: string | null = null;
   let appCopy6b: string | null = null;                   // rows 6b-2 to 6b-4's copy of the app, removed at the end as row 13's is
   /** Closes what an earlier failed row left open, so the next row can start its own server. */
@@ -591,23 +617,128 @@ async function main(): Promise<number> {
       return 'no button on Today, an item and Settings, and Alt+T opened no panel; Settings and the status say off because Claude Haiku 5.5 (the default, medium effort) needs a Claude key; no key set, no model usable';
     });
 
-    await row('14', `netstat -ano: listening on 127.0.0.1:${PORT} only`, async () => {
+    await row('14', `listening on 127.0.0.1:${PORT} only (netstat, or by connecting when netstat lists no listener)`, async () => {
       expect(process.platform === 'win32', 'row 14 reads Windows netstat output');
       const { stdout } = await run('netstat', ['-ano']);
       const listening = stdout.split(/\r?\n/).map((l) => l.trim().split(/\s+/))
         .filter((f) => f[0] === 'TCP' && (f[1] ?? '').endsWith(`:${PORT}`) && f[3] === 'LISTENING');
-      expect(listening.length > 0, `nothing listens on port ${PORT}`);
       const addresses = [...new Set(listening.map((f) => f[1]))];
-      expect(addresses.length === 1 && addresses[0] === `127.0.0.1:${PORT}`, `listening on ${addresses.join(', ')}`);
+      expect(addresses.every((a) => a === `127.0.0.1:${PORT}`), `listening on ${addresses.join(', ')}`);
       const pids = [...new Set(listening.map((f) => Number(f[4])))];
-      expect(pids.length === 1 && pids[0] === serverPid, `the listener is PID ${pids.join(', ')}, not the server (${serverPid})`);
-      return `${listening.length} LISTENING line: TCP 127.0.0.1:${PORT}, PID ${serverPid} (the server); no 0.0.0.0 or [::] listener`;
+      const ownerHidden = listening.length > 0 && pids.length === 1 && pids[0] === 0;   // S9-C51: netstat shows the line, not its owner
+      if (listening.length > 0 && !ownerHidden) {
+        expect(pids.length === 1 && pids[0] === serverPid, `the listener is PID ${pids.join(', ')}, not the server (${serverPid})`);
+        return `${listening.length} LISTENING line: TCP 127.0.0.1:${PORT}, PID ${serverPid} (the server); no 0.0.0.0 or [::] listener`;
+      }
+      // S9-C48: in some sessions netstat lists no listener for the port while the server answers on it, or (S9-C51) lists it
+      // with its owner hidden as PID 0. Then the bind is checked by connecting: 127.0.0.1 answers, ::1 and every LAN IPv4
+      // address do not, and a control listener on all addresses answers on those same LAN addresses, so a server bound to
+      // all of them would have been seen (S9-C49).
+      const why = ownerHidden ? `netstat hid the listener's owner (PID 0) for ${PORT} (S9-C51)` : `netstat listed no listener for ${PORT} (S9-C48)`;
+      const lan = Object.values(networkInterfaces()).flat().filter((i) => i && !i.internal && i.family === 'IPv4').map((i) => i!.address);
+      expect(lan.length > 0, `${why}, and there is no LAN IPv4 address to check the bind by connecting`);
+      expect(await answers('127.0.0.1', PORT), `${why}, and 127.0.0.1:${PORT} does not answer`);
+      expect(!(await answers('::1', PORT)), `[::1]:${PORT} answers`);
+      const control = createServer((c) => c.destroy());
+      const controlPort = await new Promise<number>((done, fail) => {
+        control.once('error', fail);
+        control.listen(0, '0.0.0.0', () => done((control.address() as { port: number }).port));
+      });
+      try {
+        for (const a of lan) {
+          expect(await answers(a, controlPort), `a control listener on all addresses does not answer on a LAN address, so the check cannot see a wide bind`);
+          expect(!(await answers(a, PORT)), `a LAN address answers on ${PORT}`);
+        }
+      } finally {
+        await new Promise((done) => control.close(done));
+      }
+      return `${why}, so by connecting: 127.0.0.1 answers; ::1 and ${lan.length} LAN address${lan.length === 1 ? '' : 'es'} do not, while a control listener on all addresses answers on ${lan.length === 1 ? 'it' : 'them'}`;
     });
 
     // Since sprint 3 (S3-17) a concept with a predict pretest item serves its first write item, then that predict item.
     const q1 = basics.pretest_item_ids[0]!;
     const servedPretest = (await getJson<{ pretest_item_ids: string[] }>('/api/lessons/SQL-BASICS-01')).body.pretest_item_ids;
     const q2 = servedPretest[1]!;
+    // ---- sprint 9 Part 2 (Task F3): the name, the dark default, the themes ----
+    // Rows 9b-1 to 9b-3 each use a browser context of their own with no init script, so AYDINLEARNS_SHOTS_THEME never reaches them.
+    /** A colour value (a token's text) as the browser computes it, so it compares with a computed style. */
+    const asComputed = (p: Page, value: string, prop: 'color' | 'backgroundColor'): Promise<string> =>
+      p.evaluate(([v, pr]) => { const probe = document.body.appendChild(document.createElement('span')); (probe.style as unknown as Record<string, string>)[pr!] = v!; const out = getComputedStyle(probe)[pr as 'color']; probe.remove(); return out; }, [value, prop]);
+    const tokenOf = (p: Page, name: string): Promise<string> => p.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
+    const themeOf = (p: Page): Promise<string | null> => p.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    const freshProfile = async (): Promise<{ p: Page; close: () => Promise<void> }> => {
+      const ctx = await browser!.newContext();
+      const p = await ctx.newPage();
+      p.setDefaultTimeout(15_000);
+      p.on('pageerror', () => { pageErrors++; });
+      return { p, close: () => ctx.close() };
+    };
+    const appearance = async (p: Page): Promise<void> => {
+      await p.goto(`${BASE}/#/setup`);
+      await p.getByRole('heading', { name: 'Appearance', level: 2 }).waitFor();
+    };
+
+    await row('9b-1', 'a fresh profile opens dark: data-theme dark, the body on the dark --canvas token, "Grondig" in the tab title and the wordmark', async () => {
+      const { p, close } = await freshProfile();
+      try {
+        await p.goto(`${BASE}/#/`);
+        await p.locator('.wordmark').waitFor();
+        expect(await themeOf(p) === 'dark', `data-theme is ${String(await themeOf(p))}, not dark`);
+        const canvas = await tokenOf(p, '--canvas');
+        expect(canvas !== '', 'the --canvas token is empty');
+        const want = await asComputed(p, canvas, 'backgroundColor');
+        const got = await p.evaluate(() => getComputedStyle(document.body).backgroundColor);
+        expect(got === want, `the body background is ${got}, not the dark --canvas ${want}`);
+        const title = await p.title();
+        expect(title.includes('Grondig'), `the tab title is "${title}"`);
+        const mark = (await p.locator('.wordmark').innerText()).trim();
+        expect(mark === 'Grondig', `the wordmark reads "${mark}"`);
+        return `data-theme dark; the body is ${got} (the --canvas token); the tab title is "${title}"; the wordmark reads "${mark}"`;
+      } finally { await close(); }
+    });
+
+    await row('9b-2', 'Settings, Appearance, Light: the page turns light at once and stays light after a reload; Dark is restored through the card', async () => {
+      const { p, close } = await freshProfile();
+      try {
+        await appearance(p);
+        expect(await themeOf(p) === 'dark', 'Settings does not open dark');
+        await p.getByLabel('Light', { exact: true }).check();
+        await p.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'light', null, { timeout: 2_000 });
+        await p.reload();
+        await p.getByRole('heading', { name: 'Appearance', level: 2 }).waitFor();
+        expect(await themeOf(p) === 'light', `after a reload data-theme is ${String(await themeOf(p))}, not light`);
+        expect(await p.getByLabel('Light', { exact: true }).isChecked(), 'Light is not checked after the reload');
+        await p.getByLabel('Dark', { exact: true }).check();
+        await p.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'dark', null, { timeout: 2_000 });
+        return 'Light turned the page light at once and after a reload; Dark through the card turned it dark again';
+      } finally { await close(); }
+    });
+
+    await row('9b-3', 'Follow Windows: a light colour scheme gives light, switching the emulation to dark turns it dark with no reload; Dark is restored', async () => {
+      const { p, close } = await freshProfile();
+      try {
+        await p.emulateMedia({ colorScheme: 'light' });
+        await appearance(p);
+        await p.getByLabel('Follow Windows', { exact: true }).check();
+        await p.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'light', null, { timeout: 2_000 });
+        await p.evaluate(() => { (window as unknown as Record<string, unknown>).__noReload = true; });
+        await p.emulateMedia({ colorScheme: 'dark' });
+        await p.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'dark', null, { timeout: 5_000 });
+        expect(await p.evaluate(() => (window as unknown as Record<string, unknown>).__noReload === true), 'the page reloaded when the scheme changed');
+        await p.getByLabel('Dark', { exact: true }).check();
+        await p.emulateMedia({ colorScheme: null });
+        expect(await themeOf(p) === 'dark', 'Dark was not restored');
+        return 'light under a light scheme, dark after the emulation changed (same page, no reload); Dark and the emulation restored';
+      } finally { await close(); }
+    });
+
+    await row('9b-5', 'the server\'s start line is exactly "grondig on http://127.0.0.1:<port>"', async () => {
+      const lines = server!.output.join('').split(/\r?\n/).filter((l) => l.startsWith('grondig on '));
+      const want = `grondig on http://127.0.0.1:${PORT}`;
+      expect(lines.length >= 1 && lines[0] === want, `the start line is "${lines[0] ?? 'missing'}", not "${want}"`);
+      return `the start line is "${lines[0]!}"`;
+    });
+
     await row('2', `SQL-BASICS-01 pretest: a write item solved, then a predict item answered after Show answer, continues to the reading`, async () => {
       expect(servedPretest.length === 2 && servedPretest[0] === q1 && q2 !== basics.pretest_item_ids[1], 'the pretest is not the first write item, then a predict item');
       await page.goto(`${BASE}/#/lesson/SQL-BASICS-01`);
@@ -674,8 +805,8 @@ async function main(): Promise<number> {
       await page.getByText('Item 1 of 4.').waitFor();
       await page.locator('.cm-content').waitFor();
       expect(squash(await editorText(page)) === squash(prefix), 'the editor does not open with the stage 1 prefix');
-      const style = await page.locator('.cm-locked').first().evaluate((el) => ({ color: getComputedStyle(el).color, background: getComputedStyle(el).backgroundColor }));
-      expect(style.color === LOCKED_GREY, `the prefix is ${style.color}, not the grey ${LOCKED_GREY}`);
+      const style = await page.locator('.cm-locked').first().evaluate((el, grey) => { const probe = document.body.appendChild(document.createElement('span')); probe.style.color = grey; const expected = getComputedStyle(probe).color; probe.remove(); return { color: getComputedStyle(el).color, background: getComputedStyle(el).backgroundColor, expected, theme: document.documentElement.dataset.theme ?? 'none' }; }, LOCKED_GREY);
+      expect(style.color === style.expected, `the prefix is ${style.color}, not the ${style.theme} theme's grey ${style.expected} (${LOCKED_GREY})`);
       await page.locator('.cm-content').click();
       await page.keyboard.press('Control+End');
       for (let i = 0; i < prefix.length + 5; i++) await page.keyboard.press('Backspace');
@@ -1090,7 +1221,7 @@ async function main(): Promise<number> {
       server = await startServer(ROOT, logs1b, { clock: true });
       const status1b = (await getJson<Status>('/api/status')).body;
       expect(!status1b.degraded, `the server started in setup mode (failing: ${status1b.checks.filter((c) => !c.ok).map((c) => c.name).join(', ')})`);
-      expect(!server.output.join('').includes('aydinlearns: replay:'), 'the startup replay warned about the seeded history');
+      expect(!server.output.join('').includes('grondig: replay:'), 'the startup replay warned about the seeded history');
       expect((await attempts(logs1b)).length === h.attempts && (await events(logs1b)).length === h.events, 'the start wrote records: the seeded history left something to recover');
       const plan = (await getJson<TodayView>('/api/today?section=sql')).body.plan;
       expect(plan.steps.map((s) => s.kind).join() === 'reviews,opener,new_concept,mixed,daily_case,retest', `the plan's steps are ${plan.steps.map((s) => s.kind).join(', ')}`);
@@ -1155,7 +1286,7 @@ async function main(): Promise<number> {
       const after = [await text('/api/curriculum'), await text('/api/today?section=sql')];
       expect(after[0] === before[0], '/api/curriculum answers differently after the restart');
       expect(after[1] === before[1], `/api/today answers differently after the restart: ${before[1].length} bytes, then ${after[1].length}`);
-      expect(!server.output.join('').includes('aydinlearns: replay:'), 'the restart\'s replay warned');
+      expect(!server.output.join('').includes('grondig: replay:'), 'the restart\'s replay warned');
       const now = [(await attempts(logs1b)).length, (await events(logs1b)).length];
       expect(now.join() === written.join(), `the start wrote ${now[0]! - written[0]!} records and ${now[1]! - written[1]!} events: the stop left something to recover`);
       // The held serving reaches the new server, and the session goes on.
@@ -1311,7 +1442,7 @@ async function main(): Promise<number> {
 
     await row('D', 'a level 1 drill stopped by its time limit: the clock passes the limit (page and server, as a laptop that slept), "Time is up.", every item closes with run_end at the limit, one rated block_close; the history lists the run', async () => {
       expect(server && browser, 'no server or browser for the 1b rows');
-      const ctx = await browser!.newContext();
+      const ctx = await themed(await browser!.newContext());
       await ctx.clock.install();
       const page = await ctx.newPage();
       page.setDefaultTimeout(15_000);
@@ -1514,6 +1645,7 @@ async function main(): Promise<number> {
       const logged = async (instance: string) => (await attempts2b()).filter((r) => r.record === 'attempt' && r.item_instance_id === instance);
       await page2b.getByRole('heading', { name: 'Question 1 of 20', level: 2 }).waitFor();
       await shot(page2b, 'ga4-run-question');
+      runQuestionMoles = await page2b.locator('main img.mascot').count();
       await answerRunQuestion(page2b, 0, true);
       await waitFor('the first answer', async () => (await logged(first)).length === 1);
       await answerRunQuestion(page2b, 1, true);            // the changed answer: a mini drill logs it as a new attempt, the last one counts
@@ -2655,11 +2787,11 @@ async function main(): Promise<number> {
         return 'G-GA4-CERT shows its named-concepts line at "0 of 12" with nothing practised';
       });
 
-      await row('5a-5', 'Settings shows version 0.8.1', async () => {
+      await row('5a-5', 'Settings shows version 0.9.1', async () => {
         await p.goto(`${BASE}/#/setup`);
         await p.getByRole('heading', { name: 'Settings and setup', level: 1 }).waitFor();
-        await p.getByText('Version 0.8.1', { exact: true }).waitFor();
-        return 'Settings and setup shows "Version 0.8.1"';
+        await p.getByText('Version 0.9.1', { exact: true }).waitFor();
+        return 'Settings and setup shows "Version 0.9.1"';
       });
 
       await row('5a-3', 'an A/B SQL item passes with its reference query', async () => {
@@ -4733,6 +4865,347 @@ async function main(): Promise<number> {
         const line = (await resultTable(p).innerText()).trim();
         expect(!/^Your result: 0 rows/.test(line), `subscription_events returned "${line}"`);
         return `the picker lists ledgerloop and ledgerloop_raw under Fictional companies; the raw schema's panel shows "This table may hold errors."; a query on subscription_events in ledgerloop ran ("${line}")`;
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server!);
+      server = null;
+    }
+
+    // ---- sprint 9 Part 1 rows (Task F1): SQL level 7 (BigQuery dialect and GA4 export), fixed_choice items, the level 7 drill, the opener, the explorer's GA4 export ----
+    // Rows 9a-1 to 9a-8 run after the 8a rows, on a server of their own over an empty logs folder with the fake tutor model (9a-5 needs a tutor that could open).
+    // Keys, truth values and options are read in this process and only typed or counted; a failing row's message names IDs only.
+    {
+      const dir = join(tmp, 'logs-9a');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir, { env: { AYDINLEARNS_TUTOR_PROVIDER: 'fake' } });
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      const L7 = curriculum.concepts.filter((c) => c.level === 7).sort((a, b) => a.id.localeCompare(b.id));
+      const titleOf = (id: string): string => curriculum.concepts.find((c) => c.id === id)?.title ?? id;
+      const BQ = 'SQL-BQ-01';
+      const MAIL_OPENER = 'CASE-MAIL-L7';
+      const stripBtn9 = (id: string) => p.getByRole('navigation', { name: 'Case steps' }).locator(`button[data-step-button="${id}"]`);
+      const step9 = (id: string) => p.locator(`[data-step="${id}"]`);
+      type FixItem = SqlItem & { starter_sql: string; starter_error_id: string; output_contract: { columns: { name: string }[] } };
+      const bqItems = async (): Promise<FixItem[]> => {
+        const names = (await readdir(join(ROOT, 'content/sql/items'))).filter((n) => n.startsWith(`EX-${BQ}-`) && n.endsWith('.json')).sort();
+        return Promise.all(names.map((n) => readJson<FixItem>(join(ROOT, 'content/sql/items', n))));
+      };
+      const feedback9 = await readJson<Record<string, { assumed: string; why: string; model: string }>>(join(ROOT, 'content/sql/error-feedback.json'));
+      const shownText9 = (t: string) => squash(t.replace(/`/g, ''));
+      /** The grade's diagnosis: the error ID the screen names, and the first paragraph. */
+      const diagnosisOf = async () => {
+        const grade = p.locator('section.grade');
+        await grade.locator('.diagnosis p.muted').waitFor({ timeout: 30_000 });
+        return { id: (await grade.locator('.diagnosis p.muted').innerText()).trim(), first: squash(await grade.locator('.diagnosis p').first().innerText()) };
+      };
+
+      await row('9a-1', 'the SQL map shows level 7 with its four concepts (SQL-BQ-01, SQL-CRAFT-01 to -03) and no "Coming later" note, nothing locked or disabled; a SQL-BQ-01 lesson opens and a pretest item is graded and logged', async () => {
+        expect(L7.length === 4 && L7.some((c) => c.id === BQ), `the curriculum has ${L7.length} level 7 concepts`);
+        await p.goto(`${BASE}/#/map`);
+        await p.getByRole('heading', { name: 'SQL map', level: 1 }).waitFor();
+        const level7 = p.locator('.level').filter({ has: p.locator('h2', { hasText: /^Level 7:/ }) });
+        await level7.waitFor();
+        const text = await level7.innerText();
+        const missing = L7.filter((c) => !text.includes(c.title)).map((c) => c.id);
+        expect(missing.length === 0, `level 7 on the map lacks the titles of ${missing.join(', ')}`);
+        expect(!/coming later/i.test(text), 'level 7 on the map carries a "Coming later" note');
+        const links = await level7.locator('a[href^="#/lesson/SQL-"]').evaluateAll((els) => els.map((a) => a.getAttribute('href') ?? ''));
+        expect(JSON.stringify([...links].sort()) === JSON.stringify(L7.map((c) => `#/lesson/${c.id}`)), `level 7 has ${links.length} lesson links`);
+        const mapText = await p.locator('main').innerText();
+        const disabled = await p.locator('main [disabled], main [aria-disabled="true"]').count();
+        expect(!/\b(un)?lock(ed|s)?\b/i.test(mapText) && disabled === 0, 'something on the map is locked or disabled');
+
+        const lesson = await readJson<Lesson>(join(ROOT, `content/sql/lessons/${BQ}.json`));
+        await p.goto(`${BASE}/#/lesson/${BQ}`);
+        await p.getByRole('heading', { name: titleOf(BQ), level: 1, exact: true }).waitFor();
+        await p.getByRole('navigation', { name: 'Lesson steps' }).waitFor();
+        await p.getByRole('button', { name: 'Start the pretest' }).click();
+        await p.getByText('Question 1 of 2.').waitFor();
+        await p.locator('.cm-content').waitFor();
+        await replaceSql(p, NOT_IT);
+        await submit(p);
+        await p.locator('section.grade h3').first().waitFor({ timeout: 30_000 });
+        const att = await waitFor('the pretest attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === lesson.pretest_item_ids[0] && r.phase === 'pretest'));
+        return `level 7 on the map lists ${L7.map((c) => c.id).join(', ')} by title, each a lesson link, with no "Coming later" note and nothing locked or disabled; ${BQ} opened and its pretest item ${lesson.pretest_item_ids[0]} was graded and logged (phase ${String(att.phase)})`;
+      });
+
+      await row('9a-2', 'a SQL-BQ-01 write item passes with its reference; event_params returned where a value is asked fails with ERR-OUT-02 and the page shows no error', async () => {
+        const items = await bqItems();
+        const write = items.find((it) => it.kind === 'write' && it.use === 'pool' && keys.has(it.id));
+        expect(write !== undefined, `${BQ} has no pool write item with a key`);
+        const id = write.id;
+        await openItem(p, id);
+        await replaceSql(p, keys.get(id)!.reference_sql);
+        await submit(p);
+        await outcome(p, 'Correct');
+        const pass = await waitFor(`${id}'s attempt`, async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === id));
+        expect(pass.outcome === 'pass', `${id}'s attempt is logged as ${String(pass.outcome)}, not pass`);
+        // Every output column of the item returns the whole event_params list: the right number of columns with the wrong type.
+        const wrong = `SELECT ${write.output_contract.columns.map((c) => `event_params AS ${c.name}`).join(', ')} FROM events LIMIT 5`;
+        const errorsBefore = pageErrors;
+        await openItem(p, id);
+        await replaceSql(p, wrong);
+        await submit(p);
+        await outcome(p, 'Not yet');
+        const d = await diagnosisOf();
+        expect(d.id === 'ERR-OUT-02', `${id}: the diagnosis shown is ${d.id}, not ERR-OUT-02`);
+        expect(d.first.includes(shownText9(feedback9['ERR-OUT-02']!.assumed).slice(0, 40)), `${id}: the grade does not show ERR-OUT-02's mistake`);
+        expect((await p.locator('p[role="alert"]').count()) === 0 && pageErrors === errorsBefore, `${id}: the page shows an error`);
+        const failed = await waitFor('the failed attempt', async () => (await attempts(dir)).filter((r) => r.record === 'attempt' && r.item_id === id && r.outcome === 'fail').at(-1));
+        expect((failed.error_ids as string[] | undefined)?.includes('ERR-OUT-02'), `${id}: the failed attempt does not log ERR-OUT-02`);
+        return `${id} passed with its reference (logged as a pass); a query returning event_params in each of its ${write.output_contract.columns.length} columns graded Not yet with ERR-OUT-02's mistake on the grade screen, logged ERR-OUT-02, and the page showed no error`;
+      });
+
+      await row('9a-3', 'the ERR-LOG-52 fix item (starter counts sessions by ga_session_id alone) fails as it stands with ERR-LOG-52\'s mistake; the ERR-SYN-09 fix item shows ERR-SYN-09\'s feedback', async () => {
+        const items = await bqItems();
+        const byError = (e: string) => items.filter((it) => it.kind === 'fix' && it.use === 'pool' && it.starter_error_id === e).map((it) => it.id);
+        const log = byError('ERR-LOG-52');
+        const syn = byError('ERR-SYN-09');
+        expect(log.length > 0 && syn.length > 0, `${BQ} fix items by starter error: ERR-LOG-52 ${log.join(',') || 'none'}, ERR-SYN-09 ${syn.join(',') || 'none'}`);
+        const named: string[] = [];
+        const check = async (id: string, err: string) => {
+          const it = items.find((x) => x.id === id)!;
+          await openItem(p, id);
+          await waitFor('the starter in the editor', async () => squash(await editorText(p)) === squash(it.starter_sql));
+          await submit(p);
+          const d = await diagnosisOf();
+          expect(d.id === err, `${id}: the starter's diagnosis shown is ${d.id}, not ${err}`);
+          expect(d.first.includes(shownText9(feedback9[err]!.assumed).slice(0, 40)), `${id}: the grade does not show ${err}'s mistake`);
+          const failed = await waitFor('the failed attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === id && r.outcome !== 'pass'));
+          expect((failed.error_ids as string[] | undefined)?.includes(err), `${id}: the failed attempt does not log ${err}`);
+          named.push(`${id} (${err})`);
+        };
+        await check(log[0]!, 'ERR-LOG-52');
+        await check(syn[0]!, 'ERR-SYN-09');
+        return `${named.join(' and ')}: each starter, submitted as it stands, showed its error ID with the catalogue's mistake text and logged it${log[0] !== 'EX-SQL-BQ-01-E2-31' || syn[0] !== 'EX-SQL-BQ-01-E2-33' ? ' (the IDs differ from the brief\'s E2-31 and E2-33)' : ''}`;
+      });
+
+      await row('9a-4', 'a fixed_choice item shows its options with BigQuery code blocks, takes an answer and shows its explanation after it', async () => {
+        const items = await bqItems();
+        const fixed = items.filter((it) => (it.kind as string) === 'fixed_choice').sort((a, b) => a.id.localeCompare(b.id));
+        expect(fixed.length === 6, `${BQ} has ${fixed.length} fixed_choice items, not six`);
+        let pick: { id: string; options: number } | null = null;
+        for (const it of fixed) {
+          const opts = (it as unknown as { options?: { code?: { lang: string } }[] }).options ?? [];
+          if (opts.length > 0 && opts.some((o) => o.code?.lang === 'bigquery')) { pick = { id: it.id, options: opts.length }; break; }
+        }
+        expect(pick !== null, `no ${BQ} fixed_choice item has options with BigQuery code`);
+        await p.goto(`${BASE}/#/map`);
+        await p.getByRole('heading', { name: 'SQL map', level: 1 }).waitFor();
+        await p.goto(`${BASE}/#/item/${pick.id}`);
+        const panel = p.locator('section.choice');
+        await panel.waitFor();
+        await panel.locator('fieldset input[type="radio"]').first().waitFor();
+        expect((await panel.locator('fieldset input[type="radio"]').count()) === pick.options, `${pick.id}: the options on screen are not ${pick.options}`);
+        const blocks = await panel.locator('fieldset .option-code').count();
+        expect(blocks >= 1, `${pick.id}: no option shows a code block`);
+        const captions = await panel.locator('fieldset .option-statement > .muted').allInnerTexts();
+        expect(captions.some((c) => c.trim() === 'BigQuery'), `${pick.id}: no option code block is captioned BigQuery`);
+        await panel.locator('fieldset input[type="radio"]').first().check();
+        await panel.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+        const grade = panel.locator('.grade');
+        await grade.locator('h3').filter({ hasText: /^(Right\.|Not quite\.)$/ }).waitFor();
+        const explanation = (await grade.locator('p').first().innerText()).trim();
+        expect(explanation.length > 0, `${pick.id}: no explanation after the answer`);
+        const att = await waitFor('the choice attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === pick!.id));
+        expect(att.item_kind === 'fixed_choice', `${pick.id}: the attempt is logged as item_kind ${String(att.item_kind)}`);
+        return `${pick.id} (fixed_choice): ${pick.options} options on screen with ${blocks} code blocks, one captioned BigQuery; an answer with confidence 3 graded and showed its explanation; the attempt is logged as item_kind fixed_choice`;
+      });
+
+      await row('9a-5', 'the level 7 drill starts with 10 questions; hints, show answer and the tutor wait for the review and are there after "End the drill and see the review"', async () => {
+        await p.goto(`${BASE}/#/drill`);
+        await p.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/start') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'Start drill: level 7' }).click();
+        const started = await startedP;
+        expect(started.status() === 200, `the level 7 drill start answered ${started.status()}`);
+        const run = (await started.json()) as DrillStarted;
+        expect(run.kind === 'level' && run.questions === 10 && run.servings.length === 10, `the level 7 run has ${run.servings.length} servings (${run.questions} questions)`);
+        await p.getByRole('heading', { name: 'Level 7 drill', level: 1, exact: true }).waitFor();
+        const nav = p.getByRole('navigation', { name: 'Questions' });
+        expect((await nav.getByRole('button', { name: /^Question \d+(:|$)/ }).count()) === 10, 'the strip does not hold ten question buttons');
+        await nav.getByRole('button', { name: 'Question 10', exact: true }).waitFor();
+        await p.getByText('Help opens in the end-of-run review.', { exact: true }).waitFor();
+        await p.locator('[data-question="0"]').waitFor();
+        expect((await p.getByRole('button', { name: /^Hint \d/ }).count()) === 0 && (await p.getByRole('button', { name: 'Show answer' }).count()) === 0
+          && (await p.getByRole('button', { name: /^Show part of the answer/ }).count()) === 0, 'a hint or show-answer control is on screen during the run');
+        const wait = p.getByRole('button', { name: 'The tutor waits for the review' });
+        await wait.waitFor();
+        expect(await wait.isDisabled(), 'the tutor button is enabled during the run');
+        const tutorPanel = p.getByRole('complementary', { name: 'Tutor' });
+        await waitFor('the tutor panel to open on Alt+T', async () => {
+          await p.locator('main h1').focus();
+          await p.keyboard.press('Alt+t');
+          return await tutorPanel.waitFor({ timeout: 700 }).then(() => true, () => false);
+        });
+        await tutorPanel.getByText('The tutor waits for the review.', { exact: true }).waitFor();
+        expect((await tutorPanel.getByLabel('Your question').count()) === 0, 'the tutor panel takes a question during the run');
+        await p.keyboard.press('Alt+t');
+        await tutorPanel.waitFor({ state: 'detached' });
+
+        const endedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/end') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'End the drill and see the review' }).click();
+        await endedP;
+        await p.getByRole('heading', { name: 'Level 7 drill: review', level: 1 }).waitFor();
+        await p.locator('[data-question="0"]').getByText('Loading the exercise...').waitFor({ state: 'detached' });
+        // Question 1 may be an editor item or a choice item: help is there on whichever the run drew first.
+        await p.getByRole('button', { name: 'Show answer' }).first().waitFor();
+        await p.getByRole('button', { name: 'Ask the tutor' }).waitFor();
+        return 'the level 7 drill started with 10 questions (ten question buttons); during the run the help line showed, no hint or show-answer control was on screen and the tutor button was disabled with Alt+T showing its closed line and no question box; after the end, Show answer is on the review and the tutor button is open';
+      });
+
+      await row('9a-6', `${MAIL_OPENER} opens at CP1 with nothing locked, and its CP3 grades Correct after CP1 and CP2 are answered`, async () => {
+        const opener = await casePublic(MAIL_OPENER);
+        const cp3Item = opener.checkpoints.find((c) => c.kind === 'CP3')?.item_id;
+        expect(cp3Item !== undefined && keys.has(cp3Item), `${MAIL_OPENER}: CP3 has no answer key`);
+        await p.goto(`${BASE}/#/opener/${MAIL_OPENER}?step=CP1`);
+        await p.locator('.case-status').waitFor();
+        await p.getByRole('heading', { name: opener.title, level: 1 }).waitFor();
+        await p.locator('button[data-step-button="CP1"][aria-current="step"]').waitFor();
+        const lockedOrDisabled = await p.getByRole('navigation', { name: 'Case steps' }).locator('[disabled], [aria-disabled="true"]').count();
+        const navText = await p.getByRole('navigation', { name: 'Case steps' }).innerText();
+        expect(lockedOrDisabled === 0 && !/\block(ed|s)?\b/i.test(navText), `${MAIL_OPENER}: a step is locked or disabled`);
+        const cp1 = step9('CP1');
+        try { await cp1.locator(`input[type="radio"][value="${await caseOid(MAIL_OPENER, 'CP1')}"]`).check(); }
+        catch { throw new Error(`${MAIL_OPENER} CP1: could not pick the option`); }
+        await cp1.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+        await cp1.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+        await stripBtn9('CP2').click();
+        const cp2 = step9('CP2');
+        await cp2.getByLabel('Your answer').fill(await caseTyped(MAIL_OPENER, 'CP2'));
+        await cp2.getByRole('button', { name: 'Check', exact: true }).click();
+        await cp2.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+        await cp2.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+        await stripBtn9('CP3').click();
+        const served = p.waitForResponse((r) => r.url().endsWith('/api/serve') && r.request().method() === 'POST');
+        await step9('CP3').locator('[data-serve="CP3"]').click();
+        const sv = (await (await served).json()) as Served;
+        expect(sv.phase === 'case' && sv.item_id === cp3Item, `${MAIL_OPENER}: CP3 was served in phase ${sv.phase} as ${sv.item_id}`);
+        await step9('CP3').locator('.cm-content').waitFor();
+        await replaceSql(p, keys.get(cp3Item!)!.reference_sql);
+        await submit(p);
+        await outcome(p, 'Correct');
+        const att = await waitFor('the CP3 attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === cp3Item));
+        expect(att.outcome === 'pass' && att.phase === 'case', `${cp3Item}'s attempt is logged as ${String(att.outcome)} in phase ${String(att.phase)}`);
+        return `${MAIL_OPENER} (level ${String(opener.level)}) opened with CP1 as the current step and no step locked or disabled; CP1 and CP2 were answered rightly; CP3 (${cp3Item}) was served in phase case, graded Correct and logged as a pass`;
+      });
+
+      await row('9a-7', 'the explorer lists Mailvora\'s "GA4 export (BigQuery shape)" (mailvora_ga4) with its events note; a query on events there runs and shows rows', async () => {
+        await p.goto(`${BASE}/#/explore`);
+        await p.getByRole('heading', { name: 'Dataset explorer', level: 1 }).waitFor();
+        await p.locator('[data-explore-editor] .cm-content').waitFor();
+        const companies = await p.locator('[data-dataset-picker] optgroup[label="Fictional companies"] option')
+          .evaluateAll((os) => os.map((o) => ({ value: (o as HTMLOptionElement).value, text: (o.textContent ?? '').trim(), disabled: (o as HTMLOptionElement).disabled })));
+        expect(companies.some((o) => o.value === 'mailvora_ga4' && o.text === 'GA4 export (BigQuery shape)' && !o.disabled), `the picker's companies: ${companies.map((o) => o.text).join(', ')}`);
+        const notes = (await getJson<ExploreView>('/api/explore')).body.notes;
+        const events = notes.find((n) => n.schema === 'mailvora_ga4' && n.table === 'events');
+        expect(events !== undefined && events.grain.trim().length > 0, 'the explorer view has no events note for mailvora_ga4');
+        await p.locator('[data-dataset-picker]').selectOption('mailvora_ga4');
+        const panel = p.locator('aside[aria-label="Tables"]');
+        await panel.waitFor();
+        await panel.locator('summary > code', { hasText: /^events$/ }).waitFor();
+        expect(squash((await panel.textContent()) ?? '').includes(squash(events.grain).slice(0, 40)), 'the Tables panel does not carry the events note');
+        await waitFor('the editor to start on mailvora_ga4', async () => /FROM \w+ LIMIT 10$/.test(squash(await editorText(p))));
+        await replaceSql(p, 'SELECT event_name, count(*) AS n FROM events GROUP BY event_name');
+        const ran = p.waitForResponse((r) => r.url().endsWith('/api/explore/run') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'Run', exact: true }).click();
+        const sent = (await ran).request().postDataJSON() as { schema?: unknown };
+        expect(sent.schema === 'mailvora_ga4', `the run was sent on ${String(sent.schema)}`);
+        await resultTable(p).waitFor();
+        expect((await p.locator('[data-explore-error]').count()) === 0, 'the run drew an error');
+        const line = (await resultTable(p).innerText()).trim();
+        expect(!/^Your result: 0 rows/.test(line), `events returned "${line}"`);
+        return `the picker lists "GA4 export (BigQuery shape)" (mailvora_ga4) under Fictional companies; its Tables panel lists events with its note; a query on events ran on mailvora_ga4 ("${line}")`;
+      });
+
+      await row('9a-8', 'a level 4 drill\'s first run serves items of all three difficulty bands (E1, E2 and E3 in its question IDs)', async () => {
+        await p.goto(`${BASE}/#/drill`);
+        await p.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/start') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'Start drill: level 4' }).click();
+        const started = await startedP;
+        expect(started.status() === 200, `the level 4 drill start answered ${started.status()}`);
+        const run = (await started.json()) as DrillStarted;
+        expect(run.kind === 'level' && run.level === 4 && run.servings.length > 0, `the level 4 run has ${run.servings.length} servings`);
+        const bands = new Set(run.servings.map((s) => /-E([123])-\d+$/.exec(s.item_id)?.[1]).filter((b): b is string => b !== undefined));
+        const counts = ['1', '2', '3'].map((b) => run.servings.filter((s) => new RegExp(`-E${b}-\\d+$`).test(s.item_id)).length);
+        expect(bands.size === 3, `the level 4 run's questions cover bands ${[...bands].sort().join(',') || 'none'} (E1/E2/E3 counts ${counts.join('/')}) of ${run.servings.length}`);
+        const endedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/end') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'End the drill and see the review' }).click();
+        await endedP;
+        return `the level 4 drill's first run served ${run.servings.length} questions with E1/E2/E3 counts ${counts.join('/')}`;
+      });
+
+      // ---- sprint 9 Part 2 (Task F3): the autocomplete popup under the dark tokens, and the mole ----
+      await row('9b-4', 'in dark, the editor\'s autocomplete popup takes its background and text from the dark tokens', async () => {
+        const items = await bqItems();
+        const id = items.find((it) => it.kind === 'write' && it.use === 'pool' && keys.has(it.id))?.id;
+        expect(id !== undefined, `${BQ} has no pool write item with a key`);
+        const ctx = await browser!.newContext();       // no init script, so AYDINLEARNS_SHOTS_THEME stays out of it
+        const q = await ctx.newPage();
+        q.setDefaultTimeout(15_000);
+        q.on('pageerror', () => { pageErrors++; });
+        try {
+          await openItem(q, id);
+          expect(await q.evaluate(() => document.documentElement.getAttribute('data-theme')) === 'dark', 'the page is not dark');
+          await q.locator('.cm-content').click();
+          await q.keyboard.press('Control+End');
+          await q.keyboard.type('SEL');
+          const popup = q.locator('.cm-tooltip-autocomplete');
+          await popup.waitFor({ timeout: 10_000 });
+          const tok = async (n: string) => q.evaluate((x) => getComputedStyle(document.documentElement).getPropertyValue(x).trim(), n);
+          const resolveColour = (v: string, prop: 'color' | 'backgroundColor') =>
+            q.evaluate(([val, pr]) => { const probe = document.body.appendChild(document.createElement('span')); (probe.style as unknown as Record<string, string>)[pr!] = val!; const out = getComputedStyle(probe)[pr as 'color']; probe.remove(); return out; }, [v, prop]);
+          const wantBg = await resolveColour(await tok('--popup-bg'), 'backgroundColor');
+          const wantFg = await resolveColour(await tok('--ink'), 'color');
+          const [bg, fg] = await popup.evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).color]);
+          expect(bg === wantBg, `the popup background is ${bg}, not the dark --popup-bg ${wantBg}`);
+          expect(fg === wantFg, `the popup text is ${fg}, not the dark --ink ${wantFg}`);
+          await q.keyboard.press('Escape');
+          return `the popup is ${bg} on ${fg}, the dark --popup-bg and --ink`;
+        } finally { await ctx.close(); }
+      });
+
+      await row('9b-6', 'the header, Today, a failed and a passed answer show the mole (alt empty, the pose file in src); no mole in a timed run\'s question view', async () => {
+        await p.goto(`${BASE}/#/`);
+        await p.getByRole('heading', { name: 'Today', level: 1 }).waitFor();
+        const mark = p.locator('.wordmark');
+        expect(await mark.locator('img.mascot').count() === 1 && await mark.locator('img.mascot').getAttribute('alt') === '', 'the wordmark has no one empty-alt mole');
+        expect((await mark.innerText()).trim() === 'Grondig', 'the wordmark text is not Grondig');
+        const head = p.locator('.today-head');
+        expect(await (async () => { const src = (await head.locator('img.mascot').getAttribute('src')) ?? ''; return src.startsWith('data:') ? src === `data:image/png;base64,${(await readFile(join(ROOT, 'web/src/assets/mascot/mole-calm.png'))).toString('base64')}` : src.includes('mole-calm'); })(), 'Today\'s mole is not the calm one');
+        expect((await head.innerText()).includes('Dig in when you are ready.'), 'Today lacks its greeting line');
+        const items = await bqItems();
+        const write = items.find((it) => it.kind === 'write' && it.use === 'pool' && keys.has(it.id));
+        expect(write !== undefined, `${BQ} has no pool write item with a key`);
+        // Vite inlines the small pose files as data URIs and fingerprints the larger ones, so a pose is matched by its file name or by its bytes.
+        const isPose = async (src: string, pose: string): Promise<boolean> => {
+          if (!src.startsWith('data:')) return src.includes(`mole-${pose}`);
+          const bytes = await readFile(join(ROOT, `web/src/assets/mascot/mole-${pose}.png`));
+          return src === `data:image/png;base64,${bytes.toString('base64')}`;
+        };
+        const mole = async (): Promise<string> => {
+          const img = p.locator('section.grade .grade-head img.mascot');
+          await img.waitFor();
+          expect(await img.getAttribute('alt') === '', 'the grade mole has an alt');
+          return (await img.getAttribute('src')) ?? '';
+        };
+        await openItem(p, write.id);
+        await replaceSql(p, 'SELECT 1 AS x');
+        await submit(p);
+        await outcome(p, 'Not yet');
+        expect(await isPose(await mole(), 'thinking'), 'a failed answer does not show the thinking mole');
+        await openItem(p, write.id);
+        await replaceSql(p, keys.get(write.id)!.reference_sql);
+        await submit(p);
+        await outcome(p, 'Correct');
+        expect(await isPose(await mole(), 'pleased'), 'a passed answer does not show the pleased mole');
+        expect(runQuestionMoles === 0, `a GA4 run question showed ${runQuestionMoles} moles in main (-1: row 2b-2 did not reach it)`);
+        return 'the wordmark holds one empty-alt mole beside "Grondig"; Today shows the calm mole and its line; a failed answer showed the thinking mole and a pass the pleased one; the GA4 run question had no mole';
       });
 
       await browser.close();

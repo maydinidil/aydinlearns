@@ -1,0 +1,108 @@
+{
+  "id": "EX-SQL-BQ-01-E3-41",
+  "version": 1,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "bigquery",
+    "unnest",
+    "value_slots",
+    "table_suffix",
+    "fixed_choice"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-05",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-bq-value-slots",
+  "template_params": {
+    "month": "2025-10"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "Mailvora's GA4 export sits in BigQuery as one table per day, named events_YYYYMMDD, in the dataset mailvora-web.analytics_254316. Which BigQuery query adds up the value parameter of October 2025's purchases, from whichever number slot holds it, and reads only October's daily tables?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o3e77360",
+      "text": "A cross join to the unnested list that adds up the double_value slot alone",
+      "misconception_id": "ERR-LOG-53",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT SUM(p.value.double_value) AS purchase_value\nFROM `mailvora-web.analytics_254316.events_*`\nCROSS JOIN UNNEST(event_params) AS p\nWHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'\n  AND event_name = 'purchase'\n  AND p.key = 'value'"
+      }
+    },
+    {
+      "oid": "o6870305",
+      "text": "A cross join to the unnested list, every number slot, a _TABLE_SUFFIX range",
+      "misconception_id": null,
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT SUM(COALESCE(p.value.int_value, p.value.float_value, p.value.double_value)) AS purchase_value\nFROM `mailvora-web.analytics_254316.events_*`\nCROSS JOIN UNNEST(event_params) AS p\nWHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'\n  AND event_name = 'purchase'\n  AND p.key = 'value'"
+      }
+    },
+    {
+      "oid": "oaae54fa",
+      "text": "A cross join to the unnested list, every number slot, a range on the event_date column",
+      "misconception_id": "MIS-SQL-BQ-01-01",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT SUM(COALESCE(p.value.int_value, p.value.float_value, p.value.double_value)) AS purchase_value\nFROM `mailvora-web.analytics_254316.events_*`\nCROSS JOIN UNNEST(event_params) AS p\nWHERE event_date BETWEEN '20251001' AND '20251031'\n  AND event_name = 'purchase'\n  AND p.key = 'value'"
+      }
+    },
+    {
+      "oid": "of80bf62",
+      "text": "An unnest that names each element with a column alias, every number slot, a _TABLE_SUFFIX range",
+      "misconception_id": "MIS-SQL-BQ-01-04",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT SUM(COALESCE(p.value.int_value, p.value.float_value, p.value.double_value)) AS purchase_value\nFROM `mailvora-web.analytics_254316.events_*`, unnest(event_params) AS t(p)\nWHERE _TABLE_SUFFIX BETWEEN '20251001' AND '20251031'\n  AND event_name = 'purchase'\n  AND p.key = 'value'"
+      }
+    }
+  ]
+}

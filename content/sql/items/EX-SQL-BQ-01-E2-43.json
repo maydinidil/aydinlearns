@@ -1,0 +1,103 @@
+{
+  "id": "EX-SQL-BQ-01-E2-43",
+  "version": 1,
+  "kind": "fixed_choice",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "bigquery",
+    "timestamp_micros",
+    "fixed_choice"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-bq-timestamp-micros",
+  "template_params": {
+    "day": "20251001"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "In BigQuery, event_timestamp holds microseconds since 1970, in UTC. Which query lists each purchase of 1 October 2025 with the moment it happened, as a TIMESTAMP?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o80f3638",
+      "text": "Read the number as microseconds",
+      "misconception_id": null,
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT TIMESTAMP_MICROS(event_timestamp) AS event_time\nFROM `mailvora-web.analytics_254316.events_20251001`\nWHERE event_name = 'purchase'"
+      }
+    },
+    {
+      "oid": "ofd72606",
+      "text": "Scale the number up a thousand times, then read it as microseconds",
+      "misconception_id": "ERR-LOG-54",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT TIMESTAMP_MICROS(event_timestamp * 1000) AS event_time\nFROM `mailvora-web.analytics_254316.events_20251001`\nWHERE event_name = 'purchase'"
+      }
+    },
+    {
+      "oid": "o4e5ee5c",
+      "text": "Use the make_timestamp function on the number",
+      "misconception_id": "MIS-SQL-BQ-01-04",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT make_timestamp(event_timestamp) AS event_time\nFROM `mailvora-web.analytics_254316.events_20251001`\nWHERE event_name = 'purchase'"
+      }
+    },
+    {
+      "oid": "o1696357",
+      "text": "Parse event_date, the day of the event",
+      "misconception_id": "MIS-SQL-BQ-01-05",
+      "code": {
+        "lang": "bigquery",
+        "sql": "SELECT PARSE_DATE('%Y%m%d', event_date) AS event_time\nFROM `mailvora-web.analytics_254316.events_20251001`\nWHERE event_name = 'purchase'"
+      }
+    }
+  ]
+}

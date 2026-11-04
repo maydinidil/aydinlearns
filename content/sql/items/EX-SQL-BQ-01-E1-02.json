@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-BQ-01-E1-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-07",
+    "ga4_export",
+    "event_params",
+    "sessions",
+    "session_start"
+  ],
+  "level": 7,
+  "source_ids": [
+    "01:SQL-BQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-11-03",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-BQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-BQ-01"
+  ],
+  "template_id": "T-BQ-01-sessions-per-day",
+  "template_params": {
+    "from": "20251101",
+    "to": "20251107"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora_ga4",
+  "edge_schema": "mailvora_edge_ga4",
+  "prompt": "How many sessions started on each day from 1 to 7 November 2025, by event_date? A session is one user_pseudo_id with one ga_session_id, and each session has one session_start event: count the sessions from those events. Leave out session_start events whose user_pseudo_id or ga_session_id is missing (visitors who denied consent). Return event_date, as the text the export stores, and sessions. Return one row for each day with a session start; a day with none has no row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per event_date from 1 to 7 November 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "event_date",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "event_date"
+    ],
+    "timeout_ms": 10000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read each session_start's ga_session_id out of its parameters.",
+    "A session is the pair of user_pseudo_id and ga_session_id, so count distinct pairs, not distinct IDs."
+  ],
+  "subgoals": [
+    {
+      "from": 82,
+      "to": 217,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 220,
+      "to": 231,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 234,
+      "to": 321,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 324,
+      "to": 426,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 427,
+      "to": 438,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 439,
+      "to": 458,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "A pair of visitor and session ID names one session; ga_session_id alone is the start second, which two visitors can share."
+}

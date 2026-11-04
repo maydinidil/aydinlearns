@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-BQ-01-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT device.category AS device_category, COUNT(*) AS sign_ups\nFROM events\nWHERE event_name = 'sign_up'\n  AND event_date BETWEEN '20251001' AND '20251031'\nGROUP BY device.category",
+  "alternatives": [
+    "SELECT device_category, COUNT(*) AS sign_ups\nFROM (\n  -- one row per sign_up from 1 to 31 October 2025\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '20251001' AND '20251031'\n) AS s\nGROUP BY device_category",
+    "SELECT device['category'] AS device_category, COUNT(*) AS sign_ups\nFROM events\nWHERE event_name = 'sign_up'\n  AND event_date >= '20251001'\n  AND event_date <= '20251031'\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT device_category, COUNT(*) AS sign_ups\nFROM (\n  -- one row per sign_up from 1 to 31 October 2025\n  SELECT device.category AS device_category\n  FROM events\n  WHERE event_name = 'sign_up'\n    AND event_date BETWEEN '20251001' AND '20251031'\n) AS s\nGROUP BY device_category",
+    "tradeoff": "A derived table that names the column first lets GROUP BY use the plain name, at the cost of one more level."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT device.category AS device_category, COUNT(user_pseudo_id) AS sign_ups FROM events WHERE event_name = 'sign_up' AND event_date BETWEEN '20251001' AND '20251031' GROUP BY device.category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-55",
+      "sql": "SELECT device.category AS device_category, COUNT(*) AS sign_ups FROM events WHERE event_name = 'sign_up' AND event_date BETWEEN '2025-10-01' AND '2025-10-31' GROUP BY device.category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-02",
+      "sql": "SELECT device AS device_category, COUNT(*) AS sign_ups FROM events WHERE event_name = 'sign_up' AND event_date BETWEEN '20251001' AND '20251031' GROUP BY device"
+    }
+  ],
+  "hint3_partial": "SELECT ___ AS device_category, COUNT(*) AS sign_ups\nFROM events\nWHERE event_name = 'sign_up'\n  AND event_date BETWEEN ___ AND ___\nGROUP BY device.category",
+  "solver": {
+    "prompt_hash": "9b61f0837f8efea1",
+    "schema_version": "10c7d925a66b",
+    "dataset_version": "1b757a612f599aa3",
+    "grader_version": "9a.1",
+    "query": "SELECT device.category AS device_category, COUNT(*) AS sign_ups\r\nFROM events\r\nWHERE event_name = 'sign_up' AND event_date BETWEEN '20251001' AND '20251031'\r\nGROUP BY 1\r\n",
+    "at": "2026-11-03T19:01:24.708Z"
+  }
+}
